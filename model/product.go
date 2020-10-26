@@ -11,10 +11,10 @@ type ProductInfo struct {
 }
 
 type Product struct {
-	ProductID    bson.ObjectId `json:"product_id" bson:"_id,omitempty"`
-	ProductName  string        `json:"product_name" bson:"product_name"`
-	ProductPrice string        `json:"product_price" bson:"product_price"`
+	ProductID    bson.ObjectId `json:"productId" bson:"_id,omitempty"`
+	ProductName  string        `json:"productName" bson:"productName"`
+	ProductPrice string        `json:"productPrice" bson:"productPrice"`
 	Amount       int           `json:"amount" bson:"amount"`
-	CreatedTime  time.Time     `json:"-" bson:"created_time"`
-	UpdatedTime  time.Time     `json:"updated_time" bson:"updated_time"`
+	CreatedTime  time.Time     `json:"-" bson:"createdTime"`
+	UpdatedTime  time.Time     `json:"updatedTime" bson:"updatedTime"`
 }

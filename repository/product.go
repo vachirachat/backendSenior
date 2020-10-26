@@ -23,7 +23,7 @@ type ProductRepositoryMongo struct {
 }
 
 const (
-	DBName     = "myshopShop"
+	DBName     = "smalldogShop"
 	collection = "product"
 )
 
