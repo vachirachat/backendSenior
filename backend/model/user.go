@@ -5,9 +5,9 @@ type UserInfo struct {
 }
 
 type User struct {
-	Name         string    `json:"name" bson:"name"`
-	Room         []string  `json:"room" bson:"room"`
-	RoomAdmit    []string  `json:"roomAdmit" bson:"roomAdmit"`
-	UserID       string    `json:"userID" bson:"userID"`
-	Notification []Message `json:"notification" bson:"notification`
+	Name     string   `json:"name" bson:"name"`
+	Email    string   `json:"email" bson:"email"`
+	Password string   `json:"password" bson:"password"`
+	UserID   string   `json:"userID" bson:"userID"`
+	Room     []string `json:"room" bson:"room"`
 }
