@@ -9,16 +9,6 @@ import (
 )
 
 func NewRouteProduct(route *gin.Engine, connectionDB *mgo.Session) {
-	productRepository := repository.ProductRepositoryMongo{
-		ConnectionDB: connectionDB,
-	}
-	productAPI := api.ProductAPI{
-		ProductRepository: &productRepository,
-	}
-	route.GET("api/v1/product", productAPI.ProductListHandler)
-	route.POST("api/v1/product", productAPI.AddProductHandeler)
-	route.PUT("api/v1/product/:product_id", productAPI.EditProducNametHandler)
-	route.DELETE("api/v1/product/:product_id", productAPI.DeleteProductByIDHandler)
 
 	userRepository := repository.UserRepositoryMongo{
 		ConnectionDB: connectionDB,
@@ -30,4 +20,10 @@ func NewRouteProduct(route *gin.Engine, connectionDB *mgo.Session) {
 	route.POST("api/v1/user", userAPI.AddUserHandeler)
 	route.PUT("api/v1/user/:user_id", userAPI.EditUserNameHandler)
 	route.DELETE("api/v1/user/:user_id", userAPI.DeleteUserByIDHandler)
+
+	//Token
+	route.GET("api/v1/token", userAPI.UserTokenListHandler)
+	route.GET("login", userAPI.LoginHandle)
+	route.POST("signUp", userAPI.AddUserSignUpHandeler)
+	//	route.GET("signUp", userAPI.signUp)
 }
