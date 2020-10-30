@@ -119,7 +119,7 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-
+	//Fix Check token
 	var usertoken model.UserToken
 	usertoken, err = api.UserRepository.GetUserTokenById(user.Username)
 
@@ -127,7 +127,7 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 	if err != nil {
 		// if isexpied ?? implement
 		log.Println("Pass IN if news token")
-		usertoken.UserID = user.Username
+		usertoken.Email = user.Username
 		usertoken.Token = ksuid.New().String()
 		err = api.UserRepository.AddToken(usertoken)
 		if err != nil {
@@ -136,21 +136,33 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 			return
 		}
 	}
-	sessionCookie := &http.Cookie{Name: "cookie-login", Value: usertoken.Token, HttpOnly: false, Expires: time.Now().Add(30 * time.Minute), Path: "/login"}
+	sessionCookie := &http.Cookie{Name: "SESSION_ID", Value: usertoken.Token, HttpOnly: false, Expires: time.Now().Add(30 * time.Minute), Path: "/"}
 	http.SetCookie(context.Writer, sessionCookie)
 	context.JSON(http.StatusOK, user)
 }
 
 //signUp
 func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
-	var user model.UserLogin
+	var user model.User
+	var userSecret model.UserLogin
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
 		log.Println("error AddUserLoginHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	err = api.UserRepository.AddUserLogin(user)
+
+	userSecret.Password = user.Password
+	userSecret.Username = user.Email
+	log.Println(userSecret)
+	err = api.UserRepository.AddUser(user)
+	if err != nil {
+		log.Println("error AddUserLoginHandeler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	err = api.UserRepository.AddUserSecrect(userSecret)
 	if err != nil {
 		log.Println("error AddUserLoginHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})

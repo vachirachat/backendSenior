@@ -9,15 +9,15 @@ type UserTokenInfo struct {
 }
 
 type User struct {
-	UserID       string    `json:"userID" bson:"_id"`
-	Name         string    `json:"name" bson:"name"`
-	Room         []string  `json:"room" bson:"room"`
-	RoomAdmit    []string  `json:"roomAdmit" bson:"roomAdmit"`
-	Notification []Message `json:"notification" bson:"notification`
+	Name     string   `json:"name" bson:"name"`
+	Email    string   `json:"email" bson:"email"`
+	Password string   `json:"password" bson:"password"`
+	UserID   string   `json:"userID" bson:"userID"`
+	Room     []string `json:"room" bson:"room"`
 }
 
 type UserToken struct {
-	UserID      string `json:"userID" bson:"_id"`
+	Email       string `json:"email" bson:"email"`
 	Token       string `json:"Token" bson:"Token"`
 	TimeExpired string `json:"TimeExpired" bson:"TimeExpired"`
 }
@@ -25,4 +25,5 @@ type UserToken struct {
 type UserLogin struct {
 	Username string `json:"username" bson:"username"`
 	Password string `json:"password" bson:"password"`
+	isAdmin  bool   `json:"isadmin" bson:"isadmin"`
 }
