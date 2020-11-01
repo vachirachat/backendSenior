@@ -15,6 +15,16 @@ type UserRepository interface {
 	AddUser(user model.User) error
 	EditUserName(userID string, user model.User) error
 	DeleteUserByID(userID string) error
+
+	//login
+	GetUserTokenById(email string) (model.UserToken, error)
+	GetUserIdByToken(token string) (model.UserToken, error)
+	GetAllUserToken() ([]model.UserToken, error)
+
+	AddToken(UserToken model.UserToken) error
+	GetUserLogin(userLogin model.UserLogin) (model.UserLogin, error)
+	//SignUp
+	AddUserSecrect(user model.UserLogin) error
 }
 
 type UserRepositoryMongo struct {
@@ -22,8 +32,10 @@ type UserRepositoryMongo struct {
 }
 
 const (
-	DBNameUser     = "User"
-	collectionUser = "UserData"
+	DBNameUser       = "User"
+	collectionUser   = "UserData"
+	collectionToken  = "UserToken"
+	collectionSecret = "UserSecret"
 )
 
 func (userMongo UserRepositoryMongo) GetAllUser() ([]model.User, error) {
@@ -56,4 +68,52 @@ func (userMongo UserRepositoryMongo) EditUserName(userID string, user model.User
 func (userMongo UserRepositoryMongo) DeleteUserByID(userID string) error {
 	objectID := bson.ObjectIdHex(userID)
 	return userMongo.ConnectionDB.DB(DBNameUser).C(collectionUser).RemoveId(objectID)
+}
+
+//  Token
+func (userMongo UserRepositoryMongo) AddToken(UserToken model.UserToken) error {
+	return userMongo.ConnectionDB.DB(DBNameUser).C(collectionToken).Insert(UserToken)
+}
+
+// Implemet more
+// func (userMongo UserRepositoryMongo) EditToken(UserToken model.UserToken) error {
+// 	newToken := bson.M{"$set": bson.M{"Token": UserToken.Token}}
+// 	return userMongo.ConnectionDB.DB(DBNameUser).C(collectionToken).Update(bson.M{"Email": Email}, newToken)
+// }
+
+func (userMongo UserRepositoryMongo) GetUserTokenById(Email string) (model.UserToken, error) {
+	var userToken model.UserToken
+	//objectID := bson.ObjectIdHex(userID)
+	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionToken).Find(bson.M{"Email": Email}).One(&userToken)
+	return userToken, err
+}
+
+func (userMongo UserRepositoryMongo) GetUserIdByToken(token string) (model.UserToken, error) {
+	var userToken model.UserToken
+	//objectID := bson.ObjectIdHex(userID)
+	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionToken).Find(bson.M{"Token": token}).One(&userToken)
+	return userToken, err
+}
+
+func (userMongo UserRepositoryMongo) GetAllUserToken() ([]model.UserToken, error) {
+	var UsersToken []model.UserToken
+	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionToken).Find(nil).All(&UsersToken)
+	return UsersToken, err
+}
+
+func (userMongo UserRepositoryMongo) GetUserLogin(userLogin model.UserLogin) (model.UserLogin, error) {
+	var user model.UserLogin
+	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Find(bson.M{"username": userLogin.Username, "password": userLogin.Password}).One(&user)
+	return user, err
+}
+
+// user secrect
+func (userMongo UserRepositoryMongo) AddUserSecrect(user model.UserLogin) error {
+	return userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Insert(user)
+}
+
+// oauth Add token
+func AddToken(UserToken model.UserToken) error {
+	var ConnectionDB *mgo.Session
+	return ConnectionDB.DB(DBNameUser).C(collectionToken).Insert(UserToken)
 }
