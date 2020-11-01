@@ -4,7 +4,6 @@ import (
 	"backendSenior/route"
 	"log"
 
-	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo"
 )
 
@@ -18,8 +17,7 @@ func main() {
 	if err != nil {
 		log.Panic("Can no connect Database", err.Error())
 	}
-	router := gin.Default()
-	route.NewRouteProduct(router, connectionDB)
+	router := route.NewRouter(connectionDB)
 	router.Run(portWebServie)
 }
 
