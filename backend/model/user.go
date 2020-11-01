@@ -10,4 +10,5 @@ type User struct {
 	Password string   `json:"password" bson:"password"`
 	UserID   string   `json:"userID" bson:"userID"`
 	Room     []string `json:"room" bson:"room"`
+	UserType string   `json:"userType" bson:"userType"`
 }
