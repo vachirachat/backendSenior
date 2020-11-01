@@ -19,21 +19,32 @@ func NewRouteProduct(route *gin.Engine, connectionDB *mgo.Session) {
 		UserRepository: &userRepository,
 	}
 
-	authAPI := auth.Auth{
-		UserRepository: &userRepository,
-	}
-
 	route.GET("api/v1/user", userAPI.UserListHandler)
 	route.POST("api/v1/user", userAPI.AddUserHandeler)
 	route.PUT("api/v1/user/:user_id", userAPI.EditUserNameHandler)
 	route.DELETE("api/v1/user/:user_id", userAPI.DeleteUserByIDHandler)
 	route.GET("api/v1/user/:email_user", userAPI.GetUserByEmail)
 
-	//Token
+	// Autherize Middleware API
+	authAPI := auth.Auth{
+		UserRepository: &userRepository,
+	}
+
+	//Google oAuth
+	route.LoadHTMLGlob("route/*")
+	route.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", nil)
+	})
+	// OauthGoogle
+	route.GET("/auth/google/login", auth.OauthGoogleLogin)
+	route.GET("/auth/google/callback", auth.OauthGoogleCallback)
+
+	//SignIN/UP API
 	route.GET("api/v1/token", userAPI.UserTokenListHandler)
 	route.GET("login", userAPI.LoginHandle)
-	route.POST("signUp", userAPI.AddUserSignUpHandeler)
-	//	route.GET("signUp", userAPI.signUp)
+	route.POST("signup", userAPI.AddUserSignUpHandeler)
+
+	// Room API
 	roomRepository := repository.RoomRepositoryMongo{
 		ConnectionDB: connectionDB,
 	}
@@ -45,6 +56,7 @@ func NewRouteProduct(route *gin.Engine, connectionDB *mgo.Session) {
 	route.PUT("api/v1/room/:room_id", roomAPI.EditRoomNameHandler)
 	route.DELETE("api/v1/room/:room_id", roomAPI.DeleteRoomByIDHandler)
 
+	//Message API
 	messageRepository := repository.MessageRepositoryMongo{
 		ConnectionDB: connectionDB,
 	}
@@ -56,12 +68,4 @@ func NewRouteProduct(route *gin.Engine, connectionDB *mgo.Session) {
 	// route.PUT("api/v1/message/:message_id", messageAPI.EditMessageHandler)
 	route.DELETE("api/v1/message/:message_id", messageAPI.DeleteMessageByIDHandler)
 
-	//Google oAuth
-	route.LoadHTMLGlob("route/*")
-	route.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", nil)
-	})
-	// OauthGoogle
-	route.GET("/auth/google/login", auth.OauthGoogleLogin)
-	route.GET("/auth/google/callback", auth.OauthGoogleCallback)
 }

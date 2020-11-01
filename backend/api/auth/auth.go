@@ -22,24 +22,9 @@ var SCOPES = []string{"view", "add", "edit", "query"}
 
 func (auth Auth) AuthMiddleware(resouce string, scope string) gin.HandlerFunc {
 	return func(context *gin.Context) {
-		r := context.Request
-		//w := context.Writer
-
-		var userEmail string
-		var ok bool
-
-		cookie, err := r.Cookie("SESSION_ID")
-		if err == nil {
-			userToken, err := auth.UserRepository.GetUserIdByToken(cookie.Value)
-			if err == nil {
-				userEmail, ok = userToken.Email, true
-			} else {
-				userEmail, ok = "", false
-			}
-		}
+		cookie, ok := getSessionCookie(context)
 
 		fmt.Println("authMiddleware")
-		fmt.Println(userEmail)
 		fmt.Println(cookie)
 		fmt.Println(ok)
 
@@ -54,15 +39,14 @@ func (auth Auth) AuthMiddleware(resouce string, scope string) gin.HandlerFunc {
 }
 
 // func isInSession()
-
-// func (auth Auth) getSessionCookie(c *gin.Context) (string, bool) {
-// 	r := c.Request
-// 	cookie, err := r.Cookie("SESSION_ID")
-// 	if err == nil {
-// 		userToken, err := auth.UserRepository.GetUserIdByToken(cookie.Value)
-// 		if err == nil {
-// 			return userToken.Email, true
-// 		}
-// 	}
-// 	return "", false
-// }
+func getSessionCookie(c *gin.Context) (string, bool) {
+	r := c.Request
+	cookie, err := r.Cookie("SESSION_ID")
+	if err == nil {
+		userToken, err := repository.GetUserIdByToken(cookie.Value)
+		if err == nil {
+			return userToken.Email, true
+		}
+	}
+	return "", false
+}
