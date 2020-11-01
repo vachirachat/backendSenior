@@ -15,6 +15,7 @@ type UserRepository interface {
 	AddUser(user model.User) error
 	EditUserName(userID string, user model.User) error
 	DeleteUserByID(userID string) error
+	GetUserByEmail(email string) (model.User, error)
 
 	//login
 	GetUserTokenById(email string) (model.UserToken, error)
@@ -104,6 +105,12 @@ func (userMongo UserRepositoryMongo) GetAllUserToken() ([]model.UserToken, error
 func (userMongo UserRepositoryMongo) GetUserLogin(userLogin model.UserLogin) (model.UserLogin, error) {
 	var user model.UserLogin
 	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Find(bson.M{"username": userLogin.Username, "password": userLogin.Password}).One(&user)
+	return user, err
+}
+
+func (userMongo UserRepositoryMongo) GetUserByEmail(email string) (model.User, error) {
+	var user model.User
+	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionUser).Find(bson.M{"email": email}).One(&user)
 	return user, err
 }
 

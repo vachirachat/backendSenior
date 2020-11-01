@@ -39,6 +39,18 @@ func (api UserAPI) GetUserByIDHandler(context *gin.Context) {
 	context.JSON(http.StatusOK, user)
 }
 
+// for get user by id
+func (api UserAPI) GetUserByEmail(context *gin.Context) {
+	emailID := context.Param("email_user")
+	user, err := api.UserRepository.GetUserByEmail(emailID)
+	if err != nil {
+		log.Println("error GetUserByIDHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, user)
+}
+
 func (api UserAPI) AddUserHandeler(context *gin.Context) {
 	var user model.User
 	err := context.ShouldBindJSON(&user)

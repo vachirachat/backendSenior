@@ -27,6 +27,7 @@ func NewRouteProduct(route *gin.Engine, connectionDB *mgo.Session) {
 	route.POST("api/v1/user", userAPI.AddUserHandeler)
 	route.PUT("api/v1/user/:user_id", userAPI.EditUserNameHandler)
 	route.DELETE("api/v1/user/:user_id", userAPI.DeleteUserByIDHandler)
+	route.GET("api/v1/user/:email_user", userAPI.GetUserByEmail)
 
 	//Token
 	route.GET("api/v1/token", userAPI.UserTokenListHandler)
