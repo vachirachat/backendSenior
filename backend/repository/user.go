@@ -2,6 +2,7 @@ package repository
 
 import (
 	"backendSenior/model"
+	"backendSenior/utills"
 	"time"
 
 	"github.com/globalsign/mgo"
@@ -104,7 +105,7 @@ func (userMongo UserRepositoryMongo) GetAllUserToken() ([]model.UserToken, error
 
 func (userMongo UserRepositoryMongo) GetUserLogin(userLogin model.UserLogin) (model.UserLogin, error) {
 	var user model.UserLogin
-	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Find(bson.M{"username": userLogin.Username, "password": userLogin.Password}).One(&user)
+	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Find(bson.M{"username": userLogin.Username, "password": utills.HashPassword(userLogin.Password)}).One(&user)
 	return user, err
 }
 
@@ -123,4 +124,12 @@ func (userMongo UserRepositoryMongo) AddUserSecrect(user model.UserLogin) error 
 func AddToken(UserToken model.UserToken) error {
 	var ConnectionDB *mgo.Session
 	return ConnectionDB.DB(DBNameUser).C(collectionToken).Insert(UserToken)
+}
+
+func GetUserIdByToken(token string) (model.UserToken, error) {
+	var userToken model.UserToken
+	var ConnectionDB *mgo.Session
+	//objectID := bson.ObjectIdHex(userID)
+	err := ConnectionDB.DB(DBNameUser).C(collectionToken).Find(bson.M{"Token": token}).One(&userToken)
+	return userToken, err
 }

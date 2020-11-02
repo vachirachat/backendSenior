@@ -24,6 +24,7 @@ require (
 	go.elastic.co/apm v1.8.0
 	go.elastic.co/apm/module/apmmongo v1.8.0
 	go.mongodb.org/mongo-driver v1.4.2
+	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	golang.org/x/sys v0.0.0-20201026173827-119d4633e4d1 // indirect
 	golang.org/x/tools v0.0.0-20201026223136-e84cfc6dd5ca // indirect

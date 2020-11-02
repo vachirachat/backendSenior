@@ -15,7 +15,7 @@ type RoomRepository interface {
 	GetRoomByID(roomID string) (model.Room, error)
 	AddRoom(room model.Room) error
 	EditRoomName(roomID string, room model.Room) error
-	DeleteRoomByID(roomID string) error
+	DeleteRoomByID(roomID bson.ObjectId) error
 }
 
 type RoomRepositoryMongo struct {
@@ -54,7 +54,7 @@ func (roomMongo RoomRepositoryMongo) EditRoomName(roomID string, room model.Room
 	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(objectID, newName)
 }
 
-func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID string) error {
-	objectID := bson.ObjectIdHex(roomID)
-	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).RemoveId(objectID)
+func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID bson.ObjectId) error {
+	//objectID := bson.ObjectIdHex(roomID)
+	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).RemoveId(roomID)
 }

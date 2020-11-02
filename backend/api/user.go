@@ -3,6 +3,7 @@ package api
 import (
 	"backendSenior/model"
 	"backendSenior/repository"
+	"backendSenior/utills"
 	"log"
 	"net/http"
 	"time"
@@ -153,7 +154,7 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 	context.JSON(http.StatusOK, user)
 }
 
-//signUp
+// Signup API
 func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 	var user model.User
 	var userSecret model.UserLogin
@@ -163,10 +164,16 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
+	// isDuplicateEmail
+	_, err = api.UserRepository.GetUserByEmail(user.Email)
+	if err != nil {
+		log.Println("error AddUserLoginHandeler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
 
-	userSecret.Password = user.Password
-	userSecret.Username = user.Email
-	log.Println(userSecret)
+	// Add User to DB
+	user.Password = utills.HashPassword(user.Password)
 	err = api.UserRepository.AddUser(user)
 	if err != nil {
 		log.Println("error AddUserLoginHandeler", err.Error())
@@ -174,6 +181,9 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 		return
 	}
 
+	// Add UserSecret to DB
+	userSecret.Password = user.Password
+	userSecret.Username = user.Email
 	err = api.UserRepository.AddUserSecrect(userSecret)
 	if err != nil {
 		log.Println("error AddUserLoginHandeler", err.Error())
@@ -182,14 +192,3 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 	}
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
 }
-
-// func (api UserAPI) AddUserTokenHandeler(context *gin.Context, username string) {
-// 	var usertoken model.UserToken
-// 	err := api.UserRepository.AddToken(usertoken)
-// 	if err != nil {
-// 		log.Println("error AddUserTokenHandeler", err.Error())
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-// 		return
-// 	}
-// 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
-// }
