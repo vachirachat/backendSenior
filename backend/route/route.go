@@ -19,9 +19,9 @@ func NewRouteProduct(route *gin.Engine, connectionDB *mgo.Session) {
 		UserRepository: &userRepository,
 	}
 
-	authAPI := auth.Auth{
-		UserRepository: &userRepository,
-	}
+	// authAPI := auth.Auth{
+	// 	UserRepository: &userRepository,
+	// }
 
 	route.GET("api/v1/user", userAPI.UserListHandler)
 	route.POST("api/v1/user", userAPI.AddUserHandeler)
@@ -40,10 +40,10 @@ func NewRouteProduct(route *gin.Engine, connectionDB *mgo.Session) {
 	roomAPI := api.RoomAPI{
 		RoomRepository: &roomRepository,
 	}
-	route.GET("api/v1/room", authAPI.AuthMiddleware("resource", "scope"), roomAPI.RoomListHandler)
+	route.GET("api/v1/room", roomAPI.RoomListHandler)
 	route.POST("api/v1/room", roomAPI.AddRoomHandeler)
 	route.PUT("api/v1/room/:room_id", roomAPI.EditRoomNameHandler)
-	route.DELETE("api/v1/room/:room_id", roomAPI.DeleteRoomByIDHandler)
+	route.DELETE("api/v1/room/", roomAPI.DeleteRoomByIDHandler)
 
 	messageRepository := repository.MessageRepositoryMongo{
 		ConnectionDB: connectionDB,

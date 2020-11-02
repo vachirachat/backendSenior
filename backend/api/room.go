@@ -3,8 +3,11 @@ package api
 import (
 	"backendSenior/model"
 	"backendSenior/repository"
+	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/globalsign/mgo/bson"
 
 	"github.com/gin-gonic/gin"
 )
@@ -73,8 +76,17 @@ func (api RoomAPI) EditRoomNameHandler(context *gin.Context) {
 }
 
 func (api RoomAPI) DeleteRoomByIDHandler(context *gin.Context) {
-	roomID := context.Param("room_id")
-	err := api.RoomRepository.DeleteRoomByID(roomID)
+	var room model.Room
+	err := context.ShouldBindJSON(&room)
+	if err != nil {
+		log.Println("error DeleteRoomHandeler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	objectID := bson.ObjectIdHex(room.RoomID)
+	fmt.Print(objectID)
+	err = api.RoomRepository.DeleteRoomByID(objectID)
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
