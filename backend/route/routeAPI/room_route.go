@@ -28,7 +28,7 @@ func AddRoomRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 	routerGroup.GET("/v1/room", authAPI.AuthMiddleware("object", "view"), roomAPI.RoomListHandler)
 	routerGroup.POST("/v1/room", authAPI.AuthMiddleware("object", "view"), roomAPI.AddRoomHandeler)
 	routerGroup.PUT("/v1/room/:room_id", authAPI.AuthMiddleware("object", "view"), roomAPI.EditRoomNameHandler)
-	routerGroup.DELETE("/v1/room/:room_id", authAPI.AuthMiddleware("object", "view"), roomAPI.DeleteRoomByIDHandler)
+	routerGroup.DELETE("/v1/room", authAPI.AuthMiddleware("object", "view"), roomAPI.DeleteRoomByIDHandler)
 
 }
 
@@ -44,6 +44,6 @@ func AddRoomRouteDev(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 	routerGroup.GET("/v1/room", roomAPI.RoomListHandler)
 	routerGroup.POST("/v1/room", roomAPI.AddRoomHandeler)
 	routerGroup.PUT("/v1/room/:room_id", roomAPI.EditRoomNameHandler)
-	routerGroup.DELETE("/v1/room/:room_id", roomAPI.DeleteRoomByIDHandler)
+	routerGroup.DELETE("/v1/room", roomAPI.DeleteRoomByIDHandler)
 
 }
