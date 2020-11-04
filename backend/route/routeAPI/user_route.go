@@ -24,7 +24,7 @@ func AddUserRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 	routerGroup.POST("/v1/user", authAPI.AuthMiddleware("object", "view"), userAPI.AddUserHandeler)
 	routerGroup.PUT("/v1/user/:user_id", authAPI.AuthMiddleware("object", "view"), userAPI.EditUserNameHandler)
 	routerGroup.DELETE("/v1/user/:user_id", authAPI.AuthMiddleware("object", "view"), userAPI.DeleteUserByIDHandler)
-	routerGroup.GET("/v1/user/:email_user", authAPI.AuthMiddleware("object", "view"), userAPI.GetUserByEmail)
+	routerGroup.GET("/v1/user/getuserbyemail/:email_user", authAPI.AuthMiddleware("object", "view"), userAPI.GetUserByEmail)
 
 	//SignIN/UP API
 	routerGroup.GET("/v1/token", userAPI.UserTokenListHandler)
@@ -45,7 +45,7 @@ func AddUserRouteDev(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 	routerGroup.POST("/v1/user", userAPI.AddUserHandeler)
 	routerGroup.PUT("/v1/user/:user_id", userAPI.EditUserNameHandler)
 	routerGroup.DELETE("/v1/user/:user_id", userAPI.DeleteUserByIDHandler)
-	routerGroup.GET("/v1/user/:email_user", userAPI.GetUserByEmail)
+	routerGroup.GET("/v1/user/getuserbyemail/:email_user", userAPI.GetUserByEmail)
 
 	//SignIN/UP API
 	routerGroup.GET("/v1/token", userAPI.UserTokenListHandler)
