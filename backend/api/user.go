@@ -42,8 +42,9 @@ func (api UserAPI) UserListHandler(context *gin.Context) {
 
 // for get user by id
 func (api UserAPI) GetUserByEmail(context *gin.Context) {
-	emailID := context.Param("email_user")
-	user, err := api.UserRepository.GetUserByEmail(emailID)
+	var user model.User
+	err := context.ShouldBindJSON(&user)
+	user, err = api.UserRepository.GetUserByEmail(user.Email)
 	if err != nil {
 		log.Println("error GetUserByEmailHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
