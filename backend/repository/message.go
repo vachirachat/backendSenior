@@ -2,6 +2,8 @@ package repository
 
 import (
 	"backendSenior/model"
+	"backendSenior/utills"
+	"time"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -44,4 +46,15 @@ func (messageMongo MessageRepositoryMongo) AddMessage(message model.Message) err
 func (messageMongo MessageRepositoryMongo) DeleteMessageByID(messageID string) error {
 	objectID := bson.ObjectIdHex(messageID)
 	return messageMongo.ConnectionDB.DB(DBNameUser).C(collectionMessage).RemoveId(objectID)
+}
+
+func AddMessageDB(message []byte, room string, userId string) error {
+	var ConnectionDB, _ = mgo.Dial(utills.MONGOENDPOINT)
+	var messageDB model.Message
+	messageDB.TimeStamp = time.Now()
+	messageDB.RoomID = room
+	messageDB.UserID = userId
+	messageDB.Data = string(message)
+	messageDB.Type = "Send"
+	return ConnectionDB.DB(DBMessage).C(collectionMessage).Insert(message)
 }

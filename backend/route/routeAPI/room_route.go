@@ -46,4 +46,6 @@ func AddRoomRouteDev(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 	routerGroup.PUT("/v1/room/:room_id", roomAPI.EditRoomNameHandler)
 	routerGroup.DELETE("/v1/room", roomAPI.DeleteRoomByIDHandler)
 
+	//Socket-API Call
+	routerGroup.GET("/v1/ws/room", roomAPI.InviteUserByIDHandler)
 }

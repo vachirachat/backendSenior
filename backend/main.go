@@ -2,23 +2,20 @@ package main
 
 import (
 	"backendSenior/route"
+	"backendSenior/utills"
 	"log"
 
 	"github.com/globalsign/mgo"
 )
 
-const (
-	mogoDBEnPint  = "mongodb://localhost:27017"
-	portWebServie = ":3000"
-)
-
 func main() {
-	connectionDB, err := mgo.Dial(mogoDBEnPint)
+	connectionDB, err := mgo.Dial(utills.MONGOENDPOINT)
 	if err != nil {
 		log.Panic("Can no connect Database", err.Error())
 	}
 	router := route.NewRouter(connectionDB)
-	router.Run(portWebServie)
+	router.Run(utills.PORTWEBSERVER)
+
 }
 
 // func serveDefault(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +28,7 @@ func main() {
 // 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 // 		return
 // 	}
-// 	http.ServeFile(w, r, "home.html")
+// 	http.ServeFile(w, r, "index.html")
 // }
 
 // func main() {

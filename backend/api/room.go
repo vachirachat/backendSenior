@@ -27,7 +27,7 @@ func (api RoomAPI) RoomListHandler(context *gin.Context) {
 
 // for get room by id
 func (api RoomAPI) GetRoomByIDHandler(context *gin.Context) {
-	roomID := context.Param("room_id")
+	roomID := context.Param("roomId")
 	room, err := api.RoomRepository.GetRoomByID(roomID)
 	if err != nil {
 		log.Println("error GetRoomByIDHandler", err.Error())
@@ -88,5 +88,27 @@ func (api RoomAPI) DeleteRoomByIDHandler(context *gin.Context) {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 	}
+	context.JSON(http.StatusNoContent, gin.H{"message": "success"})
+}
+
+// Match with Socket-structure
+
+//// -- JoinAPI -> getSession(Topic+#ID) -> giveUserSession
+func (api RoomAPI) InviteUserByIDHandler(context *gin.Context) {
+	//roomID := context.Param("room_id")
+	var room model.Room
+	err := context.ShouldBindJSON(&room)
+
+	if err != nil {
+		log.Println("error DeleteRoomByIDHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// err = api.RoomRepository.DeleteRoomByID(room.RoomID)
+	// if err != nil {
+	// 	log.Println("error DeleteRoomHandler", err.Error())
+	// 	context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	// }
 	context.JSON(http.StatusNoContent, gin.H{"message": "success"})
 }

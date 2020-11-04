@@ -28,6 +28,7 @@ func (auth Auth) AuthMiddleware(resouce string, scope string) gin.HandlerFunc {
 			context.Writer.Write([]byte("Unauthorized"))
 			return
 		}
+		context.Writer.Write([]byte("Authorized"))
 
 	}
 }
