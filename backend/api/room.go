@@ -100,7 +100,7 @@ func (api RoomAPI) InviteUserByIDHandler(context *gin.Context) {
 	err := context.ShouldBindJSON(&room)
 
 	if err != nil {
-		log.Println("error DeleteRoomByIDHandler", err.Error())
+		log.Println("error InviteUserByIDHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -112,3 +112,15 @@ func (api RoomAPI) InviteUserByIDHandler(context *gin.Context) {
 	// }
 	context.JSON(http.StatusNoContent, gin.H{"message": "success"})
 }
+
+// for delete user from userlist
+// func (api RoomAPI) DeleteUserFromRoom(context *gin.Context) {
+// 	var roomxuser model.RoomxUser
+// 	err := context.ShouldBindJSON(roomxuser)
+
+// 	if err != nil {
+// 		log.Prinln("error DeleteUserFromRoom", err.Error())
+
+// 	}
+
+// }

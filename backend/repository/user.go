@@ -3,7 +3,6 @@ package repository
 import (
 	"backendSenior/model"
 	"backendSenior/utills"
-	"time"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -12,9 +11,9 @@ import (
 type UserRepository interface {
 	GetAllUser() ([]model.User, error)
 	GetLastUser() (model.User, error)
-	GetUserByID(userID string) (model.User, error)
+	GetUserByID(userID bson.ObjectId) (model.User, error)
 	AddUser(user model.User) error
-	EditUserName(userID string, user model.User) error
+	EditUserName(userID bson.ObjectId, user model.User) error
 	DeleteUserByID(userID string) error
 	GetUserByEmail(email string) (model.User, error)
 
@@ -46,10 +45,10 @@ func (userMongo UserRepositoryMongo) GetAllUser() ([]model.User, error) {
 	return Users, err
 }
 
-func (userMongo UserRepositoryMongo) GetUserByID(userID string) (model.User, error) {
+func (userMongo UserRepositoryMongo) GetUserByID(userID bson.ObjectId) (model.User, error) {
 	var user model.User
-	objectID := bson.ObjectIdHex(userID)
-	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionUser).FindId(objectID).One(&user)
+	// objectID := bson.ObjectIdHex(userID)
+	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionUser).FindId(userID).One(&user)
 	return user, err
 }
 func (userMongo UserRepositoryMongo) GetLastUser() (model.User, error) {
@@ -61,10 +60,10 @@ func (userMongo UserRepositoryMongo) AddUser(user model.User) error {
 	return userMongo.ConnectionDB.DB(DBNameUser).C(collectionUser).Insert(user)
 }
 
-func (userMongo UserRepositoryMongo) EditUserName(userID string, user model.User) error {
-	objectID := bson.ObjectIdHex(userID)
-	newName := bson.M{"$set": bson.M{"user_name": user.Name, "updated_time": time.Now()}}
-	return userMongo.ConnectionDB.DB(DBNameUser).C(collectionUser).UpdateId(objectID, newName)
+func (userMongo UserRepositoryMongo) EditUserName(userID bson.ObjectId, user model.User) error {
+	// objectID := bson.ObjectIdHex(userID)
+	newName := bson.M{"$set": bson.M{"name": user.Name, "email": user.Email, "password": user.Password, "room": user.Room, "userType": user.UserType}}
+	return userMongo.ConnectionDB.DB(DBNameUser).C(collectionUser).UpdateId(userID, newName)
 }
 
 func (userMongo UserRepositoryMongo) DeleteUserByID(userID string) error {
