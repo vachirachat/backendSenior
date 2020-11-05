@@ -1,8 +1,8 @@
 package pubsub
 
 import (
-	"backendSenior/repository"
 	"bytes"
+	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
@@ -125,17 +125,31 @@ func ServeWs(context *gin.Context) {
 	go s.readPump()
 }
 
+type Employee struct {
+	Name   string `json:"empname"`
+	Number int    `json:"empid"`
+}
+
+type JsonMessage struct {
+	Message    string `json:"message"`
+	ClientName string `json:"clientName"`
+	ClientID   string `json:"clientID"`
+}
+
 func (c *connection) writeDB(mt int, payload []byte, s *Subscription) error {
 	// Lock session to write to DB
 	//c.clientsMtx.Lock()
 	// Fix :: ?? May cuase memory crash
-	err := repository.AddMessageDB(payload, s.room, s.clientID, s.clientName)
-	if err != nil {
-		log.Println("error add Message to DB")
-	}
+
+	// err := repository.AddMessageDB(payload, s.room, s.clientID, s.clientName)
+	// if err != nil {
+	// 	log.Println("error add Message to DB")
+	// }
 	//c.clientsMtx.Unlock()
 	c.ws.SetWriteDeadline(time.Now().Add(writeWait))
-	return c.ws.WriteMessage(mt, payload)
+	message := &JsonMessage{Message: string(payload), ClientName: s.clientName, ClientID: s.clientID}
+	messagePayload, _ := json.Marshal(message)
+	return c.ws.WriteMessage(mt, messagePayload)
 }
 
 func (c *connection) write(mt int, payload []byte) error {
