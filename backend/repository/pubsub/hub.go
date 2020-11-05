@@ -15,10 +15,10 @@ type Hub struct {
 	broadcast chan message
 
 	// Register requests from the clients.
-	register chan subscription
+	register chan Subscription
 
 	// Unregister requests from clients.
-	unregister chan subscription
+	unregister chan Subscription
 }
 
 type message struct {
@@ -28,8 +28,8 @@ type message struct {
 
 var H = &Hub{
 	broadcast:  make(chan message),
-	register:   make(chan subscription),
-	unregister: make(chan subscription),
+	register:   make(chan Subscription),
+	unregister: make(chan Subscription),
 	rooms:      make(map[string]map[*connection]bool),
 }
 

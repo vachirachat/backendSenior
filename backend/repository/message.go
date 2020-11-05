@@ -21,6 +21,12 @@ type MessageRepositoryMongo struct {
 	ConnectionDB *mgo.Session
 }
 
+type subscription struct {
+	clientName string
+	clientID   string
+	room       string
+}
+
 const (
 	DBMessage         = "Message"
 	collectionMessage = "MessageData"
@@ -48,13 +54,14 @@ func (messageMongo MessageRepositoryMongo) DeleteMessageByID(messageID string) e
 	return messageMongo.ConnectionDB.DB(DBMessage).C(collectionMessage).RemoveId(objectID)
 }
 
-func AddMessageDB(message []byte, room string, userId string) error {
+func AddMessageDB(message []byte, room string, clientID string, clientName string) error {
 	var ConnectionDB, _ = mgo.Dial(utills.MONGOENDPOINT)
 	var messageDB model.Message
 	messageDB.TimeStamp = time.Now()
 	messageDB.RoomID = room
-	messageDB.UserID = userId
+	messageDB.UserID = clientID
+	messageDB.Name = clientName
 	messageDB.Data = string(message)
 	messageDB.Type = "Send"
-	return ConnectionDB.DB(DBMessage).C(collectionMessage).Insert(message)
+	return ConnectionDB.DB(DBMessage).C(collectionMessage).Insert(messageDB)
 }

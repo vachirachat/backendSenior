@@ -3,6 +3,7 @@ module backendSenior
 go 1.15
 
 require (
+	cloud.google.com/go/pubsub v1.3.1
 	github.com/Bowery/prompt v0.0.0-20190916142128-fa8279994f75 // indirect
 	github.com/cornelk/hashmap v1.0.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
