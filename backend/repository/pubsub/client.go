@@ -37,9 +37,11 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-type subscription struct {
-	conn *connection
-	room string
+type Subscription struct {
+	conn       *connection
+	clientName string
+	clientID   string
+	room       string
 }
 
 type connection struct {
@@ -50,7 +52,7 @@ type connection struct {
 	clientsMtx sync.Mutex
 }
 
-func (s *subscription) readPump() {
+func (s *Subscription) readPump() {
 	c := s.conn
 	defer func() {
 		//Unregister
@@ -74,7 +76,7 @@ func (s *subscription) readPump() {
 		H.broadcast <- m
 	}
 }
-func (s *subscription) writePump() {
+func (s *Subscription) writePump() {
 	c := s.conn
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
@@ -89,7 +91,7 @@ func (s *subscription) writePump() {
 				c.write(websocket.CloseMessage, []byte{})
 				return
 			}
-			if err := c.writeDB(websocket.TextMessage, message, s.room); err != nil {
+			if err := c.writeDB(websocket.TextMessage, message, s); err != nil {
 				return
 			}
 		case <-ticker.C:
@@ -110,22 +112,24 @@ func ServeWs(context *gin.Context) {
 
 	//Get room's id from client...
 	queryValues := r.URL.Query()
-	roomId := queryValues.Get("roomId")
+	roomId := queryValues.Get("roomid")
+	userId := queryValues.Get("userid")
+	nameId := queryValues.Get("nameid")
 
 	//TODO :: if it a room in database ??
-
+	log.Println(userId, nameId, roomId)
 	c := &connection{send: make(chan []byte, 256), ws: ws}
-	s := subscription{c, roomId}
+	s := Subscription{c, userId, nameId, roomId}
 	H.register <- s
 	go s.writePump()
 	go s.readPump()
 }
 
-func (c *connection) writeDB(mt int, payload []byte, room string) error {
+func (c *connection) writeDB(mt int, payload []byte, s *Subscription) error {
 	// Lock session to write to DB
 	//c.clientsMtx.Lock()
 	// Fix :: ?? May cuase memory crash
-	err := repository.AddMessageDB(payload, room, "")
+	err := repository.AddMessageDB(payload, s.room, s.clientID, s.clientName)
 	if err != nil {
 		log.Println("error add Message to DB")
 	}
