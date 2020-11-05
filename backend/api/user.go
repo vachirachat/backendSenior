@@ -29,27 +29,41 @@ func (api UserAPI) UserListHandler(context *gin.Context) {
 }
 
 // for get user by id
-func (api UserAPI) GetUserByIDHandler(context *gin.Context) {
-	userID := context.Param("user_id")
-	user, err := api.UserRepository.GetUserByID(userID)
+// func (api UserAPI) GetUserByIDHandler(context *gin.Context) {
+// 	userID := context.Param("user_id")
+// 	// user, err := api.UserRepository.GetUserByID(userID)
+// 	if err != nil {
+// 		log.Println("error GetUserByIDHandler", err.Error())
+// 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+// 		return
+// 	}
+// 	context.JSON(http.StatusOK, user)
+// }
+
+// for get user by id
+func (api UserAPI) GetUserByEmail(context *gin.Context) {
+	var user model.User
+	err := context.ShouldBindJSON(&user)
+	user, err = api.UserRepository.GetUserByEmail(user.Email)
 	if err != nil {
-		log.Println("error GetUserByIDHandler", err.Error())
+		log.Println("error GetUserByEmailHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 	context.JSON(http.StatusOK, user)
 }
 
-// for get user by id
-func (api UserAPI) GetUserByEmail(context *gin.Context) {
-	emailID := context.Param("email_user")
-	user, err := api.UserRepository.GetUserByEmail(emailID)
+//for return roomidList of User
+func (api UserAPI) GetUserRoomByUserID(context *gin.Context) {
+	var user model.User
+	err := context.ShouldBindJSON(&user)
+	userResult, err := api.UserRepository.GetUserByID(user.UserID)
 	if err != nil {
-		log.Println("error GetUserByIDHandler", err.Error())
+		log.Println("error getUserRoomByUserID", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, user)
+	context.JSON(http.StatusOK, userResult.Room)
 }
 
 func (api UserAPI) AddUserHandeler(context *gin.Context) {
@@ -71,17 +85,35 @@ func (api UserAPI) AddUserHandeler(context *gin.Context) {
 
 func (api UserAPI) EditUserNameHandler(context *gin.Context) {
 	var user model.User
-	userID := context.Param("user_id")
+	// userID := context.Param("user_id")
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
-		log.Println("error EditProducNametHandler", err.Error())
+		log.Println("error EditUserNametHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	err = api.UserRepository.EditUserName(userID, user)
+	err = api.UserRepository.EditUserName(user.UserID, user)
 	if err != nil {
-		log.Println("error EditProducNametHandler", err.Error())
+		log.Println("error EditUserNametHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func (api UserAPI) UpdateUserHandler(context *gin.Context) {
+	var user model.User
+	err := context.ShouldBindJSON(&user)
+	if err != nil {
+		log.Println("error UpdateUserHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+	log.Println(user.UserID)
+	err = api.UserRepository.EditUserName(user.UserID, user)
+	if err != nil {
+		log.Println("error UpdateUserHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})

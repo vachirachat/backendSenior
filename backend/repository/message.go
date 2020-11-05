@@ -45,7 +45,7 @@ func (messageMongo MessageRepositoryMongo) AddMessage(message model.Message) err
 
 func (messageMongo MessageRepositoryMongo) DeleteMessageByID(messageID string) error {
 	objectID := bson.ObjectIdHex(messageID)
-	return messageMongo.ConnectionDB.DB(DBNameUser).C(collectionMessage).RemoveId(objectID)
+	return messageMongo.ConnectionDB.DB(DBMessage).C(collectionMessage).RemoveId(objectID)
 }
 
 func AddMessageDB(message []byte, room string, userId string) error {

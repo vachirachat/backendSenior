@@ -14,7 +14,7 @@ type RoomRepository interface {
 	GetLastRoom() (model.Room, error)
 	GetRoomByID(roomID string) (model.Room, error)
 	AddRoom(room model.Room) error
-	EditRoomName(roomID string, room model.Room) error
+	EditRoomName(roomID bson.ObjectId, room model.Room) error
 	DeleteRoomByID(roomID bson.ObjectId) error
 	AddMemberToRoom(roomID bson.ObjectId, listUser []string) error
 }
@@ -49,11 +49,16 @@ func (roomMongo RoomRepositoryMongo) AddRoom(room model.Room) error {
 	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).Insert(room)
 }
 
-func (roomMongo RoomRepositoryMongo) EditRoomName(roomID string, room model.Room) error {
-	objectID := bson.ObjectIdHex(roomID)
+func (roomMongo RoomRepositoryMongo) EditRoomName(roomID bson.ObjectId, room model.Room) error {
+	// objectID := bson.ObjectIdHex(roomID)
 	newName := bson.M{"$set": bson.M{"room_name": room.RoomName, "updated_time": time.Now()}}
-	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(objectID, newName)
+	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newName)
 }
+
+// for add user to room userList
+// func (roomMongo RoomRepositoryMongo) AddUserToRoom(roomID string, userID string) error {
+
+// }
 
 func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID bson.ObjectId) error {
 	//objectID := bson.ObjectIdHex(roomID)

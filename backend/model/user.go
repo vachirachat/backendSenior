@@ -1,5 +1,7 @@
 package model
 
+import "github.com/globalsign/mgo/bson"
+
 type UserInfo struct {
 	User []User `json:"users"`
 }
@@ -9,12 +11,12 @@ type UserTokenInfo struct {
 }
 
 type User struct {
-	Name     string   `json:"name" bson:"name"`
-	Email    string   `json:"email" bson:"email"`
-	Password string   `json:"password" bson:"password"`
-	UserID   string   `json:"userID" bson:"userID"`
-	Room     []string `json:"room" bson:"room"`
-	UserType string   `json:"userType" bson:"userType"`
+	UserID   bson.ObjectId `json:"userID" bson:"_id,omitempty"`
+	Name     string        `json:"name" bson:"name"`
+	Email    string        `json:"email" bson:"email"`
+	Password string        `json:"password" bson:"password"`
+	Room     []string      `json:"room" bson:"room"`
+	UserType string        `json:"userType" bson:"userType"`
 }
 
 type UserToken struct {
