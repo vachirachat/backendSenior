@@ -57,11 +57,6 @@ func (roomMongo RoomRepositoryMongo) EditRoomName(roomID bson.ObjectId, room mod
 	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newName)
 }
 
-// for add user to room userList
-// func (roomMongo RoomRepositoryMongo) AddUserToRoom(roomID string, userID string) error {
-
-// }
-
 func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID bson.ObjectId) error {
 	//objectID := bson.ObjectIdHex(roomID)
 	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).RemoveId(roomID)
