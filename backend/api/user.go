@@ -98,7 +98,6 @@ func (api UserAPI) DeleteUserByIDHandler(context *gin.Context) {
 }
 
 // Token
-
 func (api UserAPI) UserTokenListHandler(context *gin.Context) {
 	var usersTokenInfo model.UserTokenInfo
 	usersTokens, err := api.UserRepository.GetAllUserToken()
@@ -120,6 +119,11 @@ func (api UserAPI) GetUserTokenByIDHandler(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, token)
+}
+
+type messageLogin struct {
+	Email string
+	token string
 }
 
 func (api UserAPI) LoginHandle(context *gin.Context) {
@@ -151,7 +155,9 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 	}
 	sessionCookie := &http.Cookie{Name: "SESSION_ID", Value: usertoken.Token, HttpOnly: false, Expires: time.Now().Add(30 * time.Minute), Path: "/"}
 	http.SetCookie(context.Writer, sessionCookie)
-	context.JSON(http.StatusOK, user)
+	// map struct to return value
+	m := messageLogin{user.Username, usertoken.Token}
+	context.JSON(http.StatusOK, m)
 }
 
 // Signup API

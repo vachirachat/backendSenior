@@ -29,7 +29,7 @@ func NewRouter(connectionDB *mgo.Session) *gin.Engine {
 		context.HTML(http.StatusOK, "chat-room.html", nil)
 	})
 
-	router.GET("/ws", func(context *gin.Context) {
+	router.GET("/connetSocket", func(context *gin.Context) {
 		hub := pubsub.H
 		go hub.Run()
 		pubsub.ServeWs(context)

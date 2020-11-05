@@ -56,7 +56,7 @@ window.onload = function () {
         if (ROOMID == "") {
             //log test
             console.log("Default Room")            
-            conn = new WebSocket("ws://" + document.location.host + "/ws" + "?roomId=111111" );
+            conn = new WebSocket("ws://" + document.location.host + "/connetSocket" + "?roomId=111111" );
             console.log(document.location.host)
             conn.onclose = function (evt) {
                 var item = document.createElement("div");

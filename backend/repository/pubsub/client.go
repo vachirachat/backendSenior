@@ -103,17 +103,16 @@ func ServeWs(context *gin.Context) {
 	w := context.Writer
 	r := context.Request
 	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	//Get room's id from client...
 	queryValues := r.URL.Query()
 	roomId := queryValues.Get("roomId")
 
 	//TODO :: if it a room in database ??
-
-	if err != nil {
-		log.Println(err)
-		return
-	}
 
 	c := &connection{send: make(chan []byte, 256), ws: ws}
 	s := subscription{c, roomId}

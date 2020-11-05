@@ -16,6 +16,7 @@ type RoomRepository interface {
 	AddRoom(room model.Room) error
 	EditRoomName(roomID string, room model.Room) error
 	DeleteRoomByID(roomID bson.ObjectId) error
+	AddMemberToRoom(roomID bson.ObjectId, listUser []string) error
 }
 
 type RoomRepositoryMongo struct {
@@ -57,4 +58,15 @@ func (roomMongo RoomRepositoryMongo) EditRoomName(roomID string, room model.Room
 func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID bson.ObjectId) error {
 	//objectID := bson.ObjectIdHex(roomID)
 	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).RemoveId(roomID)
+}
+
+func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID bson.ObjectId, listUser []string) error {
+	var room model.Room
+	err := roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
+	if err != nil {
+		return err
+	}
+	newListUser := bson.M{"$set": bson.M{"listUser": append(room.ListUser, listUser...)}}
+
+	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newListUser)
 }
