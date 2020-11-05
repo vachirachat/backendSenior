@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo/bson"
 )
 
 type RoomAPI struct {
@@ -116,14 +117,23 @@ func (api RoomAPI) AddMemberToRoom(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "success"})
 }
 
-// for delete user from userlist
-// func (api RoomAPI) DeleteUserFromRoom(context *gin.Context) {
-// 	var roomxuser model.RoomxUser
-// 	err := context.ShouldBindJSON(roomxuser)
+func (api RoomAPI) DeleteMemberToRoom(context *gin.Context) {
+	type deleteRoom struct {
+		userID bson.ObjectId
+		roomID bson.ObjectId
+	}
+	var roomDelete deleteRoom
+	err := context.ShouldBindJSON(&roomDelete)
+	if err != nil {
+		log.Println("error InviteUserByIDHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
 
-// 	if err != nil {
-// 		log.Prinln("error DeleteUserFromRoom", err.Error())
-
-// 	}
-
-// }
+	err = api.RoomRepository.DeleteMemberToRoom(roomDelete.userID, roomDelete.roomID)
+	if err != nil {
+		log.Println("error DeleteRoomHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	}
+	context.JSON(http.StatusOK, gin.H{"message": "success"})
+}

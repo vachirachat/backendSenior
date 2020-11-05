@@ -2,6 +2,7 @@ package repository
 
 import (
 	"backendSenior/model"
+	"backendSenior/utills"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -17,6 +18,7 @@ type RoomRepository interface {
 	EditRoomName(roomID bson.ObjectId, room model.Room) error
 	DeleteRoomByID(roomID bson.ObjectId) error
 	AddMemberToRoom(roomID bson.ObjectId, listUser []string) error
+	DeleteMemberToRoom(userID bson.ObjectId, roomID bson.ObjectId) error
 }
 
 type RoomRepositoryMongo struct {
@@ -55,23 +57,57 @@ func (roomMongo RoomRepositoryMongo) EditRoomName(roomID bson.ObjectId, room mod
 	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newName)
 }
 
-// for add user to room userList
-// func (roomMongo RoomRepositoryMongo) AddUserToRoom(roomID string, userID string) error {
-
-// }
-
 func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID bson.ObjectId) error {
 	//objectID := bson.ObjectIdHex(roomID)
 	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).RemoveId(roomID)
 }
 
 func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID bson.ObjectId, listUser []string) error {
+	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
 	var room model.Room
-	err := roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
+	if err != nil {
+		return err
+	}
+	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
 	if err != nil {
 		return err
 	}
 	newListUser := bson.M{"$set": bson.M{"listUser": append(room.ListUser, listUser...)}}
-
-	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newListUser)
+	ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newListUser)
+	for _, s := range listUser {
+		var user model.User
+		ObjectID := bson.ObjectId(s)
+		err = ConnectionDB.DB("User").C("UserDate").FindId(ObjectID).One(&user)
+		stringRoomID := roomID.String()
+		newUser := bson.M{"$set": bson.M{"Room": append(user.Room, stringRoomID)}}
+		ConnectionDB.DB("User").C("UserData").UpdateId(user.UserID, newUser)
+	}
+	return nil
 }
+
+func (roomMongo RoomRepositoryMongo) DeleteMemberToRoom(userID bson.ObjectId, roomID bson.ObjectId) error {
+	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
+	if err != nil {
+		return err
+	}
+	// for delete in room
+	var room model.Room
+	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
+	userIDString := userID.String()
+	NewListString := utills.RemoveFormListString(room.ListUser, userIDString)
+	newUser := bson.M{"$set": bson.M{"listUser": NewListString}}
+	ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newUser)
+	// for delete in user
+	var user model.User
+	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(userID).One(&user)
+	roomIDString := roomID.String()
+	NewListString = utills.RemoveFormListString(user.Room, roomIDString)
+	newUser = bson.M{"$set": bson.M{"room": NewListString}}
+	ConnectionDB.DB("User").C("UserData").UpdateId(roomID, newUser)
+	return nil
+}
+
+// func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(userID bson.ObjectId, roomID bson.ObjectId) error {
+// 	var user model.user
+// 	err :=
+// }

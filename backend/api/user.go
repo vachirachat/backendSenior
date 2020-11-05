@@ -63,7 +63,7 @@ func (api UserAPI) GetUserRoomByUserID(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, userResult.Room)
+	context.JSON(http.StatusOK, gin.H{"userRoom": userResult.Room, "username": userResult.Name})
 }
 
 func (api UserAPI) AddUserHandeler(context *gin.Context) {
