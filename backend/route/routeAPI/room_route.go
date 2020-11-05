@@ -30,6 +30,7 @@ func AddRoomRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 	routerGroup.PUT("/v1/editroomname", authAPI.AuthMiddleware("object", "view"), roomAPI.EditRoomNameHandler)
 	routerGroup.DELETE("/v1/deleteroom", authAPI.AuthMiddleware("object", "view"), roomAPI.DeleteRoomByIDHandler)
 	routerGroup.POST("/v1/addmembertoroom", authAPI.AuthMiddleware("object", "view"), roomAPI.AddMemberToRoom)
+	routerGroup.POST("/v1/deletemembertoroom", authAPI.AuthMiddleware("object", "view"), roomAPI.DeleteMemberToRoom)
 }
 
 func AddRoomRouteDev(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
@@ -46,6 +47,7 @@ func AddRoomRouteDev(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 	routerGroup.PUT("/v1/editroomname", roomAPI.EditRoomNameHandler)
 	routerGroup.DELETE("/v1/deleteroom", roomAPI.DeleteRoomByIDHandler)
 	routerGroup.POST("/v1/addmembertoroom", roomAPI.AddMemberToRoom)
+	routerGroup.POST("/v1/deletemembertoroom", roomAPI.DeleteMemberToRoom)
 
 	//Socket-API Call
 	routerGroup.PUT("/v1/invitePeopleRoom", roomAPI.AddMemberToRoom)

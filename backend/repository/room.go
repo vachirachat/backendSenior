@@ -18,6 +18,7 @@ type RoomRepository interface {
 	EditRoomName(roomID bson.ObjectId, room model.Room) error
 	DeleteRoomByID(roomID bson.ObjectId) error
 	AddMemberToRoom(roomID bson.ObjectId, listUser []string) error
+	DeleteMemberToRoom(userID bson.ObjectId, roomID bson.ObjectId) error
 }
 
 type RoomRepositoryMongo struct {
@@ -86,6 +87,28 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID bson.ObjectId, listU
 		newUser := bson.M{"$set": bson.M{"Room": append(user.Room, stringRoomID)}}
 		ConnectionDB.DB("User").C("UserData").UpdateId(user.UserID, newUser)
 	}
+	return nil
+}
+
+func (roomMongo RoomRepositoryMongo) DeleteMemberToRoom(userID bson.ObjectId, roomID bson.ObjectId) error {
+	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
+	if err != nil {
+		return err
+	}
+	// for delete in room
+	var room model.Room
+	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
+	userIDString := userID.String()
+	NewListString := utills.RemoveFormListString(room.ListUser, userIDString)
+	newUser := bson.M{"$set": bson.M{"listUser": NewListString}}
+	ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newUser)
+	// for delete in user
+	var user model.User
+	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(userID).One(&user)
+	roomIDString := roomID.String()
+	NewListString = utills.RemoveFormListString(user.Room, roomIDString)
+	newUser = bson.M{"$set": bson.M{"room": NewListString}}
+	ConnectionDB.DB("User").C("UserData").UpdateId(roomID, newUser)
 	return nil
 }
 
