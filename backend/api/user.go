@@ -198,14 +198,14 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 	var userSecret model.UserLogin
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
-		log.Println("error AddUserLoginHandeler", err.Error())
+		log.Println("error AddUserSignUpHandeler ShouldBindJSON", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 	// isDuplicateEmail
 	_, err = api.UserRepository.GetUserByEmail(user.Email)
-	if err != nil {
-		log.Println("error AddUserLoginHandeler", err.Error())
+	if err == nil {
+		log.Println("error AddUserSignUpHandeler GetUserByEmail", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
@@ -229,4 +229,18 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
+}
+
+//GetUserListSecrect
+
+func (api UserAPI) GetUserListSecrect(context *gin.Context) {
+	var usersInfo model.UserInfoSecrect
+	users, err := api.UserRepository.GetAllUserSecret()
+	if err != nil {
+		log.Println("error userListHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	usersInfo.UserLogin = users
+	context.JSON(http.StatusOK, usersInfo)
 }

@@ -47,5 +47,5 @@ func AddUserRouteDev(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 	routerGroup.PUT("/v1/updateuserprofile", userAPI.EditUserNameHandler)
 	routerGroup.DELETE("/v1/user/:user_id", userAPI.DeleteUserByIDHandler)
 	routerGroup.GET("/v1/getuserbyemail", userAPI.GetUserByEmail)
-
+	routerGroup.GET("/v1/getlistSecret", userAPI.GetUserListSecrect)
 }
