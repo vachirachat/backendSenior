@@ -56,14 +56,13 @@ func (api RoomAPI) AddRoomHandeler(context *gin.Context) {
 
 func (api RoomAPI) EditRoomNameHandler(context *gin.Context) {
 	var room model.Room
-	roomID := context.Param("room_id")
 	err := context.ShouldBindJSON(&room)
 	if err != nil {
 		log.Println("error EditProducNametHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	err = api.RoomRepository.EditRoomName(roomID, room)
+	err = api.RoomRepository.EditRoomName(room.RoomID, room)
 	if err != nil {
 		log.Println("error EditProducNametHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
