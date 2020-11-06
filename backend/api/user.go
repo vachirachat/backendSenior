@@ -21,7 +21,7 @@ func (api UserAPI) UserListHandler(context *gin.Context) {
 	users, err := api.UserRepository.GetAllUser()
 	if err != nil {
 		log.Println("error userListHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	usersInfo.User = users
@@ -47,7 +47,7 @@ func (api UserAPI) GetUserByEmail(context *gin.Context) {
 	user, err = api.UserRepository.GetUserByEmail(user.Email)
 	if err != nil {
 		log.Println("error GetUserByEmailHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusOK, user)
@@ -60,7 +60,7 @@ func (api UserAPI) GetUserRoomByUserID(context *gin.Context) {
 	userResult, err := api.UserRepository.GetUserByID(user.UserID)
 	if err != nil {
 		log.Println("error getUserRoomByUserID", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"userRoom": userResult.Room, "username": userResult.Name})
@@ -71,13 +71,13 @@ func (api UserAPI) AddUserHandeler(context *gin.Context) {
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
 		log.Println("error AddUserHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	err = api.UserRepository.AddUser(user)
 	if err != nil {
 		log.Println("error AddUserHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
@@ -89,13 +89,13 @@ func (api UserAPI) EditUserNameHandler(context *gin.Context) {
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
 		log.Println("error EditUserNametHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	err = api.UserRepository.EditUserName(user.UserID, user)
 	if err != nil {
 		log.Println("error EditUserNametHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
@@ -124,9 +124,9 @@ func (api UserAPI) DeleteUserByIDHandler(context *gin.Context) {
 	err := api.UserRepository.DeleteUserByID(userID)
 	if err != nil {
 		log.Println("error DeleteUserHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 	}
-	context.JSON(http.StatusNoContent, gin.H{"message": "success"})
+	context.JSON(http.StatusNoContent, gin.H{"status": "success"})
 }
 
 // Token
@@ -135,7 +135,7 @@ func (api UserAPI) UserTokenListHandler(context *gin.Context) {
 	usersTokens, err := api.UserRepository.GetAllUserToken()
 	if err != nil {
 		log.Println("error userListHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	usersTokenInfo.UserToken = usersTokens
@@ -147,7 +147,7 @@ func (api UserAPI) GetUserTokenByIDHandler(context *gin.Context) {
 	token, err := api.UserRepository.GetUserTokenById(userID)
 	if err != nil {
 		log.Println("error GetUserTokenByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusOK, token)
@@ -165,7 +165,7 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 	user, err := api.UserRepository.GetUserLogin(userlogin)
 	if err != nil {
 		log.Println("error LoginHandle", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	//Fix Check token
@@ -181,7 +181,7 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 		err = api.UserRepository.AddToken(usertoken)
 		if err != nil {
 			log.Println("error AddUserTokenHandeler", err.Error())
-			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 			return
 		}
 	}
@@ -198,15 +198,16 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 	var userSecret model.UserLogin
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
-		log.Println("error AddUserLoginHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		log.Println("error FirstAddUserLoginHandeler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	// isDuplicateEmail
 	_, err = api.UserRepository.GetUserByEmail(user.Email)
-	if err != nil {
-		log.Println("error AddUserLoginHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+
+	if err == nil {
+		log.Println("error SecondAddUserLoginHandeler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 
@@ -214,8 +215,8 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 	user.Password = utills.HashPassword(user.Password)
 	err = api.UserRepository.AddUser(user)
 	if err != nil {
-		log.Println("error AddUserLoginHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		log.Println("error ThirdAddUserLoginHandeler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 
@@ -224,8 +225,8 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 	userSecret.Username = user.Email
 	err = api.UserRepository.AddUserSecrect(userSecret)
 	if err != nil {
-		log.Println("error AddUserLoginHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		log.Println("error FrouthAddUserLoginHandeler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})

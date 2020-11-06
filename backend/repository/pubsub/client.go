@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/websocket"
 )
 
@@ -40,8 +41,8 @@ var upgrader = websocket.Upgrader{
 type Subscription struct {
 	conn       *connection
 	clientName string
-	clientID   string
-	room       string
+	clientID   bson.ObjectId
+	room       bson.ObjectId
 }
 
 type connection struct {
@@ -112,14 +113,14 @@ func ServeWs(context *gin.Context) {
 
 	//Get room's id from client...
 	queryValues := r.URL.Query()
-	roomId := queryValues.Get("roomid")
-	userId := queryValues.Get("userid")
+	roomId := bson.ObjectIdHex(queryValues.Get("roomid"))
+	userId := bson.ObjectIdHex(queryValues.Get("userid"))
 	nameId := queryValues.Get("nameid")
 
 	//TODO :: if it a room in database ??
 	log.Println(userId, nameId, roomId)
 	c := &connection{send: make(chan []byte, 256), ws: ws}
-	s := Subscription{c, userId, nameId, roomId}
+	s := Subscription{c, nameId, userId, roomId}
 	H.register <- s
 	go s.writePump()
 	go s.readPump()

@@ -54,7 +54,7 @@ func (messageMongo MessageRepositoryMongo) DeleteMessageByID(messageID string) e
 	return messageMongo.ConnectionDB.DB(DBMessage).C(collectionMessage).RemoveId(objectID)
 }
 
-func AddMessageDB(message []byte, room string, clientID string, clientName string) error {
+func AddMessageDB(message []byte, room bson.ObjectId, clientID bson.ObjectId, clientName string) error {
 	var ConnectionDB, _ = mgo.Dial(utills.MONGOENDPOINT)
 	var messageDB model.Message
 	messageDB.TimeStamp = time.Now()

@@ -17,7 +17,7 @@ type RoomRepository interface {
 	AddRoom(room model.Room) error
 	EditRoomName(roomID bson.ObjectId, room model.Room) error
 	DeleteRoomByID(roomID bson.ObjectId) error
-	AddMemberToRoom(roomID bson.ObjectId, listUser []string) error
+	AddMemberToRoom(roomID bson.ObjectId, listUser []bson.ObjectId) error
 	DeleteMemberToRoom(userID bson.ObjectId, roomID bson.ObjectId) error
 }
 
@@ -53,7 +53,7 @@ func (roomMongo RoomRepositoryMongo) AddRoom(room model.Room) error {
 
 func (roomMongo RoomRepositoryMongo) EditRoomName(roomID bson.ObjectId, room model.Room) error {
 	// objectID := bson.ObjectIdHex(roomID)
-	newName := bson.M{"$set": bson.M{"room_name": room.RoomName, "updated_time": time.Now()}}
+	newName := bson.M{"$set": bson.M{"roomName": room.RoomName, "updated_time": time.Now()}}
 	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newName)
 }
 
@@ -62,7 +62,7 @@ func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID bson.ObjectId) error 
 	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).RemoveId(roomID)
 }
 
-func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID bson.ObjectId, listUser []string) error {
+func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID bson.ObjectId, listUser []bson.ObjectId) error {
 	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
 	var room model.Room
 	if err != nil {
@@ -78,11 +78,11 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID bson.ObjectId, listU
 		var user model.User
 		ObjectID := bson.ObjectId(s)
 		err = ConnectionDB.DB("User").C("UserDate").FindId(ObjectID).One(&user)
-		stringRoomID := roomID.String()
+		stringRoomID := roomID
 		newUser := bson.M{"$set": bson.M{"Room": append(user.Room, stringRoomID)}}
 		ConnectionDB.DB("User").C("UserData").UpdateId(user.UserID, newUser)
 	}
-	return nil
+	return err
 }
 
 func (roomMongo RoomRepositoryMongo) DeleteMemberToRoom(userID bson.ObjectId, roomID bson.ObjectId) error {
@@ -93,15 +93,15 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberToRoom(userID bson.ObjectId, ro
 	// for delete in room
 	var room model.Room
 	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
-	userIDString := userID.String()
-	NewListString := utills.RemoveFormListString(room.ListUser, userIDString)
+	userIDString := userID
+	NewListString := utills.RemoveFormListBson(room.ListUser, userIDString)
 	newUser := bson.M{"$set": bson.M{"listUser": NewListString}}
 	ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newUser)
 	// for delete in user
 	var user model.User
 	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(userID).One(&user)
-	roomIDString := roomID.String()
-	NewListString = utills.RemoveFormListString(user.Room, roomIDString)
+	roomIDString := roomID
+	NewListString = utills.RemoveFormListBson(user.Room, roomIDString)
 	newUser = bson.M{"$set": bson.M{"room": NewListString}}
 	ConnectionDB.DB("User").C("UserData").UpdateId(roomID, newUser)
 	return nil

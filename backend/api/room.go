@@ -19,7 +19,7 @@ func (api RoomAPI) RoomListHandler(context *gin.Context) {
 	rooms, err := api.RoomRepository.GetAllRoom()
 	if err != nil {
 		log.Println("error roomListHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	roomsInfo.Room = rooms
@@ -32,7 +32,7 @@ func (api RoomAPI) GetRoomByIDHandler(context *gin.Context) {
 	room, err := api.RoomRepository.GetRoomByID(roomID)
 	if err != nil {
 		log.Println("error GetRoomByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusOK, room)
@@ -43,13 +43,13 @@ func (api RoomAPI) AddRoomHandeler(context *gin.Context) {
 	err := context.ShouldBindJSON(&room)
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	err = api.RoomRepository.AddRoom(room)
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
@@ -59,14 +59,14 @@ func (api RoomAPI) EditRoomNameHandler(context *gin.Context) {
 	var room model.Room
 	err := context.ShouldBindJSON(&room)
 	if err != nil {
-		log.Println("error EditProducNametHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		log.Println("error EditRoomNametHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	err = api.RoomRepository.EditRoomName(room.RoomID, room)
 	if err != nil {
-		log.Println("error EditProducNametHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		log.Println("error EditRoomNametHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
@@ -79,16 +79,16 @@ func (api RoomAPI) DeleteRoomByIDHandler(context *gin.Context) {
 	log.Println(room)
 	if err != nil {
 		log.Println("error DeleteRoomByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 
 	err = api.RoomRepository.DeleteRoomByID(room.RoomID)
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 	}
-	context.JSON(http.StatusNoContent, gin.H{"message": "success"})
+	context.JSON(http.StatusNoContent, gin.H{"status": "success"})
 }
 
 // Match with Socket-structure
@@ -105,16 +105,17 @@ func (api RoomAPI) AddMemberToRoom(context *gin.Context) {
 	err := context.ShouldBindJSON(&room)
 	if err != nil {
 		log.Println("error InviteUserByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 
 	err = api.RoomRepository.AddMemberToRoom(room.RoomID, room.ListUser)
 	if err != nil {
-		log.Println("error DeleteRoomHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		log.Println("error AddMemberToRoom", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
 	}
-	context.JSON(http.StatusOK, gin.H{"message": "success"})
+	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
 func (api RoomAPI) DeleteMemberToRoom(context *gin.Context) {
@@ -126,14 +127,14 @@ func (api RoomAPI) DeleteMemberToRoom(context *gin.Context) {
 	err := context.ShouldBindJSON(&roomDelete)
 	if err != nil {
 		log.Println("error InviteUserByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 
 	err = api.RoomRepository.DeleteMemberToRoom(roomDelete.userID, roomDelete.roomID)
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 	}
-	context.JSON(http.StatusOK, gin.H{"message": "success"})
+	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }

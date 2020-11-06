@@ -1,5 +1,7 @@
 package pubsub
 
+import "github.com/globalsign/mgo/bson"
+
 // ACTION TYPE
 const (
 	PUBLISH     = "publish"
@@ -10,7 +12,7 @@ const (
 // Hub maintains the set of active clients and broadcasts messages to the
 type Hub struct {
 	// put registered clients into the room.
-	rooms map[string]map[*connection]bool
+	rooms map[bson.ObjectId]map[*connection]bool
 	// Inbound messages from the clients.
 	broadcast chan message
 
@@ -22,15 +24,15 @@ type Hub struct {
 }
 
 type message struct {
-	Room string `json:"room"`
-	Data []byte `json:"data"`
+	Room bson.ObjectId `json:"room"`
+	Data []byte        `json:"data"`
 }
 
 var H = &Hub{
 	broadcast:  make(chan message),
 	register:   make(chan Subscription),
 	unregister: make(chan Subscription),
-	rooms:      make(map[string]map[*connection]bool),
+	rooms:      make(map[bson.ObjectId]map[*connection]bool),
 }
 
 func (h *Hub) Run() {

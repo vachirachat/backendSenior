@@ -11,9 +11,9 @@ type RoomInfo struct {
 }
 
 type Room struct {
-	RoomID           bson.ObjectId `json:"roomId" bson:"_id,omitempty"`
-	RoomName         string        `json:"roomName" bson:"roomName"`
-	CreatedTimeStamp time.Time     `json:"-" bson:"createdTimestamp"`
-	RoomType         string        `json:"roomType" bson:"roomType"`
-	ListUser         []string      `json:"listUser" bson:"listUser"`
+	RoomID           bson.ObjectId   `json:"roomId" bson:"_id,omitempty"`
+	RoomName         string          `json:"roomName" bson:"roomName"`
+	CreatedTimeStamp time.Time       `json:"-" bson:"createdTimestamp"`
+	RoomType         string          `json:"roomType" bson:"roomType"`
+	ListUser         []bson.ObjectId `json:"listUser" bson:"listUser"`
 }
