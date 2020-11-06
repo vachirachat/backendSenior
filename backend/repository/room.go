@@ -3,6 +3,7 @@ package repository
 import (
 	"backendSenior/model"
 	"backendSenior/utills"
+	"log"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -69,18 +70,19 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID bson.ObjectId, listU
 		return err
 	}
 	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
+	log.Println(roomID)
 	if err != nil {
 		return err
 	}
 	newListUser := bson.M{"$set": bson.M{"listUser": append(room.ListUser, listUser...)}}
+	log.Println(newListUser)
 	ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newListUser)
 	for _, s := range listUser {
 		var user model.User
-		ObjectID := bson.ObjectId(s)
-		err = ConnectionDB.DB("User").C("UserDate").FindId(ObjectID).One(&user)
-		stringRoomID := roomID
-		newUser := bson.M{"$set": bson.M{"Room": append(user.Room, stringRoomID)}}
-		ConnectionDB.DB("User").C("UserData").UpdateId(user.UserID, newUser)
+		err = ConnectionDB.DB("User").C("UserData").FindId(s).One(&user)
+		newUser := bson.M{"$set": bson.M{"room": append(user.Room, roomID)}}
+		userID := user.UserID
+		err = ConnectionDB.DB("User").C("UserData").UpdateId(userID, newUser)
 	}
 	return err
 }
@@ -102,8 +104,9 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberToRoom(userID bson.ObjectId, ro
 	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(userID).One(&user)
 	roomIDString := roomID
 	NewListString = utills.RemoveFormListBson(user.Room, roomIDString)
+	log.Println(NewListString)
 	newUser = bson.M{"$set": bson.M{"room": NewListString}}
-	ConnectionDB.DB("User").C("UserData").UpdateId(roomID, newUser)
+	ConnectionDB.DB("User").C("UserData").UpdateId(userID, newUser)
 	return nil
 }
 

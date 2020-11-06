@@ -198,27 +198,15 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 	var userSecret model.UserLogin
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
-<<<<<<< HEAD
-		log.Println("error FirstAddUserLoginHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-=======
 		log.Println("error AddUserSignUpHandeler ShouldBindJSON", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
->>>>>>> 5c26efe1fb9a0dcb96b313eb41ec8c7a706df7fe
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	// isDuplicateEmail
 	_, err = api.UserRepository.GetUserByEmail(user.Email)
-<<<<<<< HEAD
-
-	if err == nil {
-		log.Println("error SecondAddUserLoginHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-=======
 	if err == nil {
 		log.Println("error AddUserSignUpHandeler GetUserByEmail", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
->>>>>>> 5c26efe1fb9a0dcb96b313eb41ec8c7a706df7fe
+		context.JSON(http.StatusOK, gin.H{"status": "already have this email"})
 		return
 	}
 
@@ -226,7 +214,7 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 	user.Password = utills.HashPassword(user.Password)
 	err = api.UserRepository.AddUser(user)
 	if err != nil {
-		log.Println("error ThirdAddUserLoginHandeler", err.Error())
+		log.Println("error AddUserLoginHandeler AddUserToDB", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
@@ -236,7 +224,7 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 	userSecret.Username = user.Email
 	err = api.UserRepository.AddUserSecrect(userSecret)
 	if err != nil {
-		log.Println("error FrouthAddUserLoginHandeler", err.Error())
+		log.Println("error FrouthAddUserLoginHandeler AddToUserSecret", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}

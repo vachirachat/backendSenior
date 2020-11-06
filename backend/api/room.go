@@ -88,7 +88,7 @@ func (api RoomAPI) DeleteRoomByIDHandler(context *gin.Context) {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 	}
-	context.JSON(http.StatusNoContent, gin.H{"status": "success"})
+	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
 // Match with Socket-structure

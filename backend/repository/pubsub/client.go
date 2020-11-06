@@ -132,9 +132,9 @@ type Employee struct {
 }
 
 type JsonMessage struct {
-	Message    string `json:"message"`
-	ClientName string `json:"clientName"`
-	ClientID   string `json:"clientID"`
+	Message    string        `json:"message"`
+	ClientName string        `json:"clientName"`
+	ClientID   bson.ObjectId `json:"clientID"`
 }
 
 func (c *connection) writeDB(mt int, payload []byte, s *Subscription) error {
