@@ -50,5 +50,5 @@ func AddRoomRouteDev(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 	routerGroup.POST("/v1/deletemembertoroom", roomAPI.DeleteMemberToRoom)
 
 	//Socket-API Call
-	routerGroup.PUT("/v1/invitePeopleRoom", roomAPI.AddMemberToRoom)
+	routerGroup.PUT("/v1/AddMemberToRoom", roomAPI.AddMemberToRoom)
 }

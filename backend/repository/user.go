@@ -2,10 +2,10 @@ package repository
 
 import (
 	"backendSenior/model"
-	"backendSenior/utills"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserRepository interface {
@@ -26,6 +26,8 @@ type UserRepository interface {
 	GetUserLogin(userLogin model.UserLogin) (model.UserLogin, error)
 	//SignUp
 	AddUserSecrect(user model.UserLogin) error
+
+	GetAllUserSecret() ([]model.UserLogin, error)
 }
 
 type UserRepositoryMongo struct {
@@ -42,6 +44,12 @@ const (
 func (userMongo UserRepositoryMongo) GetAllUser() ([]model.User, error) {
 	var Users []model.User
 	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionUser).Find(nil).All(&Users)
+	return Users, err
+}
+
+func (userMongo UserRepositoryMongo) GetAllUserSecret() ([]model.UserLogin, error) {
+	var Users []model.UserLogin
+	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Find(nil).All(&Users)
 	return Users, err
 }
 
@@ -104,12 +112,20 @@ func (userMongo UserRepositoryMongo) GetAllUserToken() ([]model.UserToken, error
 
 func (userMongo UserRepositoryMongo) GetUserLogin(userLogin model.UserLogin) (model.UserLogin, error) {
 	var user model.UserLogin
-	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Find(bson.M{"username": userLogin.Username, "password": utills.HashPassword(userLogin.Password)}).One(&user)
-	return user, err
+
+	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Find(bson.M{"username": userLogin.Username}).One(&user)
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userLogin.Password))
+	if err != nil {
+		return user, err
+	} else {
+		return user, err
+	}
+
 }
 
 func (userMongo UserRepositoryMongo) GetUserByEmail(email string) (model.User, error) {
 	var user model.User
+
 	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionUser).Find(bson.M{"email": email}).One(&user)
 	return user, err
 }

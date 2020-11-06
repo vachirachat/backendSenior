@@ -6,6 +6,10 @@ type UserInfo struct {
 	User []User `json:"users"`
 }
 
+type UserInfoSecrect struct {
+	UserLogin []UserLogin `json:"users"`
+}
+
 type UserTokenInfo struct {
 	UserToken []UserToken `json:"users"`
 }
