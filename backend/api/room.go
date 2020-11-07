@@ -29,7 +29,8 @@ func (api RoomAPI) RoomListHandler(context *gin.Context) {
 // for get room by id
 func (api RoomAPI) GetRoomByIDHandler(context *gin.Context) {
 	roomID := context.Param("roomId")
-	room, err := api.RoomRepository.GetRoomByID(roomID)
+	ObjectID := bson.ObjectIdHex(roomID)
+	room, err := api.RoomRepository.GetRoomByID(ObjectID)
 	if err != nil {
 		log.Println("error GetRoomByIDHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})

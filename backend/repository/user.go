@@ -2,6 +2,7 @@ package repository
 
 import (
 	"backendSenior/model"
+	"backendSenior/utills"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -28,6 +29,8 @@ type UserRepository interface {
 	AddUserSecrect(user model.UserLogin) error
 
 	GetAllUserSecret() ([]model.UserLogin, error)
+
+	GetRoomWithRoomID(roomID bson.ObjectId) (model.Room, error)
 }
 
 type UserRepositoryMongo struct {
@@ -112,7 +115,6 @@ func (userMongo UserRepositoryMongo) GetAllUserToken() ([]model.UserToken, error
 
 func (userMongo UserRepositoryMongo) GetUserLogin(userLogin model.UserLogin) (model.UserLogin, error) {
 	var user model.UserLogin
-
 	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Find(bson.M{"username": userLogin.Username}).One(&user)
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userLogin.Password))
 	if err != nil {
@@ -147,4 +149,15 @@ func GetUserIdByToken(token string) (model.UserToken, error) {
 	//objectID := bson.ObjectIdHex(userID)
 	err := ConnectionDB.DB(DBNameUser).C(collectionToken).Find(bson.M{"Token": token}).One(&userToken)
 	return userToken, err
+}
+
+// wrong place
+func (userMongo UserRepositoryMongo) GetRoomWithRoomID(roomID bson.ObjectId) (model.Room, error) {
+	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
+	var room model.Room
+	if err != nil {
+		return room, err
+	}
+	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
+	return room, nil
 }

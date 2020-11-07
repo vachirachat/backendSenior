@@ -14,7 +14,7 @@ import (
 type RoomRepository interface {
 	GetAllRoom() ([]model.Room, error)
 	GetLastRoom() (model.Room, error)
-	GetRoomByID(roomID string) (model.Room, error)
+	GetRoomByID(roomID bson.ObjectId) (model.Room, error)
 	AddRoom(room model.Room) error
 	EditRoomName(roomID bson.ObjectId, room model.Room) error
 	DeleteRoomByID(roomID bson.ObjectId) error
@@ -37,10 +37,9 @@ func (roomMongo RoomRepositoryMongo) GetAllRoom() ([]model.Room, error) {
 	return rooms, err
 }
 
-func (roomMongo RoomRepositoryMongo) GetRoomByID(roomID string) (model.Room, error) {
+func (roomMongo RoomRepositoryMongo) GetRoomByID(roomID bson.ObjectId) (model.Room, error) {
 	var room model.Room
-	objectID := bson.ObjectIdHex(roomID)
-	err := roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(objectID).One(&room)
+	err := roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
 	return room, err
 }
 func (roomMongo RoomRepositoryMongo) GetLastRoom() (model.Room, error) {

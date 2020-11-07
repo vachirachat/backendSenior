@@ -63,7 +63,20 @@ func (api UserAPI) GetUserRoomByUserID(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, gin.H{"userRoom": userResult.Room, "username": userResult.Name})
+	roomIDList := userResult.Room
+	log.Println(roomIDList)
+	var roomNameList []string
+	for _, s := range roomIDList {
+		room, err := api.UserRepository.GetRoomWithRoomID(s)
+		if err != nil {
+			log.Println("error getUserRoomByUserID", err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+			return
+		}
+		roomNameList = append(roomNameList, room.RoomName)
+	}
+
+	context.JSON(http.StatusOK, gin.H{"userRoom": userResult.Room, "RoomList": userResult.Room, "RoomName": roomNameList})
 }
 
 func (api UserAPI) AddUserHandeler(context *gin.Context) {
@@ -162,6 +175,8 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 	// test cookie
 	var userlogin model.UserLogin
 	err := context.ShouldBindJSON(&userlogin)
+	log.Println("Login Handle")
+	log.Println(userlogin)
 	user, err := api.UserRepository.GetUserLogin(userlogin)
 	if err != nil {
 		log.Println("error LoginHandle", err.Error())
@@ -221,7 +236,9 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 
 	// Add UserSecret to DB
 	userSecret.Password = user.Password
+
 	userSecret.Username = user.Email
+	log.Println(userSecret)
 	err = api.UserRepository.AddUserSecrect(userSecret)
 	if err != nil {
 		log.Println("error FrouthAddUserLoginHandeler AddToUserSecret", err.Error())
