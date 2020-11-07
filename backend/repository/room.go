@@ -103,13 +103,7 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberToRoom(userID bson.ObjectId, ro
 	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(userID).One(&user)
 	roomIDString := roomID
 	NewListString = utills.RemoveFormListBson(user.Room, roomIDString)
-	log.Println(NewListString)
 	newUser = bson.M{"$set": bson.M{"room": NewListString}}
 	ConnectionDB.DB("User").C("UserData").UpdateId(userID, newUser)
 	return nil
 }
-
-// func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(userID bson.ObjectId, roomID bson.ObjectId) error {
-// 	var user model.user
-// 	err :=
-// }

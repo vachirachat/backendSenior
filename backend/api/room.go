@@ -121,8 +121,8 @@ func (api RoomAPI) AddMemberToRoom(context *gin.Context) {
 
 func (api RoomAPI) DeleteMemberToRoom(context *gin.Context) {
 	type deleteRoom struct {
-		userID bson.ObjectId
-		roomID bson.ObjectId
+		Userid bson.ObjectId
+		Roomid bson.ObjectId
 	}
 	var roomDelete deleteRoom
 	err := context.ShouldBindJSON(&roomDelete)
@@ -132,7 +132,8 @@ func (api RoomAPI) DeleteMemberToRoom(context *gin.Context) {
 		return
 	}
 
-	err = api.RoomRepository.DeleteMemberToRoom(roomDelete.userID, roomDelete.roomID)
+	err = api.RoomRepository.DeleteMemberToRoom(roomDelete.Userid, roomDelete.Roomid)
+	log.Println(roomDelete)
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
