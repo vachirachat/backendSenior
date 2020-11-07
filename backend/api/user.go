@@ -76,7 +76,7 @@ func (api UserAPI) GetUserRoomByUserID(context *gin.Context) {
 		roomNameList = append(roomNameList, room.RoomName)
 	}
 
-	context.JSON(http.StatusOK, gin.H{"userRoom": userResult.Room, "RoomList": userResult.Room, "RoomName": roomNameList})
+	context.JSON(http.StatusOK, gin.H{"username": userResult.Name, "RoomIDList": userResult.Room, "RoomNameList": roomNameList})
 }
 
 func (api UserAPI) AddUserHandeler(context *gin.Context) {
