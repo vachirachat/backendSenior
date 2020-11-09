@@ -185,13 +185,13 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 	}
 	//Fix Check token
 	var usertoken model.UserToken
-	usertoken, err = api.UserRepository.GetUserTokenById(user.Username)
+	usertoken, err = api.UserRepository.GetUserTokenById(user.Email)
 
 	// mean first_login or cookie is expired
 	if err != nil {
 		// if isexpied ?? implement
 		log.Println("Pass IN if news token")
-		usertoken.Email = user.Username
+		usertoken.Email = user.Email
 		usertoken.Token = ksuid.New().String()
 		err = api.UserRepository.AddToken(usertoken)
 		if err != nil {
@@ -203,7 +203,7 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 	sessionCookie := &http.Cookie{Name: "SESSION_ID", Value: usertoken.Token, HttpOnly: false, Expires: time.Now().Add(30 * time.Minute), Path: "/"}
 	http.SetCookie(context.Writer, sessionCookie)
 	// map struct to return value
-	m := messageLogin{user.Username, usertoken.Token}
+	m := messageLogin{user.Email, usertoken.Token}
 	context.JSON(http.StatusOK, m)
 }
 
@@ -237,7 +237,7 @@ func (api UserAPI) AddUserSignUpHandeler(context *gin.Context) {
 	// Add UserSecret to DB
 	userSecret.Password = user.Password
 
-	userSecret.Username = user.Email
+	userSecret.Email = user.Email
 	log.Println(userSecret)
 	err = api.UserRepository.AddUserSecrect(userSecret)
 	if err != nil {

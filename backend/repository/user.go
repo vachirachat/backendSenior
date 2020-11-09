@@ -115,7 +115,7 @@ func (userMongo UserRepositoryMongo) GetAllUserToken() ([]model.UserToken, error
 
 func (userMongo UserRepositoryMongo) GetUserLogin(userLogin model.UserLogin) (model.UserLogin, error) {
 	var user model.UserLogin
-	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Find(bson.M{"username": userLogin.Username}).One(&user)
+	err := userMongo.ConnectionDB.DB(DBNameUser).C(collectionSecret).Find(bson.M{"email": userLogin.Email}).One(&user)
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userLogin.Password))
 	if err != nil {
 		return user, err
