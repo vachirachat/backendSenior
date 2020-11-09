@@ -27,7 +27,7 @@ func AddUserRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 
 	//SignIN/UP API
 	routerGroup.GET("/v1/token", userAPI.UserTokenListHandler)
-	routerGroup.GET("/v1/login", userAPI.LoginHandle)
+	routerGroup.POST("/v1/login", userAPI.LoginHandle)
 	routerGroup.POST("/v1/signup", userAPI.AddUserSignUpHandeler)
 }
 

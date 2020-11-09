@@ -167,8 +167,9 @@ func (api UserAPI) GetUserTokenByIDHandler(context *gin.Context) {
 }
 
 type messageLogin struct {
-	Email string
-	token string
+	status string
+	Email  string
+	token  string
 }
 
 func (api UserAPI) LoginHandle(context *gin.Context) {
@@ -203,7 +204,7 @@ func (api UserAPI) LoginHandle(context *gin.Context) {
 	sessionCookie := &http.Cookie{Name: "SESSION_ID", Value: usertoken.Token, HttpOnly: false, Expires: time.Now().Add(30 * time.Minute), Path: "/"}
 	http.SetCookie(context.Writer, sessionCookie)
 	// map struct to return value
-	m := messageLogin{user.Email, usertoken.Token}
+	m := messageLogin{"success", user.Email, usertoken.Token}
 	context.JSON(http.StatusOK, m)
 }
 
