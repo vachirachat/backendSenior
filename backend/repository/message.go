@@ -2,8 +2,6 @@ package repository
 
 import (
 	"backendSenior/model"
-	"backendSenior/utills"
-	"time"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -19,12 +17,6 @@ type MessageRepository interface {
 
 type MessageRepositoryMongo struct {
 	ConnectionDB *mgo.Session
-}
-
-type subscription struct {
-	clientName string
-	clientID   string
-	room       string
 }
 
 const (
@@ -52,16 +44,4 @@ func (messageMongo MessageRepositoryMongo) AddMessage(message model.Message) err
 func (messageMongo MessageRepositoryMongo) DeleteMessageByID(messageID string) error {
 	objectID := bson.ObjectIdHex(messageID)
 	return messageMongo.ConnectionDB.DB(DBMessage).C(collectionMessage).RemoveId(objectID)
-}
-
-func AddMessageDB(message []byte, room bson.ObjectId, clientID bson.ObjectId, clientName string) error {
-	var ConnectionDB, _ = mgo.Dial(utills.MONGOENDPOINT)
-	var messageDB model.Message
-	messageDB.TimeStamp = time.Now()
-	messageDB.RoomID = room
-	messageDB.UserID = clientID
-	messageDB.Name = clientName
-	messageDB.Data = string(message)
-	messageDB.Type = "Send"
-	return ConnectionDB.DB(DBMessage).C(collectionMessage).Insert(messageDB)
 }

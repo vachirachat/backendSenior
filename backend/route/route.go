@@ -1,7 +1,7 @@
 package route
 
 import (
-	"backendSenior/repository/pubsub"
+	"backendSenior/api"
 	"backendSenior/route/routeAPI"
 	"net/http"
 
@@ -9,13 +9,18 @@ import (
 	"github.com/globalsign/mgo"
 )
 
+func setStaticFolder(route *gin.Engine) {
+
+	route.StaticFS("./public", http.Dir("./public/"))
+}
+
 func NewRouter(connectionDB *mgo.Session) *gin.Engine {
 	router := gin.Default()
-	api := router.Group("/api")
-	routeAPI.AddUserRoute(api, connectionDB)
-	routeAPI.AddRoomRoute(api, connectionDB)
-	routeAPI.AddAuthRoute(api, connectionDB)
-	routeAPI.AddMessageRoute(api, connectionDB)
+	apiRoute := router.Group("/api")
+	routeAPI.AddUserRoute(apiRoute, connectionDB)
+	routeAPI.AddRoomRoute(apiRoute, connectionDB)
+	routeAPI.AddAuthRoute(apiRoute, connectionDB)
+	routeAPI.AddMessageRoute(apiRoute, connectionDB)
 
 	devAPI := router.Group("/dev")
 	routeAPI.AddUserRouteDev(devAPI, connectionDB)
@@ -23,17 +28,11 @@ func NewRouter(connectionDB *mgo.Session) *gin.Engine {
 	routeAPI.AddAuthRouteDev(devAPI, connectionDB)
 	routeAPI.AddMessageRouteDev(devAPI, connectionDB)
 
-	//Test socket web
-	router.LoadHTMLGlob("*.html")
-	router.GET("/", func(context *gin.Context) {
-		context.HTML(http.StatusOK, "chat-room.html", nil)
-	})
+	setStaticFolder(router)
 
-	router.GET("/connetSocket", func(context *gin.Context) {
-		hub := pubsub.H
-		go hub.Run()
-		pubsub.ServeWs(context)
-	})
+	router.GET("/", api.RenderHome)
+
+	router.GET("/ws", api.SocketConnect)
 
 	return router
 }
