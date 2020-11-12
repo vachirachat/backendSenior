@@ -72,6 +72,24 @@ func (h *Hub) Run() {
 					}
 				}
 			}
+		// for implement to send one person
+		case m := <-h.emitPerson:
+			connections := h.rooms[m.Room]
+			for c := range connections {
+				if c == personID {
+				select {
+				case c.send <- m.Data:
+				default:
+					close(c.send)
+					delete(connections, c)
+					if len(connections) == 0 {
+						delete(h.rooms, m.Room)
+					}
+				}
+			}
 		}
+		}
+		}
+		
 	}
 }
