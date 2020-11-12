@@ -10,7 +10,8 @@ class App extends React.Component {
             chatUserList: [],
             message: null,
             selectedUserID: null,
-            userID: null
+            userID: null,
+            roomid:null
         }
         this.webSocketConnection = null;
     }

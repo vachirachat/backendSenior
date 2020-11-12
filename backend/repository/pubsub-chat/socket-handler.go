@@ -36,20 +36,6 @@ func HandleUserDisconnectEvent(hub *model.Hub, client *model.Client) {
 	}
 }
 
-// EmitToSpecificClient will emit the socket event to specific socket user
-func EmitToSpecificClient(hub *model.Hub, payload model.SocketEventStruct, userID string) {
-	for client := range hub.Clients {
-		if client.UserID == userID {
-			select {
-			case client.Send <- payload:
-			default:
-				close(client.Send)
-				delete(hub.Clients, client)
-			}
-		}
-	}
-}
-
 // BroadcastSocketEventToAllClient will emit the socket events to all socket users
 func BroadcastSocketEventToAllClient(hub *model.Hub, payload model.SocketEventStruct) {
 	log.Println(hub.Clients)
@@ -87,17 +73,51 @@ func handleSocketPayloadEvents(client *model.Client, socketEventPayload model.So
 			},
 		})
 
+		// case "message":
+		// 	log.Printf("Message Event triggered")
+		// 	selectedUserID := socketEventPayload.EventPayload.(map[string]interface{})["userID"].(string)
+		// 	socketEventResponse.EventName = "message response"
+		// 	socketEventResponse.EventPayload = map[string]interface{}{
+		// 		"username": getUsernameByUserID(client.Hub, selectedUserID),
+		// 		"message":  socketEventPayload.EventPayload.(map[string]interface{})["message"],
+		// 		"userID":   selectedUserID,
+		// 	}
+		// 	EmitToSpecificClient(client.Hub, socketEventResponse, selectedUserID)
+		// }
 	case "message":
-		log.Printf("Message Event triggered")
+		log.Printf("Message Room Event triggered")
+
 		selectedUserID := socketEventPayload.EventPayload.(map[string]interface{})["userID"].(string)
+		selectedRoomID := socketEventPayload.EventPayload.(map[string]interface{})["roomID"].(string)
+
 		socketEventResponse.EventName = "message response"
 		socketEventResponse.EventPayload = map[string]interface{}{
 			"username": getUsernameByUserID(client.Hub, selectedUserID),
 			"message":  socketEventPayload.EventPayload.(map[string]interface{})["message"],
 			"userID":   selectedUserID,
+			"roomID":   socketEventPayload.EventPayload.(map[string]interface{})["roomID"],
 		}
-		EmitToSpecificClient(client.Hub, socketEventResponse, selectedUserID)
+		EmitToSpecificClient(client.Hub, socketEventResponse, selectedUserID, selectedRoomID)
 	}
+}
+
+// EmitToSpecificClient will emit the socket event to specific socket user
+func EmitToSpecificClient(hub *model.Hub, payload model.SocketEventStruct, userID string, roomID string) {
+	if roomID == "" {
+		for client := range hub.Clients {
+			if client.UserID == userID {
+				select {
+				case client.Send <- payload:
+				default:
+					close(client.Send)
+					delete(hub.Clients, client)
+				}
+			}
+		}
+	} else {
+
+	}
+
 }
 
 func getUsernameByUserID(hub *model.Hub, userID string) string {
