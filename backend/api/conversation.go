@@ -19,7 +19,7 @@ func SocketConnect(context *gin.Context) {
 	r := context.Request
 
 	hub := socket.NewHub()
-	go socket.Run(hub)
+	go hub.Run()
 
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -37,6 +37,9 @@ func SocketConnect(context *gin.Context) {
 		return
 	}
 
-	socket.CreateNewSocketUser(hub, connection, name)
+	// Query Room From Database -< check to query in API or in Socket
+	room := &socket.Room{}
+
+	socket.CreateNewSocketUser(hub, connection, name, room)
 
 }

@@ -1,36 +1,54 @@
 package routeAPI
 
-// import (
-// 	"backendSenior/api/auth"
+import (
+	"backendSenior/api"
+	socket "backendSenior/repository/pubsub-chat"
+	"log"
+	"net/http"
 
-// 	"github.com/gin-gonic/gin"
-// 	"github.com/globalsign/mgo"
-// )
+	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo"
+	"github.com/gorilla/websocket"
+)
 
-// func AddCoversationRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
+func AddCoversationRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 
-// 	// //Test Google oAuth
-// 	// route.LoadHTMLGlob("route/*")
-// 	// route.GET("/", func(c *gin.Context) {
-// 	// 	c.HTML(http.StatusOK, "index.html", nil)
-// 	// })
+	hub := socket.NewHub()
+	go hub.Run()
 
-// 	// OauthGoogle
-// 	routerGroup.GET("/auth/google/login", auth.OauthGoogleLogin)
-// 	routerGroup.GET("/auth/google/callback", auth.OauthGoogleCallback)
+	routerGroup.StaticFS("./public", http.Dir("./public/"))
+	routerGroup.GET("/", api.RenderHome)
 
-// }
+	routerGroup.GET("/ws", func(context *gin.Context) {
+		w := context.Writer
+		r := context.Request
 
-// // func AddCoversationRouteDev(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
+		var upgrader = websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		}
 
-// // 	// //Test Google oAuth
-// // 	// route.LoadHTMLGlob("route/*")
-// // 	// route.GET("/", func(c *gin.Context) {
-// // 	// 	c.HTML(http.StatusOK, "index.html", nil)
-// // 	// })
+		// Reading username from request parameter
+		username := r.URL.Query()
+		name := username.Get("nameid")
+		log.Println(username)
+		// Upgrading the HTTP connection socket connection
+		connection, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
-// // 	// OauthGoogle
-// // 	routerGroup.GET("/auth/google/login", auth.OauthGoogleLogin)
-// // 	routerGroup.GET("/auth/google/callback", auth.OauthGoogleCallback)
+		// FIX Room Query DATA
+		// Query - Client map-to-Room
+		room := []string
 
-// // }
+
+		// Fetch All Room Message - Client
+
+
+		socket.CreateNewSocketUser(hub, connection, name, room)
+
+	})
+
+}

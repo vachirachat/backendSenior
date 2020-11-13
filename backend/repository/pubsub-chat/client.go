@@ -1,42 +1,54 @@
 package socket
 
 import (
-	"backendSenior/model"
 	"bytes"
 	"encoding/json"
 	"log"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/websocket"
 )
 
-// CreateNewSocketUser creates a new socket user
-func CreateNewSocketUser(hub *model.Hub, connection *websocket.Conn, username string) {
-	uniqueID := uuid.New()
-	client := &model.Client{
-		Hub:                 hub,
-		WebSocketConnection: connection,
-		Send:                make(chan model.SocketEventStruct),
-		Username:            username,
-		UserID:              uniqueID.String(),
-	}
-
-	go WritePump(client)
-	go ReadPump(client)
-
-	client.Hub.Register <- client
+func unRegisterAndCloseConnection(c *Client) {
+	c.hub.Unregister <- c
+	c.webSocketConnection.Close()
 }
 
-func ReadPump(c *model.Client) {
-	var socketEventPayload model.SocketEventStruct
+func setSocketPayloadReadConfig(c *Client) {
+	c.webSocketConnection.SetReadLimit(maxMessageSize)
+	c.webSocketConnection.SetReadDeadline(time.Now().Add(pongWait))
+	c.webSocketConnection.SetPongHandler(func(string) error { c.webSocketConnection.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+}
+
+// CreateNewSocketUser creates a new socket user
+func CreateNewSocketUser(hub *Hub, connection *websocket.Conn, userID bson.ObjectId, username string, room []bson.ObjectId) {
+	//uniqueID := uuid.New()
+	client := &Client{
+		hub:                 hub,
+		webSocketConnection: connection,
+		send:                make(chan SocketEventStruct),
+		username:            username,
+		userID:              userID,
+		Room:                room,
+	}
+
+	go client.WritePump()
+	go client.ReadPump()
+
+	client.hub.Register <- client
+
+}
+
+func (c *Client) ReadPump() {
+	var socketEventPayload SocketEventStruct
 
 	defer unRegisterAndCloseConnection(c)
 
 	setSocketPayloadReadConfig(c)
 
 	for {
-		_, payload, err := c.WebSocketConnection.ReadMessage()
+		_, payload, err := c.webSocketConnection.ReadMessage()
 
 		decoder := json.NewDecoder(bytes.NewReader(payload))
 		decoderErr := decoder.Decode(&socketEventPayload)
@@ -57,35 +69,35 @@ func ReadPump(c *model.Client) {
 	}
 }
 
-func WritePump(c *model.Client) {
+func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.WebSocketConnection.Close()
+		c.webSocketConnection.Close()
 	}()
 	for {
 		select {
-		case payload, ok := <-c.Send:
+		case payload, ok := <-c.send:
 			reqBodyBytes := new(bytes.Buffer)
 			json.NewEncoder(reqBodyBytes).Encode(payload)
 			finalPayload := reqBodyBytes.Bytes()
 
-			c.WebSocketConnection.SetWriteDeadline(time.Now().Add(writeWait))
+			c.webSocketConnection.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				c.WebSocketConnection.WriteMessage(websocket.CloseMessage, []byte{})
+				c.webSocketConnection.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			w, err := c.WebSocketConnection.NextWriter(websocket.TextMessage)
+			w, err := c.webSocketConnection.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
 
 			w.Write(finalPayload)
 
-			n := len(c.Send)
+			n := len(c.send)
 			for i := 0; i < n; i++ {
-				json.NewEncoder(reqBodyBytes).Encode(<-c.Send)
+				json.NewEncoder(reqBodyBytes).Encode(<-c.send)
 				w.Write(reqBodyBytes.Bytes())
 			}
 
@@ -93,21 +105,10 @@ func WritePump(c *model.Client) {
 				return
 			}
 		case <-ticker.C:
-			c.WebSocketConnection.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.WebSocketConnection.WriteMessage(websocket.PingMessage, nil); err != nil {
+			c.webSocketConnection.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.webSocketConnection.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
 		}
 	}
-}
-
-func unRegisterAndCloseConnection(c *model.Client) {
-	c.Hub.Unregister <- c
-	c.WebSocketConnection.Close()
-}
-
-func setSocketPayloadReadConfig(c *model.Client) {
-	c.WebSocketConnection.SetReadLimit(maxMessageSize)
-	c.WebSocketConnection.SetReadDeadline(time.Now().Add(pongWait))
-	c.WebSocketConnection.SetPongHandler(func(string) error { c.WebSocketConnection.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 }

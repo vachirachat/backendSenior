@@ -152,12 +152,12 @@ func GetUserIdByToken(token string) (model.UserToken, error) {
 }
 
 // wrong place
-func (userMongo UserRepositoryMongo) GetRoomWithRoomID(roomID bson.ObjectId) (model.Room, error) {
+func GetRoomWithUserID(userId bson.ObjectId) ([]bson.ObjectId, error) {
 	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
-	var room model.Room
+	var user model.User
 	if err != nil {
-		return room, err
+		return make([]bson.ObjectId, 0), err
 	}
-	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
-	return room, nil
+	err = ConnectionDB.DB(DBRoomName).C(collectionUser).FindId(userId).One(&user)
+	return user.Room, err
 }

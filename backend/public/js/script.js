@@ -11,7 +11,7 @@ class App extends React.Component {
             message: null,
             selectedUserID: null,
             userID: null,
-            roomid:null
+            room: 111111
         }
         this.webSocketConnection = null;
     }
@@ -24,9 +24,16 @@ class App extends React.Component {
     setWebSocketConnection() {
         const username = prompt("What's Your name");
         if (window["WebSocket"]) {
-            const socketConnection = new WebSocket("ws://" + document.location.host + "/ws?myparam=" + username);
+            const socketConnection = new WebSocket("ws://" + document.location.host + "/ws?nameid=" + username);
             this.webSocketConnection = socketConnection;
         }
+    }
+
+    onChangeValueRoom = (value) => {
+        this.setState({
+            room: value
+        });
+        console.log(this.state)
     }
     subscribeToSocketMessage = () => {
         if (this.webSocketConnection === null) {
@@ -160,9 +167,18 @@ class App extends React.Component {
         );
     }
 
+    getRoomChat(){
+        return (
+            <div class="chat__message-container">
+                <input type="text" id="room-text" size="64" autofocus placeholder="Type Your room" onChange={e => this.onChangeValueRoom(e.target.value)}/>
+            </div>
+        )
+    }
+
     render() {
         return (
             <React.Fragment>
+                {this.getRoomChat()}
                 {this.getChatList()}
                 {this.getChatContainer()}
             </React.Fragment>
