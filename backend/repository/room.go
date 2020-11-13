@@ -15,7 +15,7 @@ type RoomRepository interface {
 	GetAllRoom() ([]model.Room, error)
 	GetLastRoom() (model.Room, error)
 	GetRoomByID(roomID bson.ObjectId) (model.Room, error)
-	AddRoom(room model.Room) error
+	AddRoom(room model.Room) (bson.ObjectId, error)
 	EditRoomName(roomID bson.ObjectId, room model.Room) error
 	DeleteRoomByID(roomID bson.ObjectId) error
 	AddMemberToRoom(roomID bson.ObjectId, listUser []bson.ObjectId) error
@@ -47,8 +47,9 @@ func (roomMongo RoomRepositoryMongo) GetLastRoom() (model.Room, error) {
 	err := roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).Find(nil).Sort("-created_time").One(&room)
 	return room, err
 }
-func (roomMongo RoomRepositoryMongo) AddRoom(room model.Room) error {
-	return roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).Insert(room)
+func (roomMongo RoomRepositoryMongo) AddRoom(room model.Room) (bson.ObjectId, error) {
+	room.RoomID = bson.NewObjectId()
+	return room.RoomID, roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).Insert(room)
 }
 
 func (roomMongo RoomRepositoryMongo) EditRoomName(roomID bson.ObjectId, room model.Room) error {

@@ -8,9 +8,9 @@ class App extends React.Component {
         super();
         this.state = {
             chatUserList: [],
-            message: null,
-            selectedUserID: null,
-            userID: null,
+            message: "",
+            selectedUserID: "23123123",
+            userID: "10210210",
             room: 111111
         }
         this.webSocketConnection = null;
@@ -63,6 +63,7 @@ class App extends React.Component {
                             chatUserList: userInitPayload.users,
                             userID: this.state.userID === null ? userInitPayload.userID : this.state.userID
                         });
+                        console.log(this.chatUserList)
 
                         break;
 

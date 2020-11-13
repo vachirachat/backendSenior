@@ -47,13 +47,14 @@ func (api RoomAPI) AddRoomHandeler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	err = api.RoomRepository.AddRoom(room)
+	var roomID bson.ObjectId
+	roomID, err = api.RoomRepository.AddRoom(room)
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	context.JSON(http.StatusCreated, gin.H{"status": "success"})
+	context.JSON(http.StatusCreated, gin.H{"status": "success", "roomId": roomID})
 }
 
 func (api RoomAPI) EditRoomNameHandler(context *gin.Context) {
