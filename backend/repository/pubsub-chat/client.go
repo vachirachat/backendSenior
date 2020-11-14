@@ -10,16 +10,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func unRegisterAndCloseConnection(c *Client) {
-	c.hub.Unregister <- c
-	c.webSocketConnection.Close()
-}
-
-func setSocketPayloadReadConfig(c *Client) {
-	c.webSocketConnection.SetReadLimit(maxMessageSize)
-	c.webSocketConnection.SetReadDeadline(time.Now().Add(pongWait))
-	c.webSocketConnection.SetPongHandler(func(string) error { c.webSocketConnection.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-}
+const (
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 512
+)
 
 // CreateNewSocketUser creates a new socket user
 func CreateNewSocketUser(hub *Hub, connection *websocket.Conn, userID bson.ObjectId, username string, room []bson.ObjectId) {
@@ -111,4 +107,15 @@ func (c *Client) WritePump() {
 			}
 		}
 	}
+}
+
+func unRegisterAndCloseConnection(c *Client) {
+	c.hub.Unregister <- c
+	c.webSocketConnection.Close()
+}
+
+func setSocketPayloadReadConfig(c *Client) {
+	c.webSocketConnection.SetReadLimit(maxMessageSize)
+	c.webSocketConnection.SetReadDeadline(time.Now().Add(pongWait))
+	c.webSocketConnection.SetPongHandler(func(string) error { c.webSocketConnection.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 }

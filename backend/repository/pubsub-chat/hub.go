@@ -15,8 +15,9 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		Clients:        make(map[*Client]bool),
-		Room:           make(map[bson.ObjectId][]*Client),
+		Clients: make(map[*Client]bool),
+		Room:    make(map[bson.ObjectId][]*Client),
+
 		Register:       make(chan *Client),
 		Unregister:     make(chan *Client),
 		RegisterRoom:   make(chan *Client),
@@ -34,11 +35,8 @@ func (hub *Hub) Run() {
 		case client := <-hub.Unregister:
 			HandleUserDisconnectEvent(hub, client)
 
-		case client := <-hub.UnregisterRoom:
-			HandleRoomRegisterEvent(hub, client)
-
-		case client := <-hub.UnregisterRoom:
-			HandleRoomDisconnectEvent(hub, client)
+		case client := <-hub.RegisterRoom:
+			HandleInitConnectRegisterEvent(hub, client)
 
 		}
 	}

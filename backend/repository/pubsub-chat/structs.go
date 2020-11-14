@@ -32,3 +32,8 @@ type JoinDisconnectPayload struct {
 	Users  []UserStruct  `json:"users"`
 	UserID bson.ObjectId `json:"userID"`
 }
+
+type RoomPayload struct {
+	RoomId bson.ObjectId
+	UserID bson.ObjectId `json:"userID"`
+}
