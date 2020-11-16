@@ -48,7 +48,7 @@ const (
 	RoomCollection = "RoomData"
 )
 
-func getAllRoom(tempMap map[bson.ObjectId][]*Client) map[bson.ObjectId][]*Client {
+func getAllRoomSocket(tempMap map[bson.ObjectId][]*Client) map[bson.ObjectId][]*Client {
 	var rooms []model.Room
 	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
 	if err != nil {
