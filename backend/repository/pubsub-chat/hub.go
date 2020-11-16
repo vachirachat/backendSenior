@@ -19,10 +19,11 @@ type Hub struct {
 }
 
 func NewHub() *Hub {
-
+	tempMap := make(map[bson.ObjectId][]*Client)
+	tempMap = getAllRoom(tempMap)
 	return &Hub{
 		Clients:    make(map[*Client]bool),
-		Room:       getAllRoom(),
+		Room:       tempMap,
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 	}
@@ -47,7 +48,7 @@ const (
 	RoomCollection = "RoomData"
 )
 
-func getAllRoom() map[bson.ObjectId][]*Client {
+func getAllRoom(tempMap map[bson.ObjectId][]*Client) map[bson.ObjectId][]*Client {
 	var rooms []model.Room
 	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
 	if err != nil {
@@ -55,14 +56,12 @@ func getAllRoom() map[bson.ObjectId][]*Client {
 	}
 	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).Find(nil).All(&rooms)
 
-	var Map map[bson.ObjectId][]*Client
-
 	for _, room := range rooms {
 		for _, userID := range room.ListUser {
-			Map[room.RoomID] = append(Map[room.RoomID], &Client{
+			tempMap[room.RoomID] = append(tempMap[room.RoomID], &Client{
 				userID: userID,
 			})
 		}
 	}
-	return Map
+	return tempMap
 }

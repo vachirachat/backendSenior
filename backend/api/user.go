@@ -54,30 +54,30 @@ func (api UserAPI) GetUserByEmail(context *gin.Context) {
 }
 
 //for return roomidList of User
-func (api UserAPI) GetUserRoomByUserID(context *gin.Context) {
-	var user model.User
-	err := context.ShouldBindJSON(&user)
-	userResult, err := api.UserRepository.GetUserByID(user.UserID)
-	if err != nil {
-		log.Println("error getUserRoomByUserID", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	roomIDList := userResult.Room
-	log.Println(roomIDList)
-	var roomNameList []string
-	for _, s := range roomIDList {
-		room, err := api.UserRepository.GetRoomWithRoomID(s)
-		if err != nil {
-			log.Println("error getUserRoomByUserID", err.Error())
-			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-			return
-		}
-		roomNameList = append(roomNameList, room.RoomName)
-	}
+// func (api UserAPI) GetUserRoomByUserID(context *gin.Context) {
+// 	var user model.User
+// 	err := context.ShouldBindJSON(&user)
+// 	userResult, err := api.UserRepository.GetUserByID(user.UserID)
+// 	if err != nil {
+// 		log.Println("error getUserRoomByUserID", err.Error())
+// 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+// 		return
+// 	}
+// 	roomIDList := userResult.Room
+// 	log.Println(roomIDList)
+// 	var roomNameList []string
+// 	for _, s := range roomIDList {
+// 		room, err := api.UserRepository.GetRoomWithRoomID(s)
+// 		if err != nil {
+// 			log.Println("error getUserRoomByUserID", err.Error())
+// 			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+// 			return
+// 		}
+// 		roomNameList = append(roomNameList, room.RoomName)
+// 	}
 
-	context.JSON(http.StatusOK, gin.H{"username": userResult.Name, "RoomIDList": userResult.Room, "RoomNameList": roomNameList})
-}
+// 	context.JSON(http.StatusOK, gin.H{"username": userResult.Name, "RoomIDList": userResult.Room, "RoomNameList": roomNameList})
+// }
 
 func (api UserAPI) AddUserHandeler(context *gin.Context) {
 	var user model.User

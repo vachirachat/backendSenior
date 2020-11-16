@@ -29,7 +29,7 @@ type UserRepository interface {
 
 	GetAllUserSecret() ([]model.UserLogin, error)
 
-	GetRoomWithRoomID(roomID bson.ObjectId) (model.Room, error)
+	//GetRoomWithRoomID(roomID bson.ObjectId) (model.Room, error)
 }
 
 type UserRepositoryMongo struct {
