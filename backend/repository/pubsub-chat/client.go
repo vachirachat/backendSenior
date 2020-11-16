@@ -1,11 +1,14 @@
-package socket
+package repository
 
 import (
+	"backendSenior/model"
+	"backendSenior/utills"
 	"bytes"
 	"encoding/json"
 	"log"
 	"time"
 
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/websocket"
 )
@@ -18,15 +21,22 @@ const (
 )
 
 // CreateNewSocketUser creates a new socket user
-func CreateNewSocketUser(hub *Hub, connection *websocket.Conn, userID bson.ObjectId, username string, room []bson.ObjectId) {
-	//uniqueID := uuid.New()
+func CreateNewSocketUser(hub *Hub, connection *websocket.Conn, userID bson.ObjectId) {
+
+	//get []room when user join session
+	user, err := getUserRoomWithUserID(userID)
+	if err != nil {
+		log.Println("error CreateNewSocketUser", err.Error())
+		return
+	}
+
 	client := &Client{
 		hub:                 hub,
 		webSocketConnection: connection,
 		send:                make(chan SocketEventStruct),
-		username:            username,
+		username:            user.Name,
 		userID:              userID,
-		Room:                room,
+		Room:                user.Room,
 	}
 
 	go client.WritePump()
@@ -118,4 +128,23 @@ func setSocketPayloadReadConfig(c *Client) {
 	c.webSocketConnection.SetReadLimit(maxMessageSize)
 	c.webSocketConnection.SetReadDeadline(time.Now().Add(pongWait))
 	c.webSocketConnection.SetPongHandler(func(string) error { c.webSocketConnection.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+}
+
+// Temp data
+const (
+	DBNameUser       = "User"
+	collectionUser   = "UserData"
+	collectionToken  = "UserToken"
+	collectionSecret = "UserSecret"
+)
+
+// DB get USer-room place
+func getUserRoomWithUserID(userId bson.ObjectId) (model.User, error) {
+	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
+	var user model.User
+	if err != nil {
+		return user, err
+	}
+	err = ConnectionDB.DB(DBNameUser).C(collectionUser).FindId(userId).One(&user)
+	return user, err
 }

@@ -1,23 +1,20 @@
 package routeAPI
 
 import (
-	"backendSenior/api"
-	socket "backendSenior/repository/pubsub-chat"
+	repository "backendSenior/repository/pubsub-chat"
 	"log"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/websocket"
 )
 
 func AddCoversationRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 
-	hub := socket.NewHub()
+	//Init new hub server
+	hub := repository.NewHub()
 	go hub.Run()
-
-	routerGroup.StaticFS("./public", http.Dir("./public/"))
-	routerGroup.GET("/", api.RenderHome)
 
 	routerGroup.GET("/ws", func(context *gin.Context) {
 		w := context.Writer
@@ -30,7 +27,7 @@ func AddCoversationRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session
 
 		// Reading username from request parameter
 		username := r.URL.Query()
-		name := username.Get("nameid")
+		userID := username.Get("userID")
 		log.Println(username)
 		// Upgrading the HTTP connection socket connection
 		connection, err := upgrader.Upgrade(w, r, nil)
@@ -39,15 +36,7 @@ func AddCoversationRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session
 			return
 		}
 
-		// FIX Room Query DATA
-		// Query - Client map-to-Room
-		room := []string
-
-
-		// Fetch All Room Message - Client
-
-
-		socket.CreateNewSocketUser(hub, connection, name, room)
+		repository.CreateNewSocketUser(hub, connection, bson.ObjectIdHex(userID))
 
 	})
 

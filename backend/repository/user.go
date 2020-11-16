@@ -2,7 +2,6 @@ package repository
 
 import (
 	"backendSenior/model"
-	"backendSenior/utills"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -149,15 +148,4 @@ func GetUserIdByToken(token string) (model.UserToken, error) {
 	//objectID := bson.ObjectIdHex(userID)
 	err := ConnectionDB.DB(DBNameUser).C(collectionToken).Find(bson.M{"Token": token}).One(&userToken)
 	return userToken, err
-}
-
-// wrong place
-func GetRoomWithUserID(userId bson.ObjectId) ([]bson.ObjectId, error) {
-	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
-	var user model.User
-	if err != nil {
-		return make([]bson.ObjectId, 0), err
-	}
-	err = ConnectionDB.DB(DBRoomName).C(collectionUser).FindId(userId).One(&user)
-	return user.Room, err
 }

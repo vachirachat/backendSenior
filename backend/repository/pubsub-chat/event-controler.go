@@ -1,90 +1,106 @@
-package socket
+package repository
 
 import (
 	"log"
+	"time"
 
 	"github.com/globalsign/mgo/bson"
 )
 
-// HandleUserRegisterEvent will handle the Join event for New socket users
-func HandleUserRegisterEvent(hub *Hub, client *Client) {
-	hub.Clients[client] = true
-	log.Println("HandleUserRegisterEvent", client.username)
-	handleSocketPayloadEvents(client, SocketEventStruct{
-		EventName:    "join",
-		EventPayload: client.userID,
-	})
-}
-
-// HandleUserDisconnectEvent will handle the Disconnect. event for socket users
-func HandleUserDisconnectEvent(hub *Hub, client *Client) {
-	_, ok := hub.Clients[client]
-	if ok {
-		delete(hub.Clients, client)
-		close(client.send)
-
-		handleSocketPayloadEvents(client, SocketEventStruct{
-			EventName:    "disconnect",
-			EventPayload: client.userID,
+func handleSocketPayloadEvents(client *Client, socketEventPayload SocketEventStruct) {
+	var socketEventResponse SocketEventStruct
+	switch socketEventPayload.EventName {
+	case "join":
+		log.Printf("Join Event triggered")
+		BroadcastSocketEventToAllClient(client.hub, SocketEventStruct{
+			EventName: socketEventPayload.EventName,
+			EventPayload: JoinDisconnectPayload{
+				UserID: client.userID,
+				Users:  getAllConnectedUsers(client.hub),
+			},
 		})
-	}
-}
 
-// HandleUserRegisterEvent will handle the Join event for New socket users
-func HandleInitConnectRegisterEvent(hub *Hub, client *Client) {
-	_, ok := hub.Clients[client]
-	if ok {
-
-	}
-}
-
-// EmitToSpecificClient will emit the socket event to specific socket user
-func EmitToSpecificClient(hub *Hub, payload SocketEventStruct, userID bson.ObjectId, room bson.ObjectId) {
-	if room.String() == "" {
-		for client := range hub.Clients {
-			if client.userID == userID {
-				select {
-				case client.send <- payload:
-				default:
-					close(client.send)
-					delete(hub.Clients, client)
-				}
-			}
-		}
-	} else {
-		for _, client := range hub.Room[room] {
-			if hub.Clients[client] {
-				select {
-				case client.send <- payload:
-				default:
-					close(client.send)
-					delete(hub.Clients, client)
-
-				}
-			}
-
-		}
-	}
-
-}
-
-func getUsernameByUserID(hub *Hub, userID bson.ObjectId) string {
-	var username string
-	for client := range hub.Clients {
-		if client.userID == userID {
-			username = client.username
-		}
-	}
-	return username
-}
-
-func getAllConnectedUsers(hub *Hub) []UserStruct {
-	var users []UserStruct
-	for singleClient := range hub.Clients {
-		users = append(users, UserStruct{
-			Username: singleClient.username,
-			UserID:   singleClient.userID,
+	case "disconnect":
+		log.Printf("Disconnect Event triggered")
+		BroadcastSocketEventToAllClient(client.hub, SocketEventStruct{
+			EventName: socketEventPayload.EventName,
+			EventPayload: JoinDisconnectPayload{
+				UserID: client.userID,
+				Users:  getAllConnectedUsers(client.hub),
+			},
 		})
+
+	case "join room":
+		log.Printf("join room Event triggered")
+		selectedroomID := socketEventPayload.EventPayload.(map[string]interface{})["roomID"].(bson.ObjectId)
+		selecteduserID := socketEventPayload.EventPayload.(map[string]interface{})["userID"].(bson.ObjectId)
+
+		socketEventResponse.EventName = "join room response"
+		socketEventResponse.EventPayload = map[string]interface{}{
+			"roomID":    selectedroomID,
+			"userID":    selecteduserID,
+			"timestamp": socketEventPayload.EventPayload.(map[string]interface{})["timestamp"].(time.Time),
+		}
+		HandleJoinRoomEvent(client.hub, socketEventResponse, selectedroomID, client)
+
+	case "disconnect room":
+		log.Printf("leave room Event triggered")
+		selectedroomID := socketEventPayload.EventPayload.(map[string]interface{})["roomID"].(bson.ObjectId)
+		selecteduserID := socketEventPayload.EventPayload.(map[string]interface{})["userID"].(bson.ObjectId)
+
+		socketEventResponse.EventName = "join room response"
+		socketEventResponse.EventPayload = map[string]interface{}{
+			"roomID":    selectedroomID,
+			"userID":    selecteduserID,
+			"timestamp": socketEventPayload.EventPayload.(map[string]interface{})["timestamp"].(time.Time),
+		}
+		HandleJoinRoomEvent(client.hub, socketEventResponse, selectedroomID, client)
+
+	case "message private":
+		log.Printf("Message Clients Event triggered")
+
+		/*
+			JSON
+			 {
+				 username
+				 message
+				 userID
+				 roomID
+			 }
+		*/
+
+		selectedroomID := socketEventPayload.EventPayload.(map[string]interface{})["roomID"].(bson.ObjectId)
+		socketEventResponse.EventName = "message private response"
+		socketEventResponse.EventPayload = map[string]interface{}{
+			"message":   socketEventPayload.EventPayload.(map[string]interface{})["message"],
+			"roomID":    selectedroomID,
+			"userID":    socketEventPayload.EventPayload.(map[string]interface{})["userID"],
+			"timestamp": socketEventPayload.EventPayload.(map[string]interface{})["timestamp"].(time.Time),
+		}
+		EmitToMessage(client.hub, socketEventResponse, selectedroomID, "PRIVATE")
+
+	case "message group":
+		log.Printf("Message Clients Event triggered")
+
+		/*
+			JSON
+			 {
+				 username
+				 message
+				 userID
+				 roomID
+			 }
+		*/
+		selectedroomID := socketEventPayload.EventPayload.(map[string]interface{})["roomID"].(bson.ObjectId)
+
+		socketEventResponse.EventName = "message group response"
+		socketEventResponse.EventPayload = map[string]interface{}{
+			"message":   socketEventPayload.EventPayload.(map[string]interface{})["message"],
+			"userID":    socketEventPayload.EventPayload.(map[string]interface{})["userID"],
+			"roomID":    selectedroomID,
+			"timestamp": socketEventPayload.EventPayload.(map[string]interface{})["timestamp"].(time.Time),
+		}
+		EmitToMessage(client.hub, socketEventResponse, selectedroomID, "GROUP")
+
 	}
-	return users
 }

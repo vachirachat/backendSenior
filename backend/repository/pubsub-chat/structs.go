@@ -1,4 +1,4 @@
-package socket
+package repository
 
 import (
 	"github.com/globalsign/mgo/bson"
@@ -24,7 +24,8 @@ type Client struct {
 	send                chan SocketEventStruct
 	username            string
 	userID              bson.ObjectId
-	Room                []bson.ObjectId
+
+	Room []bson.ObjectId //add
 }
 
 // JoinDisconnectPayload will have struct for payload of join disconnect
