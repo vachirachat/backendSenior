@@ -12,28 +12,28 @@
 # API For test 
 Follow step
 
-1--> Post http://localhost:8080/dev/v1/createroom
-{
-	"RoomName": "TestSocket"   ,       
-	"RoomType": "PRIVATE"       ,  
-	"ListUser": []
-}
-* GET http://localhost:8080/dev/v1/room
-look like ::
-        {
-            "roomId": "5fb261d8584cb606941cab70",
-            "roomName": "TestSocket",
-            "roomType": "PRIVATE",
-            "listUser": []
-        }
+	# 1--> Post http://localhost:8080/dev/v1/createroom
+	{
+		"RoomName": "TestSocket"   ,       
+		"RoomType": "PRIVATE"       ,  
+		"ListUser": []
+	}
+	* GET http://localhost:8080/dev/v1/room
+	look like ::
+		{
+		    "roomId": "5fb261d8584cb606941cab70",
+		    "roomName": "TestSocket",
+		    "roomType": "PRIVATE",
+		    "listUser": []
+		}
 
-2--> step add new 3 users
-    2.1 -> Post http://localhost:8080/api/v1/signup
-    {
-        "RoomName": "TestSocket"   ,       
-        "RoomType": "PRIVATE"       ,  
-        "ListUser": []
-    }
+	# 2--> step add new 3 users
+	    2.1 -> Post http://localhost:8080/api/v1/signup
+	    {
+		"RoomName": "TestSocket"   ,       
+		"RoomType": "PRIVATE"       ,  
+		"ListUser": []
+	    }
 
     2.2 -> Post http://localhost:8080/api/v1/signup
     {
@@ -76,8 +76,10 @@ look like ::
                 "userType": "USER"
             }
 
-3--> POST http://localhost:8080/dev/v1/addmembertoroom
-{
-    "roomID" : "5fb261d8584cb606941cab70",
-	"ListUser" : ["test-socket-1 ID","test-socket-1 2 ID"]
-}
+	# 3--> POST http://localhost:8080/dev/v1/addmembertoroom
+	{
+	    "roomID" : "5fb261d8584cb606941cab70",
+		"ListUser" : ["test-socket-1 ID","test-socket-1 2 ID"]
+	}
+	
+	# 4--> Call GET http://localhost:8080/dev/v1/room && GET http://localhost:8080/dev/v1/user you will setup for start socket
