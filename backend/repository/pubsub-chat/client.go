@@ -5,6 +5,7 @@ import (
 	"backendSenior/utills"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -71,7 +72,17 @@ func (c *Client) ReadPump() {
 			break
 		}
 
-		handleSocketPayloadEvents(c, socketEventPayload)
+		fmt.Println(socketEventPayload)
+		var socketMessageEventPayload SocketMessageEventStruct
+		if socketEventPayload.EventName == "message group" {
+			decoder = json.NewDecoder(bytes.NewReader(payload))
+			decoderErr = decoder.Decode(&socketMessageEventPayload)
+			socketEventPayload.EventPayload = socketMessageEventPayload.EventPayload
+			fmt.Println("msg=>", socketMessageEventPayload)
+			handleSocketPayloadEvents(c, socketEventPayload)
+		} else {
+			handleSocketPayloadEvents(c, socketEventPayload)
+		}
 	}
 }
 

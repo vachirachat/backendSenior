@@ -2,7 +2,9 @@ package routeAPI
 
 import (
 	repository "backendSenior/repository/pubsub-chat"
+	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo"
@@ -17,12 +19,16 @@ func AddCoversationRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session
 	go hub.Run()
 
 	routerGroup.GET("/ws", func(context *gin.Context) {
+		fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
 
 		var upgrader = websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
+			CheckOrigin: func(req *http.Request) bool {
+				return true
+			},
 		}
 
 		// Reading username from request parameter

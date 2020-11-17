@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/websocket"
 )
@@ -15,6 +17,18 @@ type UserStruct struct {
 type SocketEventStruct struct {
 	EventName    string      `json:"eventName"`
 	EventPayload interface{} `json:"eventPayload"`
+}
+
+type messagePayload struct {
+	UserId    bson.ObjectId `json:"userId"`
+	RoomId    bson.ObjectId `json:"roomId"`
+	Message   string        `json:"message"`
+	Timestamp time.Time     `json:"timestamp"`
+}
+
+type SocketMessageEventStruct struct {
+	EventName    string         `json:"eventName"`
+	EventPayload messagePayload `json:"eventPayload"`
 }
 
 // Client is a middleman between the websocket connection and the hub.

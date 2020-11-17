@@ -91,14 +91,15 @@ func handleSocketPayloadEvents(client *Client, socketEventPayload SocketEventStr
 				 roomID
 			 }
 		*/
-		selectedroomID := socketEventPayload.EventPayload.(map[string]interface{})["roomID"].(bson.ObjectId)
+		msgPayload := socketEventPayload.EventPayload.(messagePayload)
+		selectedroomID := msgPayload.RoomId
 
 		socketEventResponse.EventName = "message group response"
 		socketEventResponse.EventPayload = map[string]interface{}{
-			"message":   socketEventPayload.EventPayload.(map[string]interface{})["message"],
-			"userID":    socketEventPayload.EventPayload.(map[string]interface{})["userID"],
-			"roomID":    selectedroomID,
-			"timestamp": socketEventPayload.EventPayload.(map[string]interface{})["timestamp"].(time.Time),
+			"message":   msgPayload.Message,
+			"userID":    msgPayload.UserId,
+			"roomID":    msgPayload.RoomId,
+			"timestamp": msgPayload.Timestamp,
 		}
 		EmitToMessage(client.hub, socketEventResponse, selectedroomID, "GROUP")
 
