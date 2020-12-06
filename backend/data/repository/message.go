@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"backendSenior/model"
+	"backendSenior/domain/model"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"

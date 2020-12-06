@@ -1,7 +1,7 @@
 package routeAPI
 
 import (
-	repository "backendSenior/repository/pubsub-chat"
+	repository "backendSenior/data/repository/pubsub-chat"
 	"fmt"
 	"log"
 	"net/http"

@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"backendSenior/repository"
+	"backendSenior/data/repository"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

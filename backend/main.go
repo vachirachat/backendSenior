@@ -1,7 +1,7 @@
 package main
 
 import (
-	"backendSenior/route"
+	"backendSenior/controller/route"
 	"backendSenior/utills"
 	"log"
 

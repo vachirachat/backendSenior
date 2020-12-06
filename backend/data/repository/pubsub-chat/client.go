@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"backendSenior/model"
+	"backendSenior/domain/model"
 	"backendSenior/utills"
 	"bytes"
 	"encoding/json"

@@ -1,8 +1,8 @@
 package api
 
 import (
-	"backendSenior/model"
-	"backendSenior/repository"
+	"backendSenior/data/repository"
+	"backendSenior/domain/model"
 	"backendSenior/utills"
 	"log"
 	"net/http"

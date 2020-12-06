@@ -1,7 +1,7 @@
 package route
 
 import (
-	"backendSenior/route/routeAPI"
+	"backendSenior/controller/route/routeAPI"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo"
