@@ -73,7 +73,7 @@ func (c *Client) ReadPump() {
 		}
 
 		fmt.Println(socketEventPayload)
-		var socketMessageEventPayload SocketMessageEventStruct
+		var socketMessageEventPayload SocketMessageEventStructgit pu
 		if socketEventPayload.EventName == "message group" {
 			decoder = json.NewDecoder(bytes.NewReader(payload))
 			decoderErr = decoder.Decode(&socketMessageEventPayload)
@@ -88,7 +88,7 @@ func (c *Client) ReadPump() {
 
 func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
-	defer func() {
+	defer func() 
 		ticker.Stop()
 		c.webSocketConnection.Close()
 	}()
