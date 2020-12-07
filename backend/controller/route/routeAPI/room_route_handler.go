@@ -27,11 +27,11 @@ func NewRoomRouteHandler(roomService *service.RoomService, authService *auth.Aut
 
 //Mount make RoomRouteHandler handler request from specific `RouterGroup`
 func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	routerGroup.POST("/createroom", handler.authService.AuthMiddleware("object", "view"), handler.addRoomHandler)
-	routerGroup.PUT("/editroomname", handler.authService.AuthMiddleware("object", "view"), handler.editRoomNameHandler)
-	routerGroup.DELETE("/deleteroom", handler.authService.AuthMiddleware("object", "view"), handler.deleteRoomByIDHandler)
-	routerGroup.POST("/addmembertoroom", handler.authService.AuthMiddleware("object", "view"), handler.addMemberToRoom)
-	routerGroup.POST("/deletemembertoroom", handler.authService.AuthMiddleware("object", "view"), handler.deleteMemberFromRoom)
+	routerGroup.POST("/createroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addRoomHandler)
+	routerGroup.PUT("/editroomname" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editRoomNameHandler)
+	routerGroup.DELETE("/deleteroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteRoomByIDHandler)
+	routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
+	routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
 }
 
 func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {

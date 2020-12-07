@@ -26,10 +26,10 @@ func NewMessageRouteHandler(msgService *service.MessageService, authService *aut
 
 //Mount make messageRouteHandler handler request from specific `RouterGroup`
 func (handler *MessageRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	routerGroup.GET("/", handler.authService.AuthMiddleware("object", "view"), handler.MessageListHandler)
-	routerGroup.POST("/", handler.authService.AuthMiddleware("object", "view"), handler.AddMessageHandeler)
-	// route.PUT("/message/:message_id", handler.authService.AuthMiddleware("object", "view") ,handler.EditMessageHandler)
-	routerGroup.DELETE("/:message_id", handler.authService.AuthMiddleware("object", "view"), handler.DeleteMessageByIDHandler)
+	routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.MessageListHandler)
+	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.AddMessageHandeler)
+	// route.PUT("/message/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/ ,handler.EditMessageHandler)
+	routerGroup.DELETE("/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/, handler.DeleteMessageByIDHandler)
 }
 
 // MessageListHandler return all messages
