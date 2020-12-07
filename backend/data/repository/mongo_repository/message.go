@@ -7,14 +7,6 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-type MessageRepository interface {
-	GetAllMessage() ([]model.Message, error)
-	// GetLastMessage() (model.Message, error)
-	GetMessageByID(userID string) (model.Message, error)
-	AddMessage(message model.Message) error
-	DeleteMessageByID(userID string) error
-}
-
 type MessageRepositoryMongo struct {
 	ConnectionDB *mgo.Session
 }

@@ -1,7 +1,8 @@
 package repository
 
 import (
-	"backendSenior/data/repository"
+	repository "backendSenior/data/repository/mongo_repository"
+
 	"backendSenior/domain/model"
 	"backendSenior/utills"
 	"log"

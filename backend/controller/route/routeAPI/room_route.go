@@ -1,7 +1,8 @@
 package routeAPI
 
 import (
-	"backendSenior/data/repository"
+	repository "backendSenior/data/repository/mongo_repository"
+
 	api "backendSenior/domain/usecase"
 	"backendSenior/domain/usecase/auth"
 

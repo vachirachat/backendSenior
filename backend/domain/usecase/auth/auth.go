@@ -1,7 +1,9 @@
 package auth
 
 import (
-	"backendSenior/data/repository"
+	mongo_repository "backendSenior/data/repository/mongo_repository"
+	"backendSenior/domain/interface/repository"
+
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +40,7 @@ func getSession(c *gin.Context) (string, bool) {
 	r := c.Request
 	cookie, err := r.Cookie("SESSION_ID")
 	if err == nil {
-		userToken, err := repository.GetUserIdByToken(cookie.Value)
+		userToken, err := mongo_repository.GetUserIdByToken(cookie.Value)
 		if err == nil {
 			return userToken.Email, true
 		}
