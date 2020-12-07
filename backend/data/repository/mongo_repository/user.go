@@ -1,6 +1,7 @@
-package repository
+package mongo_repository
 
 import (
+	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 
 	"github.com/globalsign/mgo"
@@ -11,6 +12,8 @@ import (
 type UserRepositoryMongo struct {
 	ConnectionDB *mgo.Session
 }
+
+var _ repository.UserRepository = (*UserRepositoryMongo)(nil)
 
 const (
 	DBNameUser       = "User"

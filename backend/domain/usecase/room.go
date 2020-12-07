@@ -1,144 +1,65 @@
-package api
+package service
 
 import (
 	"backendSenior/domain/interface/repository"
 
 	"backendSenior/domain/model"
-	"log"
-	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
 )
 
-type RoomAPI struct {
-	RoomRepository repository.RoomRepository
+type RoomService struct {
+	roomRepository repository.RoomRepository
 }
 
-func (api RoomAPI) RoomListHandler(context *gin.Context) {
-	var roomsInfo model.RoomInfo
-	rooms, err := api.RoomRepository.GetAllRoom()
-	if err != nil {
-		log.Println("error roomListHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
+// NewRoomService create new room service instance
+func NewRoomService(roomRepo repository.RoomRepository) *RoomService {
+	return &RoomService{
+		roomRepository: roomRepo,
 	}
-	roomsInfo.Room = rooms
-	context.JSON(http.StatusOK, roomsInfo)
 }
 
-// for get room by id
-func (api RoomAPI) GetRoomByIDHandler(context *gin.Context) {
-	roomID := context.Param("roomId")
-	ObjectID := bson.ObjectIdHex(roomID)
-	room, err := api.RoomRepository.GetRoomByID(ObjectID)
-	if err != nil {
-		log.Println("error GetRoomByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	context.JSON(http.StatusOK, room)
+// GetAllRooms get all rooms from all user
+func (service *RoomService) GetAllRooms() ([]model.Room, error) {
+	rooms, err := service.roomRepository.GetAllRooms()
+	return rooms, err
 }
 
-func (api RoomAPI) AddRoomHandeler(context *gin.Context) {
-	var room model.Room
-	err := context.ShouldBindJSON(&room)
-	if err != nil {
-		log.Println("error AddRoomHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	var roomID bson.ObjectId
-	roomID, err = api.RoomRepository.AddRoom(room)
-	if err != nil {
-		log.Println("error AddRoomHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	context.JSON(http.StatusCreated, gin.H{"status": "success", "roomId": roomID})
+// GetRoomByID get room by Id
+func (service *RoomService) GetRoomByID(roomID bson.ObjectId) (model.Room, error) {
+	room, err := service.roomRepository.GetRoomByID(roomID)
+	return room, err
 }
 
-func (api RoomAPI) EditRoomNameHandler(context *gin.Context) {
-	var room model.Room
-	err := context.ShouldBindJSON(&room)
-	if err != nil {
-		log.Println("error EditRoomNametHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	err = api.RoomRepository.EditRoomName(room.RoomID, room)
-	if err != nil {
-		log.Println("error EditRoomNametHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	context.JSON(http.StatusOK, gin.H{"status": "success"})
+// AddRoom insert room into database and return id of newly inserted room
+func (service *RoomService) AddRoom(room model.Room) (bson.ObjectId, error) {
+	roomID, err := service.roomRepository.AddRoom(room)
+	return roomID, err
 }
 
-func (api RoomAPI) DeleteRoomByIDHandler(context *gin.Context) {
-	//roomID := context.Param("room_id")
-	var room model.Room
-	err := context.ShouldBindJSON(&room)
-	log.Println(room)
-	if err != nil {
-		log.Println("error DeleteRoomByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
+// EditRoomName change name of room
+// todo this should pass only room name
+func (service *RoomService) EditRoomName(roomID bson.ObjectId, room model.Room) error {
+	err := service.roomRepository.EditRoomName(room.RoomID, room)
+	return err
+}
 
-	err = api.RoomRepository.DeleteRoomByID(room.RoomID)
-	if err != nil {
-		log.Println("error DeleteRoomHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-	}
-	context.JSON(http.StatusOK, gin.H{"status": "success"})
+// DeleteRoomByID delete a room by id
+func (service *RoomService) DeleteRoomByID(roomID bson.ObjectId) error {
+	err := service.roomRepository.DeleteRoomByID(roomID)
+	return err
 }
 
 // Match with Socket-structure
 
-//// -- JoinAPI -> getSession(Topic+#ID) -> giveUserSession
-func (api RoomAPI) AddMemberToRoom(context *gin.Context) {
-	// send JSON Body
-	/* - {
-		"roomID" : ""
-		"ListUser" : [""]
-	}*/
-
-	var room model.Room
-	err := context.ShouldBindJSON(&room)
-	if err != nil {
-		log.Println("error InviteUserByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-
-	err = api.RoomRepository.AddMemberToRoom(room.RoomID, room.ListUser)
-	if err != nil {
-		log.Println("error AddMemberToRoom", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	context.JSON(http.StatusOK, gin.H{"status": "success"})
+// AddMembersToRoom add members to room
+func (service *RoomService) AddMembersToRoom(roomID bson.ObjectId, userList []bson.ObjectId) error {
+	err := service.roomRepository.AddMemberToRoom(roomID, userList)
+	return err
 }
 
-func (api RoomAPI) DeleteMemberToRoom(context *gin.Context) {
-	type deleteRoom struct {
-		Userid bson.ObjectId
-		Roomid bson.ObjectId
-	}
-	var roomDelete deleteRoom
-	err := context.ShouldBindJSON(&roomDelete)
-	if err != nil {
-		log.Println("error InviteUserByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-
-	err = api.RoomRepository.DeleteMemberToRoom(roomDelete.Userid, roomDelete.Roomid)
-	log.Println(roomDelete)
-	if err != nil {
-		log.Println("error DeleteRoomHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-	}
-	context.JSON(http.StatusOK, gin.H{"status": "success"})
+// DeleteMemberFromRoom removes a member from room
+func (service *RoomService) DeleteMemberFromRoom(roomID bson.ObjectId, userID bson.ObjectId) error {
+	err := service.roomRepository.DeleteMemberFromRoom(userID, roomID)
+	return err
 }

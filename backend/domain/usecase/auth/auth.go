@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Auth struct {
+type AuthService struct {
 	UserRepository repository.UserRepository
 }
 
@@ -20,7 +20,7 @@ type Permission struct {
 var RESOURCES = []string{"r1", "r2", "r3"}
 var SCOPES = []string{"view", "add", "edit", "query"}
 
-func (auth Auth) AuthMiddleware(resouce string, scope string) gin.HandlerFunc {
+func (auth AuthService) AuthMiddleware(resouce string, scope string) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		_, ok := auth.getSession(context)
 		if !ok {
@@ -35,7 +35,7 @@ func (auth Auth) AuthMiddleware(resouce string, scope string) gin.HandlerFunc {
 }
 
 // func isInSession()
-func (auth Auth) getSession(c *gin.Context) (string, bool) {
+func (auth AuthService) getSession(c *gin.Context) (string, bool) {
 	r := c.Request
 	cookie, err := r.Cookie("SESSION_ID")
 	if err == nil {

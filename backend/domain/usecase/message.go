@@ -1,65 +1,39 @@
-package api
+package service
 
 import (
 	"backendSenior/domain/interface/repository"
 
 	"backendSenior/domain/model"
-	"log"
-	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
-type MessageAPI struct {
-	MessageRepository repository.MessageRepository
+// MessageService message service provide access to message related functions
+type MessageService struct {
+	messageRepo repository.MessageRepository
 }
 
-func (api MessageAPI) MessageListHandler(context *gin.Context) {
-	var messagesInfo model.MessageInfo
-	messages, err := api.MessageRepository.GetAllMessage()
-	if err != nil {
-		log.Println("error MessageListHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
+// NewMessageService create message service from repository
+func NewMessageService(msgRepo repository.MessageRepository) *MessageService {
+	return &MessageService{
+		messageRepo: msgRepo,
 	}
-	messagesInfo.Messages = messages
-	context.JSON(http.StatusOK, messagesInfo)
 }
 
-func (api MessageAPI) GetMessageByIDHandler(context *gin.Context) {
-	messageID := context.Param("message_id")
-	message, err := api.MessageRepository.GetMessageByID(messageID)
-	if err != nil {
-		log.Println("error GetMessageByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	context.JSON(http.StatusOK, message)
+func (service *MessageService) GetAllMessages() ([]model.Message, error) {
+	messages, err := service.messageRepo.GetAllMessages()
+	return messages, err
 }
 
-func (api MessageAPI) AddMessageHandeler(context *gin.Context) {
-	var message model.Message
-	err := context.ShouldBindJSON(&message)
-	if err != nil {
-		log.Println("error AddMessageHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	err = api.MessageRepository.AddMessage(message)
-	if err != nil {
-		log.Println("error AddMessageHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	context.JSON(http.StatusCreated, gin.H{"status": "success"})
+func (service *MessageService) GetMessageByID(messageId string) (model.Message, error) {
+	msg, err := service.messageRepo.GetMessageByID(messageId)
+	return msg, err
 }
 
-func (api MessageAPI) DeleteMessageByIDHandler(context *gin.Context) {
-	messageID := context.Param("message_id")
-	err := api.MessageRepository.DeleteMessageByID(messageID)
-	if err != nil {
-		log.Println("error DeleteMessageHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-	}
-	context.JSON(http.StatusNoContent, gin.H{"status": "success"})
+func (service *MessageService) AddMessage(newMessage model.Message) error {
+	err := service.messageRepo.AddMessage(newMessage)
+	return err
+}
+
+func (service *MessageService) DeleteMessageByID(messageId string) error {
+	err := service.messageRepo.DeleteMessageByID(messageId)
+	return err
 }

@@ -16,10 +16,10 @@ func NewRouter(connectionDB *mgo.Session) *gin.Engine {
 	routeAPI.AddMessageRoute(apiRoute, connectionDB)
 
 	devAPI := router.Group("/dev")
-	routeAPI.AddUserRouteDev(devAPI, connectionDB)
-	routeAPI.AddRoomRouteDev(devAPI, connectionDB)
+	// routeAPI.AddUserRouteDev(devAPI, connectionDB)
+	// routeAPI.AddRoomRouteDev(devAPI, connectionDB)
 	routeAPI.AddAuthRouteDev(devAPI, connectionDB)
-	routeAPI.AddMessageRouteDev(devAPI, connectionDB)
+	// routeAPI.AddMessageRouteDev(devAPI, connectionDB)
 
 	socketRoute := router.Group("/")
 	routeAPI.AddCoversationRoute(socketRoute, connectionDB)

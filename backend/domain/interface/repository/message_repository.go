@@ -1,10 +1,12 @@
 package repository
 
-import "backendSenior/domain/model"
+import (
+	"backendSenior/domain/model"
+)
 
 // MessageRepository defines interface for Message Repositories
 type MessageRepository interface {
-	GetAllMessage() ([]model.Message, error)
+	GetAllMessages() ([]model.Message, error)
 	// GetLastMessage() (model.Message, error)
 	GetMessageByID(userID string) (model.Message, error)
 	AddMessage(message model.Message) error

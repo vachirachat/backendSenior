@@ -1,6 +1,7 @@
-package repository
+package mongo_repository
 
 import (
+	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"backendSenior/utills"
 	"log"
@@ -20,7 +21,9 @@ const (
 	RoomCollection = "RoomData"
 )
 
-func (roomMongo RoomRepositoryMongo) GetAllRoom() ([]model.Room, error) {
+var _ repository.RoomRepository = (*RoomRepositoryMongo)(nil)
+
+func (roomMongo RoomRepositoryMongo) GetAllRooms() ([]model.Room, error) {
 	var rooms []model.Room
 	err := roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).Find(nil).All(&rooms)
 	return rooms, err
@@ -76,7 +79,7 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID bson.ObjectId, listU
 	return err
 }
 
-func (roomMongo RoomRepositoryMongo) DeleteMemberToRoom(userID bson.ObjectId, roomID bson.ObjectId) error {
+func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(userID bson.ObjectId, roomID bson.ObjectId) error {
 	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
 	if err != nil {
 		return err

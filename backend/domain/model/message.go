@@ -6,6 +6,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
+// MessageInfo is struct for return array of messages
 type MessageInfo struct {
 	Messages []Message `json:"messages"`
 }
