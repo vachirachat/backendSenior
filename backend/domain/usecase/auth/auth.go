@@ -1,7 +1,6 @@
 package auth
 
 import (
-	mongo_repository "backendSenior/data/repository/mongo_repository"
 	"backendSenior/domain/interface/repository"
 
 	"net/http"
@@ -23,7 +22,7 @@ var SCOPES = []string{"view", "add", "edit", "query"}
 
 func (auth Auth) AuthMiddleware(resouce string, scope string) gin.HandlerFunc {
 	return func(context *gin.Context) {
-		_, ok := getSession(context)
+		_, ok := auth.getSession(context)
 		if !ok {
 			context.Abort()
 			context.Writer.WriteHeader(http.StatusUnauthorized)
@@ -36,11 +35,11 @@ func (auth Auth) AuthMiddleware(resouce string, scope string) gin.HandlerFunc {
 }
 
 // func isInSession()
-func getSession(c *gin.Context) (string, bool) {
+func (auth Auth) getSession(c *gin.Context) (string, bool) {
 	r := c.Request
 	cookie, err := r.Cookie("SESSION_ID")
 	if err == nil {
-		userToken, err := mongo_repository.GetUserIdByToken(cookie.Value)
+		userToken, err := auth.UserRepository.GetUserIdByToken(cookie.Value)
 		if err == nil {
 			return userToken.Email, true
 		}
