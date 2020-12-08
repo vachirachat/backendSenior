@@ -13,34 +13,58 @@ type MessageRepositoryMongo struct {
 }
 
 const (
-	DBMessage         = "Message"
-	collectionMessage = "MessageData"
+	dbMessage         = "mychat"
+	collectionMessage = "messages"
 )
 
 var _ repository.MessageRepository = (*MessageRepositoryMongo)(nil)
 
-// GetAllMessages return all message from all rooms
-func (messageMongo MessageRepositoryMongo) GetAllMessages() ([]model.Message, error) {
-	var Messages []model.Message
-	err := messageMongo.ConnectionDB.DB(DBMessage).C(collectionMessage).Find(nil).All(&Messages)
-	return Messages, err
+func queryFromTimeRange(rng *model.TimeRange) map[string]interface{} {
+	filter := bson.M{}
+	if rng == nil {
+		return filter
+	}
+	if !rng.To.IsZero() {
+		filter["$lte"] = rng.To
+	}
+	if !rng.From.IsZero() {
+		filter["$gte"] = rng.From
+	}
+	return filter
+}
+
+// GetAllMessages return all message from all rooms with optional time filter
+func (messageMongo MessageRepositoryMongo) GetAllMessages(timeRange *model.TimeRange) ([]model.Message, error) {
+	var messages []model.Message
+	err := messageMongo.ConnectionDB.DB(dbMessage).C(collectionMessage).Find(queryFromTimeRange(timeRange)).All(&messages)
+	return messages, err
+}
+
+// GetMessagesByRoom return messages from specified room, with optional time filter
+func (messageMongo *MessageRepositoryMongo) GetMessagesByRoom(roomID string, timeRange *model.TimeRange) ([]model.Message, error) {
+	var messages []model.Message
+	filter := queryFromTimeRange(timeRange)
+	filter["roomId"] = roomID
+	err := messageMongo.ConnectionDB.DB(dbMessage).C(collectionMessage).Find(filter).All(&messages)
+	return messages, err
 }
 
 // GetMessageByID return message by id
 func (messageMongo MessageRepositoryMongo) GetMessageByID(messageID string) (model.Message, error) {
 	var message model.Message
-	objectID := bson.ObjectIdHex(messageID)
-	err := messageMongo.ConnectionDB.DB(DBMessage).C(collectionMessage).Find(objectID).One(&message)
+	err := messageMongo.ConnectionDB.DB(dbMessage).C(collectionMessage).FindId(messageID).One(&message)
 	return message, err
 }
 
 // AddMessage insert message
-func (messageMongo MessageRepositoryMongo) AddMessage(message model.Message) error {
-	return messageMongo.ConnectionDB.DB(DBMessage).C(collectionMessage).Insert(message)
+func (messageMongo MessageRepositoryMongo) AddMessage(message model.Message) (string, error) {
+	message.MessageID = bson.NewObjectId()
+	err := messageMongo.ConnectionDB.DB(dbMessage).C(collectionMessage).Insert(message)
+	return message.MessageID.Hex(), err
 }
 
 // DeleteMessageByID delete message by id
 func (messageMongo MessageRepositoryMongo) DeleteMessageByID(messageID string) error {
 	objectID := bson.ObjectIdHex(messageID)
-	return messageMongo.ConnectionDB.DB(DBMessage).C(collectionMessage).RemoveId(objectID)
+	return messageMongo.ConnectionDB.DB(dbMessage).C(collectionMessage).RemoveId(objectID)
 }

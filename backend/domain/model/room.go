@@ -17,3 +17,14 @@ type Room struct {
 	RoomType         string          `json:"roomType" bson:"roomType"`
 	ListUser         []bson.ObjectId `json:"listUser" bson:"listUser"`
 }
+
+// Map return Room struct as Map
+func (room *Room) Map() map[string]interface{} {
+	return map[string]interface{}{
+		"roomId":    room.RoomID,
+		"roomName":  room.RoomName,
+		"timestamp": room.CreatedTimeStamp,
+		"roomType":  room.RoomType,
+		"listUser":  room.ListUser,
+	}
+}

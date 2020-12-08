@@ -35,9 +35,10 @@ func (handler *MessageRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 // MessageListHandler return all messages
 func (handler *MessageRouteHandler) MessageListHandler(context *gin.Context) {
 	// return value
-	var messagesInfo model.MessageInfo
+	var messagesInfo model.MessagesResponse
 
 	messages, err := handler.messageService.GetAllMessages()
+	
 	if err != nil {
 		log.Println("error MessageListHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -52,6 +53,7 @@ func (handler *MessageRouteHandler) GetMessageByIDHandler(context *gin.Context) 
 	messageID := context.Param("message_id")
 
 	message, err := handler.messageService.GetMessageByID(messageID)
+
 	if err != nil {
 		log.Println("error GetMessageByIDHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})

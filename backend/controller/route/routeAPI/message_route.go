@@ -33,20 +33,20 @@ func AddMessageRoute(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 
 }
 
-// func AddMessageRouteDev(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
+func AddMessageRouteDev(routerGroup *gin.RouterGroup, connectionDB *mgo.Session) {
 
-// 	//Message API
-// 	messageRepository := repository.MessageRepositoryMongo{
-// 		ConnectionDB: connectionDB,
-// 	}
-// 	messageAPI := service.MessageService{
-// 		MessageRepository: &messageRepository,
-// 	}
+	//Message API
+	messageRepository := repository.MessageRepositoryMongo{
+		ConnectionDB: connectionDB,
+	}
+	messageAPI := service.MessageService{
+		MessageRepository: &messageRepository,
+	}
 
-// 	// Autherize Middleware API
-// 	routerGroup.GET("/v1/message", messageAPI.MessageListHandler)
-// 	routerGroup.POST("/v1/message", messageAPI.AddMessageHandeler)
-// 	// route.PUT("/v1/message/:message_id", authAPI.AuthMiddleware("object", "view") ,messageAPI.EditMessageHandler)
-// 	routerGroup.DELETE("/v1/message/:message_id", messageAPI.DeleteMessageByIDHandler)
+	// Autherize Middleware API
+	routerGroup.GET("/v1/message", messageAPI.MessageListHandler)
+	routerGroup.POST("/v1/message", messageAPI.AddMessageHandeler)
+	// route.PUT("/v1/message/:message_id", authAPI.AuthMiddleware("object", "view") ,messageAPI.EditMessageHandler)
+	routerGroup.DELETE("/v1/message/:message_id", messageAPI.DeleteMessageByIDHandler)
 
-// }
+}

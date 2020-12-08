@@ -2,18 +2,16 @@ package repository
 
 import (
 	"backendSenior/domain/model"
-
-	"github.com/globalsign/mgo/bson"
 )
 
 // RoomRepository defines interface for room repo
 type RoomRepository interface {
 	GetAllRooms() ([]model.Room, error)
-	GetLastRoom() (model.Room, error)
-	GetRoomByID(roomID bson.ObjectId) (model.Room, error)
-	AddRoom(room model.Room) (bson.ObjectId, error)
-	EditRoomName(roomID bson.ObjectId, room model.Room) error
-	DeleteRoomByID(roomID bson.ObjectId) error
-	AddMemberToRoom(roomID bson.ObjectId, listUser []bson.ObjectId) error
-	DeleteMemberFromRoom(userID bson.ObjectId, roomID bson.ObjectId) error
+	GetRoomByID(roomID string) (model.Room, error)
+
+	AddRoom(room model.Room) (string, error)
+	UpdateRoom(roomID string, room model.Room) error
+	DeleteRoomByID(roomID string) error
+	AddMemberToRoom(roomID string, listUser []string) error
+	DeleteMemberFromRoom(roomID string, userID []string) error
 }

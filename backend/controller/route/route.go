@@ -10,10 +10,14 @@ import (
 func NewRouter(connectionDB *mgo.Session) *gin.Engine {
 	router := gin.Default()
 	apiRoute := router.Group("/api")
+	
 	routeAPI.AddUserRoute(apiRoute, connectionDB)
 	routeAPI.AddRoomRoute(apiRoute, connectionDB)
 	routeAPI.AddAuthRoute(apiRoute, connectionDB)
+	
 	routeAPI.AddMessageRoute(apiRoute, connectionDB)
+
+
 
 	devAPI := router.Group("/dev")
 	// routeAPI.AddUserRouteDev(devAPI, connectionDB)
