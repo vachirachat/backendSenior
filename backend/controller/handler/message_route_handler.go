@@ -2,7 +2,7 @@ package route
 
 import (
 	"backendSenior/domain/model"
-	service "backendSenior/domain/service"
+	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 	"log"
 	"net/http"
@@ -26,14 +26,14 @@ func NewMessageRouteHandler(msgService *service.MessageService, authService *aut
 
 //Mount make messageRouteHandler handler request from specific `RouterGroup`
 func (handler *MessageRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.MessageListHandler)
-	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.AddMessageHandeler)
-	// route.PUT("/message/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/ ,handler.EditMessageHandler)
-	routerGroup.DELETE("/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/, handler.DeleteMessageByIDHandler)
+	routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.messageListHandler)
+	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.addMessageHandeler)
+	// route.PUT("/message/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/ ,handler.editMessageHandler)
+	routerGroup.DELETE("/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/, handler.deleteMessageByIDHandler)
 }
 
 // MessageListHandler return all messages
-func (handler *MessageRouteHandler) MessageListHandler(context *gin.Context) {
+func (handler *MessageRouteHandler) messageListHandler(context *gin.Context) {
 	// return value
 	var messagesInfo model.MessagesResponse
 
@@ -49,7 +49,7 @@ func (handler *MessageRouteHandler) MessageListHandler(context *gin.Context) {
 }
 
 // GetMessageByIDHandler return message by Id
-func (handler *MessageRouteHandler) GetMessageByIDHandler(context *gin.Context) {
+func (handler *MessageRouteHandler) getMessageByIDHandler(context *gin.Context) {
 	messageID := context.Param("message_id")
 
 	message, err := handler.messageService.GetMessageByID(messageID)
@@ -63,7 +63,7 @@ func (handler *MessageRouteHandler) GetMessageByIDHandler(context *gin.Context) 
 }
 
 // AddMessageHandeler
-func (handler *MessageRouteHandler) AddMessageHandeler(context *gin.Context) {
+func (handler *MessageRouteHandler) addMessageHandeler(context *gin.Context) {
 	var message model.Message
 
 	err := context.ShouldBindJSON(&message)
@@ -82,7 +82,7 @@ func (handler *MessageRouteHandler) AddMessageHandeler(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
 }
 
-func (handler *MessageRouteHandler) DeleteMessageByIDHandler(context *gin.Context) {
+func (handler *MessageRouteHandler) deleteMessageByIDHandler(context *gin.Context) {
 	messageID := context.Param("message_id")
 	err := handler.messageService.DeleteMessageByID(messageID)
 	if err != nil {

@@ -3,7 +3,7 @@ package main
 import (
 	route "backendSenior/controller/handler"
 	"backendSenior/data/repository/mongo_repository"
-	service "backendSenior/domain/service"
+	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
 	"log"

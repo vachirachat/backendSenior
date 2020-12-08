@@ -1,7 +1,7 @@
 package route
 
 import (
-	service "backendSenior/domain/service"
+	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 
 	"backendSenior/domain/model"
