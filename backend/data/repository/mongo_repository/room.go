@@ -69,9 +69,7 @@ func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID string) error {
 
 // AddMemberToRoom appends member ids to room, return errors when it doesn't exists
 func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []string) error {
-
-	var room model.Room
-
+	// TODO might need to fix logic
 	err := roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, bson.M{
 		"$push": bson.M{
 			"listUser": bson.M{
@@ -79,19 +77,28 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 			},
 		},
 	})
+	if err != nil {
+		return err
+	}
 
-	ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newListUser)
-	for _, s := range listUser {
+	var room model.Room
+	err = roomMongo.ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
+	if err != nil {
+		return err
+	}
+
+	for _, s := range room.ListUser {
 		var user model.User
-		err = ConnectionDB.DB("User").C("UserData").FindId(s).One(&user)
-		newUser := bson.M{"$set": bson.M{"room": append(user.Room, roomID)}}
+		err = roomMongo.ConnectionDB.DB("User").C("UserData").FindId(s).One(&user)
+		newUser := bson.M{"$set": bson.M{"room": append(user.Room, bson.ObjectId(roomID))}}
 		userID := user.UserID
-		err = ConnectionDB.DB("User").C("UserData").UpdateId(userID, newUser)
+		err = roomMongo.ConnectionDB.DB("User").C("UserData").UpdateId(userID, newUser)
 	}
 	return err
 }
 
 func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(roomID string, userID []string) error {
+	// TODO might need to fix logic
 	var ConnectionDB, err = mgo.Dial(utills.MONGOENDPOINT)
 	if err != nil {
 		return err
@@ -99,15 +106,16 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(roomID string, userID 
 	// for delete in room
 	var room model.Room
 	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(roomID).One(&room)
-	userIDString := userID
-	NewListString := utills.RemoveFormListBson(room.ListUser, userIDString)
+
+	// TODO fix this, i just want it to compile for now
+	NewListString := utills.RemoveFormListBson(room.ListUser, toObjectIdArr(userID)[0])
 	newUser := bson.M{"$set": bson.M{"listUser": NewListString}}
 	ConnectionDB.DB(DBRoomName).C(RoomCollection).UpdateId(roomID, newUser)
 	// for delete in user
 	var user model.User
 	err = ConnectionDB.DB(DBRoomName).C(RoomCollection).FindId(userID).One(&user)
 	roomIDString := roomID
-	NewListString = utills.RemoveFormListBson(user.Room, roomIDString)
+	NewListString = utills.RemoveFormListBson(user.Room, bson.ObjectId(roomIDString))
 	newUser = bson.M{"$set": bson.M{"room": NewListString}}
 	ConnectionDB.DB("User").C("UserData").UpdateId(userID, newUser)
 	return nil

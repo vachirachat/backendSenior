@@ -1,7 +1,7 @@
-package routeAPI
+package route
 
 import (
-	service "backendSenior/domain/usecase"
+	service "backendSenior/domain/service"
 
 	"backendSenior/domain/model"
 	"log"

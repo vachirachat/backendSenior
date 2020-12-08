@@ -4,8 +4,6 @@ import (
 	"backendSenior/domain/interface/repository"
 
 	"backendSenior/domain/model"
-
-	"github.com/globalsign/mgo/bson"
 )
 
 type RoomService struct {
@@ -26,26 +24,26 @@ func (service *RoomService) GetAllRooms() ([]model.Room, error) {
 }
 
 // GetRoomByID get room by Id
-func (service *RoomService) GetRoomByID(roomID bson.ObjectId) (model.Room, error) {
+func (service *RoomService) GetRoomByID(roomID string) (model.Room, error) {
 	room, err := service.roomRepository.GetRoomByID(roomID)
 	return room, err
 }
 
 // AddRoom insert room into database and return id of newly inserted room
-func (service *RoomService) AddRoom(room model.Room) (bson.ObjectId, error) {
+func (service *RoomService) AddRoom(room model.Room) (string, error) {
 	roomID, err := service.roomRepository.AddRoom(room)
 	return roomID, err
 }
 
 // EditRoomName change name of room
 // todo this should pass only room name
-func (service *RoomService) EditRoomName(roomID bson.ObjectId, room model.Room) error {
-	err := service.roomRepository.EditRoomName(room.RoomID, room)
+func (service *RoomService) EditRoomName(roomID string, room model.Room) error {
+	err := service.roomRepository.UpdateRoom(roomID, room)
 	return err
 }
 
 // DeleteRoomByID delete a room by id
-func (service *RoomService) DeleteRoomByID(roomID bson.ObjectId) error {
+func (service *RoomService) DeleteRoomByID(roomID string) error {
 	err := service.roomRepository.DeleteRoomByID(roomID)
 	return err
 }
@@ -53,13 +51,13 @@ func (service *RoomService) DeleteRoomByID(roomID bson.ObjectId) error {
 // Match with Socket-structure
 
 // AddMembersToRoom add members to room
-func (service *RoomService) AddMembersToRoom(roomID bson.ObjectId, userList []bson.ObjectId) error {
+func (service *RoomService) AddMembersToRoom(roomID string, userList []string) error {
 	err := service.roomRepository.AddMemberToRoom(roomID, userList)
 	return err
 }
 
 // DeleteMemberFromRoom removes a member from room
-func (service *RoomService) DeleteMemberFromRoom(roomID bson.ObjectId, userID bson.ObjectId) error {
-	err := service.roomRepository.DeleteMemberFromRoom(userID, roomID)
+func (service *RoomService) DeleteMemberFromRoom(roomID string, userList []string) error {
+	err := service.roomRepository.DeleteMemberFromRoom(roomID, userList)
 	return err
 }

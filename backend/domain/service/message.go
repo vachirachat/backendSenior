@@ -19,7 +19,12 @@ func NewMessageService(msgRepo repository.MessageRepository) *MessageService {
 }
 
 func (service *MessageService) GetAllMessages() ([]model.Message, error) {
-	messages, err := service.messageRepo.GetAllMessages()
+	messages, err := service.messageRepo.GetAllMessages(nil)
+	return messages, err
+}
+
+func (service *MessageService) GetMessageByRoom(roomID string) ([]model.Message, error) {
+	messages, err := service.messageRepo.GetMessagesByRoom(roomID, nil)
 	return messages, err
 }
 
@@ -28,9 +33,9 @@ func (service *MessageService) GetMessageByID(messageId string) (model.Message, 
 	return msg, err
 }
 
-func (service *MessageService) AddMessage(newMessage model.Message) error {
-	err := service.messageRepo.AddMessage(newMessage)
-	return err
+func (service *MessageService) AddMessage(newMessage model.Message) (string, error) {
+	msgID, err := service.messageRepo.AddMessage(newMessage)
+	return msgID, err
 }
 
 func (service *MessageService) DeleteMessageByID(messageId string) error {

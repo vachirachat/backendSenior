@@ -1,7 +1,7 @@
 package routeAPI
 
 import (
-	"backendSenior/domain/usecase/auth"
+	"backendSenior/domain/service/auth"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo"

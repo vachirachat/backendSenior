@@ -1,9 +1,9 @@
-package routeAPI
+package route
 
 import (
 	"backendSenior/domain/model"
-	service "backendSenior/domain/usecase"
-	"backendSenior/domain/usecase/auth"
+	service "backendSenior/domain/service"
+	"backendSenior/domain/service/auth"
 	"log"
 	"net/http"
 
@@ -38,7 +38,7 @@ func (handler *MessageRouteHandler) MessageListHandler(context *gin.Context) {
 	var messagesInfo model.MessagesResponse
 
 	messages, err := handler.messageService.GetAllMessages()
-	
+
 	if err != nil {
 		log.Println("error MessageListHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -72,7 +72,8 @@ func (handler *MessageRouteHandler) AddMessageHandeler(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
-	err = handler.messageService.AddMessage(message)
+	_, err = handler.messageService.AddMessage(message)
+
 	if err != nil {
 		log.Println("error AddMessageHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})

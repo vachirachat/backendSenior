@@ -34,7 +34,7 @@ func queryFromTimeRange(rng *model.TimeRange) map[string]interface{} {
 }
 
 // GetAllMessages return all message from all rooms with optional time filter
-func (messageMongo MessageRepositoryMongo) GetAllMessages(timeRange *model.TimeRange) ([]model.Message, error) {
+func (messageMongo *MessageRepositoryMongo) GetAllMessages(timeRange *model.TimeRange) ([]model.Message, error) {
 	var messages []model.Message
 	err := messageMongo.ConnectionDB.DB(dbMessage).C(collectionMessage).Find(queryFromTimeRange(timeRange)).All(&messages)
 	return messages, err
@@ -50,21 +50,21 @@ func (messageMongo *MessageRepositoryMongo) GetMessagesByRoom(roomID string, tim
 }
 
 // GetMessageByID return message by id
-func (messageMongo MessageRepositoryMongo) GetMessageByID(messageID string) (model.Message, error) {
+func (messageMongo *MessageRepositoryMongo) GetMessageByID(messageID string) (model.Message, error) {
 	var message model.Message
 	err := messageMongo.ConnectionDB.DB(dbMessage).C(collectionMessage).FindId(messageID).One(&message)
 	return message, err
 }
 
 // AddMessage insert message
-func (messageMongo MessageRepositoryMongo) AddMessage(message model.Message) (string, error) {
+func (messageMongo *MessageRepositoryMongo) AddMessage(message model.Message) (string, error) {
 	message.MessageID = bson.NewObjectId()
 	err := messageMongo.ConnectionDB.DB(dbMessage).C(collectionMessage).Insert(message)
 	return message.MessageID.Hex(), err
 }
 
 // DeleteMessageByID delete message by id
-func (messageMongo MessageRepositoryMongo) DeleteMessageByID(messageID string) error {
+func (messageMongo *MessageRepositoryMongo) DeleteMessageByID(messageID string) error {
 	objectID := bson.ObjectIdHex(messageID)
 	return messageMongo.ConnectionDB.DB(dbMessage).C(collectionMessage).RemoveId(objectID)
 }

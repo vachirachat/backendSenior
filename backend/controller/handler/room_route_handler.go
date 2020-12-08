@@ -1,15 +1,14 @@
-package routeAPI
+package route
 
 import (
-	service "backendSenior/domain/usecase"
-	"backendSenior/domain/usecase/auth"
+	service "backendSenior/domain/service"
+	"backendSenior/domain/service/auth"
 
 	"backendSenior/domain/model"
 	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/globalsign/mgo/bson"
 )
 
 type RoomRouteHandler struct {
@@ -49,8 +48,7 @@ func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
 // for get room by id
 func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context) {
 	roomID := context.Param("roomId")
-	ObjectID := bson.ObjectIdHex(roomID)
-	room, err := handler.roomService.GetRoomByID(ObjectID)
+	room, err := handler.roomService.GetRoomByID(roomID)
 	if err != nil {
 		log.Println("error GetRoomByIDHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -67,8 +65,8 @@ func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	var roomID bson.ObjectId
-	roomID, err = handler.roomService.AddRoom(room)
+
+	roomID, err := handler.roomService.AddRoom(room)
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -85,7 +83,7 @@ func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	err = handler.roomService.EditRoomName(room.RoomID, room)
+	err = handler.roomService.EditRoomName(room.RoomID.Hex(), room)
 	if err != nil {
 		log.Println("error EditRoomNametHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -105,7 +103,7 @@ func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context) {
 		return
 	}
 
-	err = handler.roomService.DeleteRoomByID(room.RoomID)
+	err = handler.roomService.DeleteRoomByID(room.RoomID.Hex())
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -117,21 +115,19 @@ func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context) {
 
 //// -- JoinAPI -> getSession(Topic+#ID) -> giveUserSession
 func (handler *RoomRouteHandler) addMemberToRoom(context *gin.Context) {
-	// send JSON Body
-	/* - {
-		"roomID" : ""
-		"ListUser" : [""]
-	}*/
+	var body struct {
+		RoomID   string   `json:"roomId"`
+		UserList []string `json:"userIds"`
+	}
 
-	var room model.Room
-	err := context.ShouldBindJSON(&room)
+	err := context.ShouldBindJSON(&body)
 	if err != nil {
 		log.Println("error InviteUserByIDHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 
-	err = handler.roomService.AddMembersToRoom(room.RoomID, room.ListUser)
+	err = handler.roomService.AddMembersToRoom(body.RoomID, body.UserList)
 	if err != nil {
 		log.Println("error AddMemberToRoom", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -141,20 +137,20 @@ func (handler *RoomRouteHandler) addMemberToRoom(context *gin.Context) {
 }
 
 func (handler *RoomRouteHandler) deleteMemberFromRoom(context *gin.Context) {
-	type deleteRoom struct {
-		Userid bson.ObjectId
-		Roomid bson.ObjectId
+	var body struct {
+		RoomID   string   `json:"roomId"`
+		UserList []string `json:"userIds"`
 	}
-	var roomDelete deleteRoom
-	err := context.ShouldBindJSON(&roomDelete)
+
+	err := context.ShouldBindJSON(&body)
 	if err != nil {
 		log.Println("error InviteUserByIDHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 
-	err = handler.roomService.DeleteMemberFromRoom(roomDelete.Userid, roomDelete.Roomid)
-	log.Println(roomDelete)
+	err = handler.roomService.DeleteMemberFromRoom(body.RoomID, body.UserList)
+
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
