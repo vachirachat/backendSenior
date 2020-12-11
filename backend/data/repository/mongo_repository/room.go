@@ -21,7 +21,7 @@ func toObjectIdArr(stringArr []string) []bson.ObjectId {
 	result := make([]bson.ObjectId, len(stringArr))
 	n := len(stringArr)
 	for i := 0; i < n; i++ {
-		result[i] = bson.ObjectId(stringArr[i])
+		result[i] = bson.ObjectIdHex(stringArr[i])
 	}
 	return result
 }
