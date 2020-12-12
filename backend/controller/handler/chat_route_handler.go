@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo/bson"
 	"github.com/gorilla/websocket"
 )
 
@@ -20,7 +21,7 @@ const (
 	writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
+	pongWait = 20 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
@@ -51,6 +52,7 @@ type client struct {
 	conn        *websocket.Conn
 	chatService *service.ChatService // reference chat service to call
 	id          string
+	userID      bson.ObjectId
 }
 
 //Mount make the handler handle request from specfied routerGroup
@@ -94,6 +96,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			conn:        wsConn,
 			chatService: handler.chatService,
 			id:          id,
+			userID:      bson.ObjectIdHex(userID),
 		}
 
 		go clnt.readPump()
@@ -127,7 +130,22 @@ func (c *client) readPump() {
 		fmt.Printf("[%s] <-- %s\n", c.id, message)
 		var msg model.Message
 		json.Unmarshal(message, &msg)
-		err = c.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), message)
-		fmt.Printf("Error basting message: %s\n", err)
+
+		// Saving messag
+		msg.TimeStamp = time.Now()
+		msg.UserID = c.userID
+
+		messageID, err := c.chatService.SaveMessage(msg)
+		if err != nil {
+			fmt.Printf("error saving message %s\n", err.Error())
+			continue
+		}
+		msg.MessageID = messageID
+
+		// Bcast
+		err = c.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
+		if err != nil {
+			fmt.Printf("Error basting message: %s\n", err.Error())
+		}
 	}
 }

@@ -42,7 +42,7 @@ func main() {
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo)
 	roomSvc := service.NewRoomService(roomRepo)
-	chatSvc := service.NewChatService(roomUserRepo, chatPool, chatPool)
+	chatSvc := service.NewChatService(roomUserRepo, chatPool, chatPool, messageRepo)
 
 	routerDeps := route.RouterDeps{
 		RoomService:    roomSvc,

@@ -2,9 +2,12 @@ package service
 
 import (
 	"backendSenior/domain/interface/repository"
+	"backendSenior/domain/model"
 	"backendSenior/domain/model/chatsocket"
 	"fmt"
 	"sync"
+
+	"github.com/globalsign/mgo/bson"
 )
 
 // ChatService manages sending message and connection pool
@@ -12,15 +15,23 @@ type ChatService struct {
 	mapRoom repository.RoomUserRepository
 	send    repository.SendMessageRepository
 	mapConn repository.SocketConnectionRepository
+	msgRepo repository.MessageRepository
 }
 
 // NewChatService create new instance of chat service
-func NewChatService(roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository) *ChatService {
+func NewChatService(roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository, msgRepo repository.MessageRepository) *ChatService {
 	return &ChatService{
 		mapRoom: roomUserRepo,
 		send:    sender,
 		mapConn: userConnRepo,
+		msgRepo: msgRepo,
 	}
+}
+
+// SaveMessage save speicified message to repository, returning the objectID of message
+func (chat *ChatService) SaveMessage(message model.Message) (bson.ObjectId, error) {
+	idHex, err := chat.msgRepo.AddMessage(message)
+	return bson.ObjectIdHex(idHex), err
 }
 
 // TODO: in the future there should be broadcast event etc.

@@ -1,16 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+
+	"github.com/globalsign/mgo/bson"
 )
 
-func printError(err error) {
-	if err != nil {
-		fmt.Println("Error: ", err.Error())
-		return
-	}
-	fmt.Println("OK")
-}
+// func printError(err error) {
+// 	if err != nil {
+// 		fmt.Println("Error: ", err.Error())
+// 		return
+// 	}
+// 	fmt.Println("OK")
+// }
 
 // func main() {
 // 	mongo, err := mgo.Dial("mongodb://127.0.0.1")
@@ -82,10 +85,24 @@ func printError(err error) {
 
 // }
 
+type testUnmarshal struct {
+	OID bson.ObjectId `json:"oid"`
+}
+
 func main() {
-	var a = []int{0, 1, 2, 3, 4, 5}
-	a[0], a[4] = a[4], a[0]
-	fmt.Printf("%#v\n", a)
-	a[4], a[4] = a[4], a[4]
-	fmt.Printf("%#v\n", a)
+	jsonStr := []byte(`{"oid": "5fd342cee2f8760aceb47a64"}`)
+	var test testUnmarshal
+	err := json.Unmarshal(jsonStr, &test)
+	if err != nil {
+		fmt.Printf("error: %s", err)
+		return
+	}
+	fmt.Printf("%+v\n", test)
+	fmt.Println(test.OID.Hex())
+	jsonStr, err = json.Marshal(test)
+	if err != nil {
+		fmt.Printf("error: %s", err)
+		return
+	}
+	fmt.Printf("%s\n", jsonStr)
 }

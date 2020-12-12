@@ -3,6 +3,7 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"fmt"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -54,7 +55,11 @@ func (messageMongo *MessageRepositoryMongo) GetMessageByID(messageID string) (mo
 // AddMessage insert message
 func (messageMongo *MessageRepositoryMongo) AddMessage(message model.Message) (string, error) {
 	message.MessageID = bson.NewObjectId()
-	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Insert(message)
+	cnt, err := messageMongo.ConnectionDB.DB(dbName).C(collectionRoom).FindId(message.RoomID).Count()
+	if cnt == 0 || err != nil {
+		return "", fmt.Errorf("room error: %s", err)
+	}
+	err = messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Insert(message)
 	return message.MessageID.Hex(), err
 }
 
