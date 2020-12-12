@@ -34,7 +34,7 @@ func (roomMongo RoomRepositoryMongo) GetAllRooms() ([]model.Room, error) {
 
 func (roomMongo RoomRepositoryMongo) GetRoomByID(roomID string) (model.Room, error) {
 	var room model.Room
-	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).FindId(roomID).One(&room)
+	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&room)
 	return room, err
 }
 

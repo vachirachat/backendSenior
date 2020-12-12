@@ -31,6 +31,8 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.DELETE("/deleteroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteRoomByIDHandler)
 	routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
 	routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
+	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.postRoomByIDHandler)
+	routerGroup.GET("/listroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.roomListHandler)
 }
 
 func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
@@ -46,9 +48,15 @@ func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
 }
 
 // for get room by id
-func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context) {
-	roomID := context.Param("roomId")
-	room, err := handler.roomService.GetRoomByID(roomID)
+func (handler *RoomRouteHandler) postRoomByIDHandler(context *gin.Context) {
+	var room model.Room
+	err := context.ShouldBindJSON(&room)
+	if err != nil {
+		log.Println("error GetRoomByIDHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+	room, err = handler.roomService.GetRoomByID(room.RoomID.Hex())
 	if err != nil {
 		log.Println("error GetRoomByIDHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
