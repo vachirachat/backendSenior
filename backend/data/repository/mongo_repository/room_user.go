@@ -36,7 +36,7 @@ func (repo *CachedRoomUserRepository) GetUserRooms(userID string) (roomIDs []str
 	rooms, exists := repo.userToRooms[userID]
 	if !exists {
 		var user model.UserRaw
-		err := repo.connection.DB(dbName).C(collectionUser).FindId(userID).One(&user)
+		err := repo.connection.DB(dbName).C(collectionUser).FindId(bson.ObjectId(userID)).One(&user)
 		if err != nil {
 			return nil, err
 		}
@@ -51,7 +51,7 @@ func (repo *CachedRoomUserRepository) GetRoomUsers(roomID string) (userIDs []str
 	users, exist := repo.roomToUsers[roomID]
 	if !exist {
 		var room model.RoomRaw
-		err := repo.connection.DB(dbName).C(collectionRoom).FindId(roomID).One(&room)
+		err := repo.connection.DB(dbName).C(collectionRoom).FindId(bson.ObjectId(roomID)).One(&room)
 		if err != nil {
 			return nil, err
 		}
