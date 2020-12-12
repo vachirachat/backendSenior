@@ -20,7 +20,7 @@ type Hub struct {
 
 func NewHub() *Hub {
 	tempMap := make(map[bson.ObjectId][]*Client)
-	tempMap = getAllRoom(tempMap)
+	tempMap = getAllRoomSocket(tempMap)
 	return &Hub{
 		Clients:    make(map[*Client]bool),
 		Room:       tempMap,
