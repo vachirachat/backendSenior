@@ -32,10 +32,10 @@ func (userMongo UserRepositoryMongo) GetAllUserSecret() ([]model.UserLogin, erro
 	return Users, err
 }
 
-func (userMongo UserRepositoryMongo) GetUserByID(userID bson.ObjectId) (model.User, error) {
+func (userMongo UserRepositoryMongo) GetUserByID(userID string) (model.User, error) {
 	var user model.User
-	// objectID := bson.ObjectIdHex(userID)
-	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(userID).One(&user)
+	objectID := bson.ObjectIdHex(userID)
+	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(objectID).One(&user)
 	return user, err
 }
 func (userMongo UserRepositoryMongo) GetLastUser() (model.User, error) {
@@ -47,10 +47,10 @@ func (userMongo UserRepositoryMongo) AddUser(user model.User) error {
 	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).Insert(user)
 }
 
-func (userMongo UserRepositoryMongo) EditUserName(userID bson.ObjectId, user model.User) error {
-	// objectID := bson.ObjectIdHex(userID)
+func (userMongo UserRepositoryMongo) EditUserName(userID string, user model.User) error {
+	objectID := bson.ObjectIdHex(userID)
 	newName := bson.M{"$set": bson.M{"name": user.Name, "email": user.Email, "password": user.Password, "room": user.Room, "userType": user.UserType}}
-	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(userID, newName)
+	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(objectID, newName)
 }
 
 func (userMongo UserRepositoryMongo) DeleteUserByID(userID string) error {

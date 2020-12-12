@@ -113,7 +113,7 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(roomID string, userID 
 	}
 	// for delete in room
 	var room model.Room
-	err = ConnectionDB.DB(dbName).C(collectionRoom).FindId(roomID).One(&room)
+	err = ConnectionDB.DB(dbName).C(collectionRoom).FindId(bson.ObjectId(roomID)).One(&room)
 
 	// TODO fix this, i just want it to compile for now
 	NewListString := utills.RemoveFormListBson(room.ListUser, toObjectIdArr(userID)[0])
@@ -121,9 +121,8 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(roomID string, userID 
 	ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(roomID, newUser)
 	// for delete in user
 	var user model.User
-	err = ConnectionDB.DB(dbName).C(collectionRoom).FindId(userID).One(&user)
-	roomIDString := roomID
-	NewListString = utills.RemoveFormListBson(user.Room, bson.ObjectId(roomIDString))
+	err = ConnectionDB.DB(dbName).C(collectionRoom).FindId(toObjectIdArr(userID)).One(&user)
+	NewListString = utills.RemoveFormListBson(user.Room, bson.ObjectIdHex(roomID))
 	newUser = bson.M{"$set": bson.M{"room": NewListString}}
 	ConnectionDB.DB("User").C("UserData").UpdateId(userID, newUser)
 	return nil

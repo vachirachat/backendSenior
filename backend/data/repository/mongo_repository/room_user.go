@@ -76,7 +76,7 @@ func (repo *CachedRoomUserRepository) GetRoomUsers(roomID string) (userIDs []str
 // It returns error if any of userIDs is invalid
 func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []string) (err error) {
 	// Preconfition check
-	n, err := repo.connection.DB(dbName).C(collectionUser).FindId(userIDs).Count()
+	n, err := repo.connection.DB(dbName).C(collectionUser).FindId(toObjectIdArr(userIDs)).Count()
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 		return errors.New("Invalid userIDs, some of them not exists")
 	}
 
-	n, err = repo.connection.DB(dbName).C(collectionRoom).FindId(roomID).Count()
+	n, err = repo.connection.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).Count()
 	if n != 1 {
 		return errors.New("Invalid Room ID")
 	}
@@ -124,7 +124,7 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 // return error if any of userIDs is invalid
 func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs []string) (err error) {
 	// Precondition check
-	n, err := repo.connection.DB(dbName).C(collectionUser).FindId(userIDs).Count()
+	n, err := repo.connection.DB(dbName).C(collectionUser).FindId(toObjectIdArr(userIDs)).Count()
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 		return errors.New("Invalid userIDs, some of them not exists")
 	}
 
-	n, err = repo.connection.DB(dbName).C(collectionRoom).FindId(roomID).Count()
+	n, err = repo.connection.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).Count()
 	if n != 1 {
 		return errors.New("Invalid Room ID")
 	}

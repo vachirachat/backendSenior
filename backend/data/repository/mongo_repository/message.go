@@ -48,7 +48,7 @@ func (messageMongo *MessageRepositoryMongo) GetMessagesByRoom(roomID string, tim
 // GetMessageByID return message by id
 func (messageMongo *MessageRepositoryMongo) GetMessageByID(messageID string) (model.Message, error) {
 	var message model.Message
-	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).FindId(messageID).One(&message)
+	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).FindId(bson.ObjectIdHex(messageID)).One(&message)
 	return message, err
 }
 

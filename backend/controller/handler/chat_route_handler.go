@@ -140,7 +140,7 @@ func (c *client) readPump() {
 			fmt.Printf("error saving message %s\n", err.Error())
 			continue
 		}
-		msg.MessageID = messageID
+		msg.MessageID = bson.ObjectIdHex(messageID)
 
 		// Bcast
 		err = c.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)

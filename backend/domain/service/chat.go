@@ -6,8 +6,6 @@ import (
 	"backendSenior/domain/model/chatsocket"
 	"fmt"
 	"sync"
-
-	"github.com/globalsign/mgo/bson"
 )
 
 // ChatService manages sending message and connection pool
@@ -28,15 +26,15 @@ func NewChatService(roomUserRepo repository.RoomUserRepository, sender repositor
 	}
 }
 
-// SaveMessage save speicified message to repository, returning the objectID of message
-func (chat *ChatService) SaveMessage(message model.Message) (bson.ObjectId, error) {
-	idHex, err := chat.msgRepo.AddMessage(message)
-	return bson.ObjectIdHex(idHex), err
+// SaveMessage save speicified message to repository, returning the ID of message
+func (chat *ChatService) SaveMessage(message model.Message) (string, error) {
+	id, err := chat.msgRepo.AddMessage(message)
+	return id, err
 }
 
-// TODO: in the future there should be broadcast event etc.
-// BroadcastToRoom send message to socket of all users in the room
+// BroadcastMessageToRoom send message to socket of all users in the room
 // []byte will be sent as is, but other value will be marshalled
+// TODO: in the future there should be broadcast event etc.
 func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{}) error {
 	userIDs, err := chat.mapRoom.GetRoomUsers(roomID)
 	if err != nil {

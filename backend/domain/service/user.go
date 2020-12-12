@@ -8,7 +8,6 @@ import (
 	"backendSenior/utills"
 	"log"
 
-	"github.com/globalsign/mgo/bson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -83,13 +82,13 @@ func (service *UserService) AddUser(user model.User) error {
 
 // EditUserName this actually update the whole user object
 func (service *UserService) EditUserName(userID string, user model.User) error {
-	err := service.userRepository.EditUserName(bson.ObjectId(userID), user)
+	err := service.userRepository.EditUserName(userID, user)
 	return err
 }
 
 // UpdateUser update whole user
 func (service *UserService) UpdateUser(userID string, user model.User) error {
-	err := service.userRepository.EditUserName(bson.ObjectId(userID), user)
+	err := service.userRepository.EditUserName(userID, user)
 	return err
 }
 
