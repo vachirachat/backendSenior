@@ -17,6 +17,7 @@ type RoomRepositoryMongo struct {
 
 var _ repository.RoomRepository = (*RoomRepositoryMongo)(nil)
 
+// สำหรับยัด UserID
 func toObjectIdArr(stringArr []string) []bson.ObjectId {
 	result := make([]bson.ObjectId, len(stringArr))
 	n := len(stringArr)

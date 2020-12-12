@@ -1,12 +1,18 @@
 
 
-POST http://localhost:8080/dev/v1/signup
+POST http://localhost:8080/api/v1/signup
 Content-Type: application/json
 
 {
   "email": "rod8711@gmail.com",
-  "password": ""
+  "password": "top"
 }
 
 ###
-GET http://localhost:8080/dev/v1/room
+POST http://localhost:8080/api/v1/login
+Content-Type: application/json
+
+{
+  "Email": "rod8711@gmail.com",
+  "Password": "top"
+}

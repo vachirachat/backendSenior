@@ -121,27 +121,30 @@ type messageLogin struct {
 // TODO WTF return
 func (service *UserService) Login(credentials model.UserLogin) (string, error) {
 	user, err := service.userRepository.GetUserLogin(credentials)
-	return "", err
+	// return "", err
+
 	//Fix Check token
 	var usertoken model.UserToken
 	usertoken, err = service.userRepository.GetUserTokenById(user.Email)
+	log.Println(usertoken)
 
 	// mean first_login or cookie is expired
+	// if err != nil {
+	// if isexpied ?? implement
+
+	// generate new token
+	log.Println("Pass IN if news token")
+	usertoken.Email = user.Email
+	usertoken.Token = ksuid.New().String()
+	err = service.userRepository.AddToken(usertoken)
+
+	// if generate error, error
 	if err != nil {
-		// if isexpied ?? implement
-
-		// generate new token
-		log.Println("Pass IN if news token")
-		usertoken.Email = user.Email
-		usertoken.Token = ksuid.New().String()
-		err = service.userRepository.AddToken(usertoken)
-
-		// if generate error, error
-		if err != nil {
-			log.Println("error AddUserTokenHandeler", err.Error())
-			return "", err
-		}
+		log.Println("error AddUserTokenHandeler", err.Error())
+		return "", err
+		// }
 	}
+
 	return usertoken.Token, nil
 }
 

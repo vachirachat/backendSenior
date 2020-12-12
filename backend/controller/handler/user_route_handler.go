@@ -206,8 +206,8 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 		return
 	}
 
-	m := messageLogin{"success", credentials.Email, token}
-	context.JSON(http.StatusOK, m)
+	// m := messageLogin{"success", credentials.Email, token}
+	context.JSON(http.StatusOK, token)
 }
 
 // Signup API
