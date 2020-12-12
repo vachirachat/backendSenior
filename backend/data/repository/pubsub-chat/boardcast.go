@@ -4,7 +4,7 @@ package repository
 // 	"log"
 // )
 
-// // BroadcastSocketEventToAllClient will emit the socket events to all socket users
+// BroadcastSocketEventToAllClient will emit the socket events to all socket users
 // func BroadcastSocketEventToAllClient(hub *Hub, payload SocketEventStruct) {
 // 	log.Println("BroadcastSocketEventToAllClient hub.Clients", hub.Clients)
 // 	for client := range hub.Clients {

@@ -5,10 +5,21 @@ import (
 	"backendSenior/domain/model"
 	"backendSenior/utills"
 	"errors"
+	"fmt"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )
+
+func toStringArr(objIdArr []bson.ObjectId) []string {
+	var result = make([]string, len(objIdArr))
+	n := len(objIdArr)
+	for i := 0; i < n; i++ {
+		result[i] = objIdArr[i].Hex()
+		fmt.Printf("obj %s hex %s\n", objIdArr[i], objIdArr[i].Hex())
+	}
+	return result
+}
 
 // CachedRoomUserRepository	is repository for room/user relation, with cached GET
 type CachedRoomUserRepository struct {
@@ -35,13 +46,13 @@ var _ repository.RoomUserRepository = (*CachedRoomUserRepository)(nil)
 func (repo *CachedRoomUserRepository) GetUserRooms(userID string) (roomIDs []string, err error) {
 	rooms, exists := repo.userToRooms[userID]
 	if !exists {
-		var user model.UserRaw
-		err := repo.connection.DB(dbName).C(collectionUser).FindId(bson.ObjectId(userID)).One(&user)
+		var user model.User
+		err := repo.connection.DB(dbName).C(collectionUser).FindId(bson.ObjectIdHex(userID)).One(&user)
 		if err != nil {
 			return nil, err
 		}
-		repo.userToRooms[userID] = user.Room
-		return user.Room, nil
+		repo.userToRooms[userID] = toStringArr(user.Room)
+		return repo.userToRooms[userID], nil
 	}
 	return rooms, nil
 }
@@ -50,13 +61,13 @@ func (repo *CachedRoomUserRepository) GetUserRooms(userID string) (roomIDs []str
 func (repo *CachedRoomUserRepository) GetRoomUsers(roomID string) (userIDs []string, err error) {
 	users, exist := repo.roomToUsers[roomID]
 	if !exist {
-		var room model.RoomRaw
-		err := repo.connection.DB(dbName).C(collectionRoom).FindId(bson.ObjectId(roomID)).One(&room)
+		var room model.Room
+		err := repo.connection.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&room)
 		if err != nil {
 			return nil, err
 		}
-		repo.roomToUsers[roomID] = room.ListUser
-		return room.ListUser, nil
+		repo.roomToUsers[roomID] = toStringArr(room.ListUser)
+		return repo.roomToUsers[roomID], nil
 	}
 	return users, nil
 }

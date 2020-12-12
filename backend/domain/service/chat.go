@@ -2,7 +2,8 @@ package service
 
 import (
 	"backendSenior/domain/interface/repository"
-	"backendSenior/domain/model"
+	"backendSenior/domain/model/chatsocket"
+	"fmt"
 	"sync"
 )
 
@@ -34,7 +35,9 @@ func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{})
 	// TODO: make error inside error too
 	// send message to all user
 	var userWg sync.WaitGroup
+	fmt.Println("User in rooms", userIDs)
 	for _, userID := range userIDs {
+		fmt.Printf("\\-- User: %x\n", userID)
 		userWg.Add(1)
 		go func(userID string, wg *sync.WaitGroup) {
 			// loop to all connection of user
@@ -45,12 +48,17 @@ func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{})
 
 			// send message to all conns of user
 			var connWg sync.WaitGroup
-
+			fmt.Printf("user %s's connection %#v\n", userID, connIDs)
 			for _, connID := range connIDs {
+				fmt.Printf("\\-- User %s: conn %s\n", userID, connID)
 				connWg.Add(1)
 				go func(connID string, wg *sync.WaitGroup) {
-					chat.send.SendMessage(connID, data)
+					err := chat.send.SendMessage(connID, data)
+					if err != nil {
+						fmt.Printf("Error sending message: %s\n", err)
+					}
 					connWg.Done()
+					fmt.Println("Done ")
 				}(connID, &connWg)
 			}
 
@@ -66,7 +74,7 @@ func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{})
 }
 
 // OnConnect maange adding new connection, then return new ID to be used as reference when disconnect
-func (chat *ChatService) OnConnect(conn model.SocketConnection) (connID string, err error) {
+func (chat *ChatService) OnConnect(conn *chatsocket.SocketConnection) (connID string, err error) {
 	connID, err = chat.mapConn.AddConnection(conn)
 	return
 }

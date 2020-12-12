@@ -1,4 +1,4 @@
-package model
+package chatsocket
 
 import "github.com/gorilla/websocket"
 

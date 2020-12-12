@@ -2,6 +2,7 @@ package main
 
 import (
 	route "backendSenior/controller/handler"
+	"backendSenior/data/repository/chatsocket"
 	"backendSenior/data/repository/mongo_repository"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
@@ -30,6 +31,10 @@ func main() {
 		ConnectionDB: connectionDB,
 	}
 
+	chatPool := chatsocket.NewConnectionPool()
+
+	roomUserRepo := mongo_repository.NewCachedRoomUserRepository(connectionDB)
+
 	// Init service
 	authSvc := &auth.AuthService{
 		UserRepository: userRepo,
@@ -37,12 +42,14 @@ func main() {
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo)
 	roomSvc := service.NewRoomService(roomRepo)
+	chatSvc := service.NewChatService(roomUserRepo, chatPool, chatPool)
 
 	routerDeps := route.RouterDeps{
 		RoomService:    roomSvc,
 		MessageService: msgSvc,
 		UserService:    userSvc,
 		AuthService:    authSvc,
+		ChatService:    chatSvc,
 	}
 
 	router := routerDeps.NewRouter()
