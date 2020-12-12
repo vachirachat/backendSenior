@@ -33,3 +33,27 @@ func RemoveFormListBson(s []bson.ObjectId, r bson.ObjectId) []bson.ObjectId {
 	}
 	return s
 }
+
+// ArrStringRemoveMatched return new slice with element in `arr` but not in `match`, and number of removed elements
+func ArrStringRemoveMatched(arr []string, match []string) ([]string, int) {
+	idx := 0
+	n := len(arr)
+
+	// set for quick look up
+	set := make(map[string]bool)
+	for _, v := range match {
+		set[v] = true
+	}
+
+	result := make([]string, n)
+
+	for i := 0; i < n; i++ {
+		if _, exist := set[arr[i]]; !exist {
+			result[idx] = arr[i]
+			idx++
+		}
+	}
+	// resize slice
+	result = result[:idx]
+	return result, n - idx
+}

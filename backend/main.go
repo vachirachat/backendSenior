@@ -1,7 +1,10 @@
 package main
 
 import (
-	"backendSenior/route"
+	route "backendSenior/controller/handler"
+	"backendSenior/data/repository/mongo_repository"
+	"backendSenior/domain/service"
+	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
 	"log"
 
@@ -13,7 +16,37 @@ func main() {
 	if err != nil {
 		log.Panic("Can no connect Database", err.Error())
 	}
-	router := route.NewRouter(connectionDB)
+
+	// Init Repository
+	messageRepo := &mongo_repository.MessageRepositoryMongo{
+		ConnectionDB: connectionDB,
+	}
+
+	userRepo := &mongo_repository.UserRepositoryMongo{
+		ConnectionDB: connectionDB,
+	}
+
+	roomRepo := &mongo_repository.RoomRepositoryMongo{
+		ConnectionDB: connectionDB,
+	}
+
+	// Init service
+	authSvc := &auth.AuthService{
+		UserRepository: userRepo,
+	}
+	msgSvc := service.NewMessageService(messageRepo)
+	userSvc := service.NewUserService(userRepo)
+	roomSvc := service.NewRoomService(roomRepo)
+
+	routerDeps := route.RouterDeps{
+		RoomService:    roomSvc,
+		MessageService: msgSvc,
+		UserService:    userSvc,
+		AuthService:    authSvc,
+	}
+
+	router := routerDeps.NewRouter()
+
 	router.Run(utills.PORTWEBSERVER)
 
 }
