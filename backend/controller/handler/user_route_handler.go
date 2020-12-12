@@ -22,18 +22,6 @@ func NewUserRouteHandler(userService *service.UserService) *UserRouteHandler {
 	}
 }
 
-func (handler *UserRouteHandler) userListHandler(context *gin.Context) {
-	var usersInfo model.UserInfo
-	users, err := handler.userService.GetAllUsers()
-	if err != nil {
-		log.Println("error userListHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	usersInfo.User = users
-	context.JSON(http.StatusOK, usersInfo)
-}
-
 // Mount make handle handle request for specified routerGroup
 func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("user", handler.userListHandler)
@@ -45,6 +33,18 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("token", handler.userTokenListHandler)
 	routerGroup.POST("login", handler.loginHandle)
 	routerGroup.POST("signup", handler.addUserSignUpHandeler)
+}
+
+func (handler *UserRouteHandler) userListHandler(context *gin.Context) {
+	var usersInfo model.UserInfo
+	users, err := handler.userService.GetAllUsers()
+	if err != nil {
+		log.Println("error userListHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+	usersInfo.User = users
+	context.JSON(http.StatusOK, usersInfo)
 }
 
 // for get user by id
