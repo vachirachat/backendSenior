@@ -4,6 +4,7 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"backendSenior/utills"
+	"log"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -21,7 +22,7 @@ func toObjectIdArr(stringArr []string) []bson.ObjectId {
 	result := make([]bson.ObjectId, len(stringArr))
 	n := len(stringArr)
 	for i := 0; i < n; i++ {
-		result[i] = bson.ObjectId(stringArr[i])
+		result[i] = bson.ObjectIdHex(stringArr[i])
 	}
 	return result
 }
@@ -65,6 +66,8 @@ func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID string) error {
 // AddMemberToRoom appends member ids to room, return errors when it doesn't exists
 func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []string) error {
 	// TODO might need to fix logic
+	log.Println("this is roomID")
+	log.Println(roomID)
 	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), bson.M{
 		"$push": bson.M{
 			"listUser": bson.M{
@@ -81,14 +84,15 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 	if err != nil {
 		return err
 	}
-
-	for _, s := range room.ListUser {
+	for _, s := range listUser {
 		var user model.User
-		err = roomMongo.ConnectionDB.DB("User").C("UserData").FindId(s).One(&user)
-		newUser := bson.M{"$set": bson.M{"room": append(user.Room, bson.ObjectId(roomID))}}
-		userID := user.UserID
-		err = roomMongo.ConnectionDB.DB("User").C("UserData").UpdateId(userID, newUser)
+		err = roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).FindId(bson.ObjectIdHex(s)).One(&user)
+		newUser := bson.M{"$set": bson.M{"room": append(user.Room, bson.ObjectIdHex(roomID))}}
+		userID := bson.ObjectIdHex(s)
+		err = roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).UpdateId(userID, newUser)
 	}
+
+	
 	return err
 }
 
@@ -102,16 +106,25 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(roomID string, userID 
 	var room model.Room
 	err = ConnectionDB.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&room)
 
-	// TODO fix this, i just want it to compile for now
-	NewListString := utills.RemoveFormListBson(room.ListUser, toObjectIdArr(userID)[0])
+	var NewListString []bson.ObjectId
+	// TODO fix this, i just want log.Println for fix error didnt use
+	for _, v := range toObjectIdArr(userID) {
+		NewListString := utills.RemoveFormListBson(room.ListUser, v)
+		log.Println(NewListString)
+	}
 	newUser := bson.M{"$set": bson.M{"listUser": NewListString}}
 	ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), newUser)
 	// for delete in user
-	var user model.User
-	err = ConnectionDB.DB(dbName).C(collectionRoom).FindId(userID).One(&user)
-	roomIDString := roomID
-	NewListString = utills.RemoveFormListBson(user.Room, bson.ObjectId(roomIDString))
-	newUser = bson.M{"$set": bson.M{"room": NewListString}}
-	ConnectionDB.DB("User").C("UserData").UpdateId(userID, newUser)
+	// var user model.User
+	// err = ConnectionDB.DB(collectionUser).C(collectionUser).FindId(userID).One(&user)
+	// roomIDString := roomID
+	for _, v := range toObjectIdArr(userID) {
+		var user model.User
+		err = ConnectionDB.DB(collectionUser).C(collectionUser).FindId(v).One(&user)
+		NewListString = utills.RemoveFormListBson(user.Room, bson.ObjectIdHex(roomID))
+		newUser = bson.M{"$set": bson.M{"room": NewListString}}
+		ConnectionDB.DB(collectionUser).C(collectionUser).UpdateId(v, newUser)
+	}
+
 	return nil
 }
