@@ -3,6 +3,7 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"log"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -93,6 +94,7 @@ func (userMongo UserRepositoryMongo) GetUserLogin(userLogin model.UserLogin) (mo
 	var user model.UserLogin
 	err := userMongo.ConnectionDB.DB(collectionUser).C(collectionSecret).Find(bson.M{"email": userLogin.Email}).One(&user)
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userLogin.Password))
+	log.Println(user)
 	if err != nil {
 		return user, err
 	} else {

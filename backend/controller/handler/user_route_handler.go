@@ -116,6 +116,23 @@ func (handler *UserRouteHandler) addUserHandeler(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
 }
 
+// func (handler *UserRouteHandler) checkAdminHandeler(context *gin.Context) {
+// 	var user model.User
+// 	err := context.ShouldBindJSON(&user)
+// 	if err != nil {
+// 		log.Println("error AddUserHandeler", err.Error())
+// 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+// 		return
+// 	}
+// 	err = handler.userService.(user)
+// 	if err != nil {
+// 		log.Println("error AddUserHandeler", err.Error())
+// 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+// 		return
+// 	}
+// 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
+// }
+
 // EditUserNameHandler api
 func (handler *UserRouteHandler) editUserNameHandler(context *gin.Context) {
 	var user model.User
@@ -206,8 +223,9 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 		return
 	}
 
-	m := messageLogin{"success", credentials.Email, token}
-	context.JSON(http.StatusOK, m)
+	m := messageLogin{status: "success", Email: credentials.Email, token: token}
+	log.Println(m)
+	context.JSON(http.StatusOK, gin.H{"status": "success", "Email": credentials.Email, "token": token})
 }
 
 // Signup API
