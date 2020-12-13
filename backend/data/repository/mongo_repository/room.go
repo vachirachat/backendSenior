@@ -87,12 +87,20 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 	for _, s := range listUser {
 		var user model.User
 		err = roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).FindId(bson.ObjectIdHex(s)).One(&user)
-		newUser := bson.M{"$set": bson.M{"room": append(user.Room, bson.ObjectIdHex(roomID))}}
-		userID := bson.ObjectIdHex(s)
-		err = roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).UpdateId(userID, newUser)
+		didntAdd := false
+		for _, v := range user.Room {
+			if v == bson.ObjectIdHex(roomID) {
+				didntAdd = true
+			}
+		}
+		if didntAdd == false {
+			newUser := bson.M{"$set": bson.M{"room": append(user.Room, bson.ObjectIdHex(roomID))}}
+			userID := bson.ObjectIdHex(s)
+			err = roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).UpdateId(userID, newUser)
+		}
+
 	}
 
-	
 	return err
 }
 
