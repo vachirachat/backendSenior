@@ -83,6 +83,7 @@ func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
+	log.Println(room)
 	err = handler.roomService.EditRoomName(room.RoomID.Hex(), room)
 	if err != nil {
 		log.Println("error EditRoomNametHandler", err.Error())
