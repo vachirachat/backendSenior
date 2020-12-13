@@ -1,0 +1,80 @@
+
+
+POST http://localhost:8080/api/v1/signup
+Content-Type: application/json
+
+{
+  "email": "rod8711@gmail.com",
+  "password": "top"
+}
+
+###
+POST http://localhost:8080/api/v1/login
+Content-Type: application/json
+
+{
+  "Email": "rod8711@gmail.com",
+  "Password": "top"
+}
+
+
+
+###GET USER
+GET http://localhost:8080/api/v1/user
+
+
+
+###Get All message
+GET http://localhost:8080/api/v1/message/
+
+
+### GET ALL Room
+GET http://localhost:8080/api/v1/room/listroom
+
+
+
+
+// TEST Message 
+### FIND Message in Room
+POST http://localhost:8080/api/v1/message/roommessages 
+Content-Type: application/json
+
+{
+  "roomId": "5fd3721c584cb6a74d204b6d",
+  "timerange": {
+    "from":"2014-11-12T11:45:26.371Z" ,
+  "to": "2020-11-12T11:45:26.371Z"
+  }
+}
+
+### Add message Must - Find "2016-11-12T11:45:26.371Z"
+POST http://localhost:8080/api/v1/message/ 
+Content-Type: application/json
+
+{
+  "TimeStamp": "2013-11-12T11:45:26.371Z",
+	"RoomID": "5fd3721c584cb6a74d204b6d",
+	"UserID":   "5fd4a1a1c4037c682124c6a2",
+	"Data" :     "Hello Test Find ME Message"        ,
+	"Type" :     "PRIVATE"        
+}
+
+### Add message Must - Find "2012-11-12T11:45:26.371Z"
+POST http://localhost:8080/api/v1/message/ 
+Content-Type: application/json
+
+{
+  "TimeStamp": "2013-11-12T11:45:26.371Z",
+	"RoomID": "5fd3721c584cb6a74d204b6d",
+	"UserID":   "5fd4a1a1c4037c682124c6a2",
+	"Data" :     "Hello Test Cannnot FIND ME Message"        ,
+	"Type" :     "PRIVATE"        
+}
+
+###DELETE message
+DELETE http://localhost:8080/api/v1/message/ 
+Content-Type: application/json
+
+{
+"messageId": "xxxxx"
+}
