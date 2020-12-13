@@ -18,6 +18,7 @@ type RoomRepositoryMongo struct {
 
 var _ repository.RoomRepository = (*RoomRepositoryMongo)(nil)
 
+// สำหรับยัด UserID
 func toObjectIdArr(stringArr []string) []bson.ObjectId {
 	result := make([]bson.ObjectId, len(stringArr))
 	n := len(stringArr)
@@ -35,7 +36,7 @@ func (roomMongo RoomRepositoryMongo) GetAllRooms() ([]model.Room, error) {
 
 func (roomMongo RoomRepositoryMongo) GetRoomByID(roomID string) (model.Room, error) {
 	var room model.Room
-	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).FindId(roomID).One(&room)
+	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&room)
 	return room, err
 }
 
