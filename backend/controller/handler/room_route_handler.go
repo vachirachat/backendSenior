@@ -33,6 +33,21 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/deletememberfromroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
 	routerGroup.POST("/getroombyid" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomByIDHandler)
 	routerGroup.GET("/listroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.roomListHandler)
+	routerGroup.GET("/getroommember" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomMemberHandler)
+}
+
+func (handler *RoomRouteHandler) getRoomMemberHandler(context *gin.Context) {
+	var body struct {
+		RoomID string `json:"roomId"`
+	}
+	err := context.ShouldBindJSON(&body)
+	rooms, err := handler.roomService.GetRoomByID(body.RoomID)
+	if err != nil {
+		log.Println("error getRoomMemberHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"status": "success", "listUser": rooms.ListUser})
 }
 
 func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {

@@ -1,0 +1,53 @@
+
+### create user
+POST http://localhost:8080/api/v1/signup
+Content-Type: application/json
+
+{
+  "email": "rod8713@gmail.com",
+  "password": "12345678"
+}
+
+### get ur ID case you forgot
+POST http://localhost:8080/api/v1/getuserbyemail
+Content-Type: application/json
+
+{
+  "email": "rod8713@gmail.com"
+}
+###
+// rod8711
+@userId = 5fd342cee2f8760aceb47a64
+// rod8712
+@userId2 = 5fd34663e2f8760aceb47b19
+
+### not needed for now
+POST http://localhost:8080/api/v1/login
+Content-Type: application/json
+
+{
+  "email": "rod8711@gmail.com",
+  "password": "12345678"
+}
+
+### create new room, remember it's id!!
+POST http://localhost:8080/api/v1/room/createroom
+Content-Type: application/json
+
+{
+  "roomName": "foo room",
+  "roomType": "group",
+  "listUser": [] 
+}
+
+###
+@roomId = 5fd4ed4c26dcb9eaa9013958
+
+### 
+POST http://localhost:8080/api/v1/room/addmembertoroom
+Content-Type: application/json
+
+{
+  "roomId": "{{roomId}}",
+  "userIds": ["{{userId}}"]
+}
