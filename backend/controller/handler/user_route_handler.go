@@ -36,33 +36,44 @@ func (handler *UserRouteHandler) userListHandler(context *gin.Context) {
 
 // Mount make handle handle request for specified routerGroup
 func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	routerGroup.GET("user", handler.userListHandler)
-	routerGroup.PUT("user/updateuserprofile", handler.editUserNameHandler)
-	routerGroup.DELETE("user/:user_id", handler.deleteUserByIDHandler)
-	routerGroup.POST("getuserbyemail", handler.getUserByEmail)
+	routerGroup.GET("/user", handler.userListHandler)
+	routerGroup.PUT("/user/updateuserprofile", handler.editUserNameHandler)
+	routerGroup.DELETE("/user", handler.deleteUserByIDHandler)
+	routerGroup.POST("/getuserbyemail", handler.getUserByEmail)
 
 	//SignIN/UP API
-	routerGroup.GET("token", handler.userTokenListHandler)
-	routerGroup.POST("login", handler.loginHandle)
-	routerGroup.POST("signup", handler.addUserSignUpHandeler)
+	routerGroup.GET("/token", handler.userTokenListHandler)
+	routerGroup.POST("/login", handler.loginHandle)
+	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
 }
 
 // for get user by id
-// func (handler *UserRouteHandler) getUserByIDHandler(context *gin.Context) {
-// 	userID := context.Param("user_id")
-// 	// user, err := handler.userService.GetUserByID(userID)
-// 	if err != nil {
-// 		log.Println("error GetUserByIDHandler", err.Error())
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-// 		return
-// 	}
-// 	context.JSON(http.StatusOK, user)
-// }
+func (handler *UserRouteHandler) getUserByIDHandler(context *gin.Context) {
+	var user model.User
+	err := context.ShouldBindJSON(&user)
+	if err != nil {
+		log.Println("error AddUserHandeler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+	user, err = handler.userService.GetUserByID(user.UserID)
+	if err != nil {
+		log.Println("error GetUserByIDHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, user)
+}
 
 // GetUserByEmail for get user by id
 func (handler *UserRouteHandler) getUserByEmail(context *gin.Context) {
 	var user model.User
 	err := context.ShouldBindJSON(&user)
+	if err != nil {
+		log.Println("error GetUserByEmailHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
 	user, err = handler.userService.GetUserByEmail(user.Email)
 	if err != nil {
 		log.Println("error GetUserByEmailHandler", err.Error())
@@ -143,7 +154,7 @@ func (handler *UserRouteHandler) editUserNameHandler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	err = handler.userService.EditUserName(user.UserID.Hex(), user)
+	err = handler.userService.EditUserName(user.UserID, user)
 	if err != nil {
 		log.Println("error EditUserNametHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -160,8 +171,8 @@ func (handler *UserRouteHandler) updateUserHandler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	log.Println(user.UserID)
-	err = handler.userService.UpdateUser(user.UserID.Hex(), user)
+
+	err = handler.userService.UpdateUser(user.UserID, user)
 	if err != nil {
 		log.Println("error UpdateUserHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -171,8 +182,15 @@ func (handler *UserRouteHandler) updateUserHandler(context *gin.Context) {
 }
 
 func (handler *UserRouteHandler) deleteUserByIDHandler(context *gin.Context) {
-	userID := context.Param("user_id")
-	err := handler.userService.DeleteUserByID(userID)
+	var user model.User
+	err := context.ShouldBindJSON(&user)
+	if err != nil {
+		log.Println("error DeleteUserHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+	log.Println(user.UserID)
+	err = handler.userService.DeleteUserByID(user.UserID)
 	if err != nil {
 		log.Println("error DeleteUserHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -249,7 +267,6 @@ func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context) {
 }
 
 //GetUserListSecrect
-
 func (handler *UserRouteHandler) getUserListSecrect(context *gin.Context) {
 	var usersInfo model.UserInfoSecrect
 	users, err := handler.userService.GetAllUserSecret()

@@ -35,7 +35,7 @@ var _ repository.RoomUserRepository = (*CachedRoomUserRepository)(nil)
 func (repo *CachedRoomUserRepository) GetUserRooms(userID string) (roomIDs []string, err error) {
 	rooms, exists := repo.userToRooms[userID]
 	if !exists {
-		var user model.UserRaw
+		var user model.User
 		err := repo.connection.DB(dbName).C(collectionUser).FindId(userID).One(&user)
 		if err != nil {
 			return nil, err
@@ -50,7 +50,7 @@ func (repo *CachedRoomUserRepository) GetUserRooms(userID string) (roomIDs []str
 func (repo *CachedRoomUserRepository) GetRoomUsers(roomID string) (userIDs []string, err error) {
 	users, exist := repo.roomToUsers[roomID]
 	if !exist {
-		var room model.RoomRaw
+		var room model.Room
 		err := repo.connection.DB(dbName).C(collectionRoom).FindId(roomID).One(&room)
 		if err != nil {
 			return nil, err

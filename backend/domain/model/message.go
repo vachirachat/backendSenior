@@ -12,16 +12,22 @@ type MessagesResponse struct {
 	Messages []Message `json:"messages"`
 }
 
-type RoomTest struct {
-	RoomID string `json:"roomid" bson:"roomid"`
-}
+// type Message struct {
+// 	MessageID bson.ObjectId `json:"messageId" bson:"_id,omitempty"`
+// 	TimeStamp time.Time     `json:"timestamp" bson:"timestamp"`
+// 	RoomID    bson.ObjectId `json:"roomId" bson:"roomId"`
+// 	UserID    bson.ObjectId `json:"userId" bson:"userId"`
+// 	Data      string        `json:"data" bson:"data"`
+// 	Type      string        `json:"type" bson:"type"`
+// }
+
 type Message struct {
-	MessageID bson.ObjectId `json:"messageId" bson:"_id,omitempty"`
-	TimeStamp time.Time     `json:"timestamp" bson:"timestamp"`
-	RoomID    bson.ObjectId `json:"roomId" bson:"roomId"`
-	UserID    bson.ObjectId `json:"userId" bson:"userId"`
-	Data      string        `json:"data" bson:"data"`
-	Type      string        `json:"type" bson:"type"`
+	MessageID string    `json:"messageId" bson:"_id,omitempty"`
+	TimeStamp time.Time `json:"timestamp" bson:"timestamp"`
+	RoomID    string    `json:"roomId" bson:"roomId"`
+	UserID    string    `json:"userId" bson:"userId"`
+	Data      string    `json:"data" bson:"data"`
+	Type      string    `json:"type" bson:"type"`
 }
 
 // TimeRange is used for filtering message by time
@@ -68,4 +74,19 @@ func (rng *TimeRange) Validate() error {
 		return errors.New("From must be less than To")
 	}
 	return nil
+}
+
+// Re-Assign byte string(From mondo bson.ObjectID) to String
+func (msg *Message) MessageStringIDToMongoID() Message {
+	msg.MessageID = bson.ObjectId(msg.MessageID).Hex()
+	msg.RoomID = bson.ObjectId(msg.RoomID).Hex()
+	msg.UserID = bson.ObjectId(msg.UserID).Hex()
+	return *msg
+}
+
+func MessageListToMongoID(messages []Message) []Message {
+	for i := range messages {
+		messages[i] = messages[i].MessageStringIDToMongoID()
+	}
+	return messages
 }

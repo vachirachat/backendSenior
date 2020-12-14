@@ -9,7 +9,7 @@ import (
 type UserRepository interface {
 	GetAllUser() ([]model.User, error)
 	GetLastUser() (model.User, error)
-	GetUserByID(userID bson.ObjectId) (model.User, error)
+	GetUserByID(userID string) (model.User, error)
 	AddUser(user model.User) error
 	EditUserName(userID bson.ObjectId, user model.User) error
 	DeleteUserByID(userID string) error

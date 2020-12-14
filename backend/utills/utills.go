@@ -57,3 +57,12 @@ func ArrStringRemoveMatched(arr []string, match []string) ([]string, int) {
 	result = result[:idx]
 	return result, n - idx
 }
+
+func ToObjectIdArr(stringArr []string) []bson.ObjectId {
+	result := make([]bson.ObjectId, len(stringArr))
+	n := len(stringArr)
+	for i := 0; i < n; i++ {
+		result[i] = bson.ObjectIdHex(stringArr[i])
+	}
+	return result
+}

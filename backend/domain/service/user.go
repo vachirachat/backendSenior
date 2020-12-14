@@ -30,17 +30,10 @@ func (service *UserService) GetAllUsers() ([]model.User, error) {
 	return users, err
 }
 
-// for get user by id
-// func (api UserAPI) GetUserByID(context *gin.Context) {
-// 	userID := context.Param("user_id")
-// 	// user, err := service.userRepository.GetUserByID(userID)
-// 	if err != nil {
-// 		log.Println("error GetUserByID", err.Error())
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-// 		return
-// 	}
-// 	context.JSON(http.StatusOK, user)
-// }
+func (service *UserService) GetUserByID(userID string) (model.User, error) {
+	user, err := service.userRepository.GetUserByID(userID)
+	return user, err
+}
 
 // GetUserByEmail return user with specified email
 func (service *UserService) GetUserByEmail(email string) (model.User, error) {
@@ -121,10 +114,6 @@ type messageLogin struct {
 // TODO WTF return
 func (service *UserService) Login(credentials model.UserLogin) (string, error) {
 	user, err := service.userRepository.GetUserLogin(credentials)
-<<<<<<< HEAD
-	// return "", err
-=======
->>>>>>> main
 
 	//Fix Check token
 	var usertoken model.UserToken

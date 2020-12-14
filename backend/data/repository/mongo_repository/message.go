@@ -3,7 +3,7 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
-	"log"
+	"time"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -11,6 +11,34 @@ import (
 
 type MessageRepositoryMongo struct {
 	ConnectionDB *mgo.Session
+}
+
+type messageMongoDB struct {
+	MessageID bson.ObjectId `json:"messageId" bson:"_id,omitempty"`
+	TimeStamp time.Time     `json:"timestamp" bson:"timestamp"`
+	RoomID    bson.ObjectId `json:"roomId" bson:"roomId"`
+	UserID    bson.ObjectId `json:"userId" bson:"userId"`
+	Data      string        `json:"data" bson:"data"`
+	Type      string        `json:"type" bson:"type"`
+}
+
+func toCreateMessageMongoDB(msg model.Message) messageMongoDB {
+	var msgDB messageMongoDB
+	msgDB.MessageID = bson.NewObjectId()
+	msgDB.TimeStamp = msg.TimeStamp
+	msgDB.RoomID = bson.ObjectIdHex(msg.RoomID)
+	msgDB.UserID = bson.ObjectIdHex(msg.RoomID)
+	msgDB.Data = msg.Data
+	msgDB.Type = msg.Type
+	return msgDB
+}
+
+func toCreateMessageMongoDBArr(messages []model.Message) []messageMongoDB {
+	var msgDBs = make([]messageMongoDB, len(messages))
+	for i := range messages {
+		msgDBs[i] = toCreateMessageMongoDB(messages[i])
+	}
+	return msgDBs
 }
 
 var _ repository.MessageRepository = (*MessageRepositoryMongo)(nil)
@@ -23,9 +51,6 @@ func queryFromTimeRange(timeRange *model.TimeRange) map[string]interface{} {
 		return filter
 	}
 	timeRangeValue := *timeRange
-	// TODO :: TEST GET MESSAGE
-	// rangeTimeFrom, _ := time.Parse("UnixDate", timeRangeValue.To.String())
-	// rangeTimeTo, _ := time.Parse("UnixDate", timeRangeValue.From.String())
 	if !timeRangeValue.To.IsZero() {
 		tempFilter["$lte"] = timeRangeValue.To
 	}
@@ -40,6 +65,7 @@ func queryFromTimeRange(timeRange *model.TimeRange) map[string]interface{} {
 func (messageMongo *MessageRepositoryMongo) GetAllMessages(timeRange *model.TimeRange) ([]model.Message, error) {
 	var messages []model.Message
 	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Find(queryFromTimeRange(timeRange)).All(&messages)
+	messages = model.MessageListToMongoID(messages)
 	return messages, err
 }
 
@@ -49,7 +75,7 @@ func (messageMongo *MessageRepositoryMongo) GetMessagesByRoom(roomID string, tim
 	filter := queryFromTimeRange(timeRange)
 	filter["roomId"] = bson.ObjectIdHex(roomID)
 	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Find(filter).All(&messages)
-	log.Println(messages)
+	messages = model.MessageListToMongoID(messages)
 	return messages, err
 }
 
@@ -57,14 +83,13 @@ func (messageMongo *MessageRepositoryMongo) GetMessagesByRoom(roomID string, tim
 func (messageMongo *MessageRepositoryMongo) GetMessageByID(messageID string) (model.Message, error) {
 	var message model.Message
 	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).FindId(bson.ObjectIdHex(messageID)).One(&message)
-	return message, err
+	return message.MessageStringIDToMongoID(), err
 }
 
 // AddMessage insert message
 func (messageMongo *MessageRepositoryMongo) AddMessage(message model.Message) (string, error) {
-	message.MessageID = bson.NewObjectId()
-	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Insert(message)
-	return message.MessageID.Hex(), err
+	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Insert(toCreateMessageMongoDB(message))
+	return message.MessageID, err
 }
 
 // DeleteMessageByID delete message by id

@@ -76,6 +76,7 @@ func (handler *MessageRouteHandler) messageListHandler(context *gin.Context) {
 		return
 	}
 	messagesInfo.Messages = messages
+
 	context.JSON(http.StatusOK, messagesInfo)
 }
 
@@ -89,7 +90,7 @@ func (handler *MessageRouteHandler) getMessageByIDHandler(context *gin.Context) 
 		return
 	}
 
-	message, err := handler.messageService.GetMessageByID(messages.MessageID.Hex())
+	message, err := handler.messageService.GetMessageByID(messages.MessageID)
 
 	if err != nil {
 		log.Println("error GetMessageByIDHandler", err.Error())
@@ -128,7 +129,7 @@ func (handler *MessageRouteHandler) deleteMessageByIDHandler(context *gin.Contex
 		return
 	}
 
-	err = handler.messageService.DeleteMessageByID(messages.MessageID.Hex())
+	err = handler.messageService.DeleteMessageByID(messages.MessageID)
 	if err != nil {
 		log.Println("error DeleteMessageHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})

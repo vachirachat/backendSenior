@@ -3,6 +3,7 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"backendSenior/utills"
 	"log"
 
 	"github.com/globalsign/mgo"
@@ -12,6 +13,26 @@ import (
 
 type UserRepositoryMongo struct {
 	ConnectionDB *mgo.Session
+}
+
+type userMongoDB struct {
+	UserID   bson.ObjectId   `json:"userID" bson:"_id,omitempty"`
+	Name     string          `json:"name" bson:"name"`
+	Email    string          `json:"email" bson:"email"`
+	Password string          `json:"password" bson:"password"`
+	Room     []bson.ObjectId `json:"room" bson:"room"`
+	UserType string          `json:"userType" bson:"userType"`
+}
+
+func toCreateUserMongoDB(user model.User) userMongoDB {
+	var userDB userMongoDB
+	userDB.UserID = bson.NewObjectId()
+	userDB.Name = user.Name
+	userDB.Email = user.Email
+	userDB.Password = user.Password
+	userDB.Room = utills.ToObjectIdArr(user.Room)
+	userDB.UserType = user.UserType
+	return userDB
 }
 
 var _ repository.UserRepository = (*UserRepositoryMongo)(nil)
@@ -24,7 +45,7 @@ const (
 func (userMongo UserRepositoryMongo) GetAllUser() ([]model.User, error) {
 	var Users []model.User
 	err := userMongo.ConnectionDB.DB(collectionUser).C(collectionUser).Find(nil).All(&Users)
-	return Users, err
+	return model.ArrUserMongoToRoomString(Users), err
 }
 
 func (userMongo UserRepositoryMongo) GetAllUserSecret() ([]model.UserLogin, error) {
@@ -33,19 +54,18 @@ func (userMongo UserRepositoryMongo) GetAllUserSecret() ([]model.UserLogin, erro
 	return Users, err
 }
 
-func (userMongo UserRepositoryMongo) GetUserByID(userID bson.ObjectId) (model.User, error) {
+func (userMongo UserRepositoryMongo) GetUserByID(userID string) (model.User, error) {
 	var user model.User
-	// objectID := bson.ObjectIdHex(userID)
-	err := userMongo.ConnectionDB.DB(collectionUser).C(collectionUser).FindId(userID).One(&user)
-	return user, err
+	err := userMongo.ConnectionDB.DB(collectionUser).C(collectionUser).FindId(bson.ObjectIdHex(userID)).One(&user)
+	return user.UserStringIDToMongoID(), err
 }
 func (userMongo UserRepositoryMongo) GetLastUser() (model.User, error) {
 	var user model.User
 	err := userMongo.ConnectionDB.DB(collectionUser).C(collectionUser).Find(nil).Sort("-created_time").One(&user)
-	return user, err
+	return user.UserStringIDToMongoID(), err
 }
 func (userMongo UserRepositoryMongo) AddUser(user model.User) error {
-	return userMongo.ConnectionDB.DB(collectionUser).C(collectionUser).Insert(user)
+	return userMongo.ConnectionDB.DB(collectionUser).C(collectionUser).Insert(toCreateUserMongoDB(user))
 }
 
 func (userMongo UserRepositoryMongo) EditUserName(userID bson.ObjectId, user model.User) error {
@@ -55,8 +75,7 @@ func (userMongo UserRepositoryMongo) EditUserName(userID bson.ObjectId, user mod
 }
 
 func (userMongo UserRepositoryMongo) DeleteUserByID(userID string) error {
-	objectID := bson.ObjectIdHex(userID)
-	return userMongo.ConnectionDB.DB(collectionUser).C(collectionUser).RemoveId(objectID)
+	return userMongo.ConnectionDB.DB(collectionUser).C(collectionUser).RemoveId(bson.ObjectIdHex(userID))
 }
 
 //  Token

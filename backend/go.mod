@@ -5,6 +5,7 @@ go 1.15
 require (
 	cloud.google.com/go/pubsub v1.3.1
 	github.com/Bowery/prompt v0.0.0-20190916142128-fa8279994f75 // indirect
+	github.com/Workiva/go-datastructures v1.0.52
 	github.com/cornelk/hashmap v1.0.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/safefile v0.0.0-20151022103144-855e8d98f185 // indirect
