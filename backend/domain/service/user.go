@@ -121,10 +121,6 @@ type messageLogin struct {
 // TODO WTF return
 func (service *UserService) Login(credentials model.UserLogin) (string, error) {
 	user, err := service.userRepository.GetUserLogin(credentials)
-<<<<<<< HEAD
-	// return "", err
-=======
->>>>>>> main
 
 	//Fix Check token
 	var usertoken model.UserToken
