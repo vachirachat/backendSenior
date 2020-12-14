@@ -47,6 +47,11 @@ func (service *UserService) GetUserByEmail(email string) (model.User, error) {
 	return user, err
 }
 
+func (service *UserService) GetUserRoomByUserID(userID string) ([]string, error) {
+	user, err := service.userRepository.GetUserRoomByUserID(userID)
+	return user, err
+}
+
 //for return roomidList of User
 // func (api UserAPI) GetUserRoomByUserID(context *gin.Context) {
 // 	var user model.User

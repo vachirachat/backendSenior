@@ -3,6 +3,7 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"fmt"
 	"log"
 
 	"github.com/globalsign/mgo"
@@ -20,6 +21,16 @@ const (
 	collectionToken  = "UserToken"
 	collectionSecret = "UserSecret"
 )
+
+func toStringArrUser(objIdArr []bson.ObjectId) []string {
+	var result = make([]string, len(objIdArr))
+	n := len(objIdArr)
+	for i := 0; i < n; i++ {
+		result[i] = objIdArr[i].Hex()
+		fmt.Printf("obj %s hex %s\n", objIdArr[i], objIdArr[i].Hex())
+	}
+	return result
+}
 
 func (userMongo UserRepositoryMongo) GetAllUser() ([]model.User, error) {
 	var Users []model.User
@@ -113,6 +124,12 @@ func (userMongo UserRepositoryMongo) GetUserByEmail(email string) (model.User, e
 // user secrect
 func (userMongo UserRepositoryMongo) AddUserSecrect(user model.UserLogin) error {
 	return userMongo.ConnectionDB.DB(dbName).C(collectionSecret).Insert(user)
+}
+
+func (userMongo UserRepositoryMongo) GetUserRoomByUserID(userID string) ([]string, error) {
+	var user model.User
+	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.ObjectIdHex(userID)).One(&user)
+	return toStringArrUser(user.Room), err
 }
 
 // oauth Add token

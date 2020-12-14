@@ -27,8 +27,8 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("user", handler.userListHandler)
 	routerGroup.PUT("user/updateuserprofile", handler.editUserNameHandler)
 	routerGroup.DELETE("user/:user_id", handler.deleteUserByIDHandler)
-	routerGroup.POST("getuserbyemail", handler.getUserByEmail)
-
+	routerGroup.POST("getuserbyemail", handler.getUserByEmailHandler)
+	routerGroup.POST("getroombyuserid", handler.getUserRoomByUserIDHandler)
 	//SignIN/UP API
 	routerGroup.GET("token", handler.userTokenListHandler)
 	routerGroup.POST("login", handler.loginHandle)
@@ -60,7 +60,7 @@ func (handler *UserRouteHandler) userListHandler(context *gin.Context) {
 // }
 
 // GetUserByEmail for get user by id
-func (handler *UserRouteHandler) getUserByEmail(context *gin.Context) {
+func (handler *UserRouteHandler) getUserByEmailHandler(context *gin.Context) {
 	var user model.User
 	err := context.ShouldBindJSON(&user)
 	user, err = handler.userService.GetUserByEmail(user.Email)
@@ -73,30 +73,18 @@ func (handler *UserRouteHandler) getUserByEmail(context *gin.Context) {
 }
 
 //for return roomidList of User
-// func (handler *UserRouteHandler) getUserRoomByUserID(context *gin.Context) {
-// 	var user model.User
-// 	err := context.ShouldBindJSON(&user)
-// 	userResult, err := handler.userService.GetUserByID(user.UserID)
-// 	if err != nil {
-// 		log.Println("error getUserRoomByUserID", err.Error())
-// 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-// 		return
-// 	}
-// 	roomIDList := userResult.Room
-// 	log.Println(roomIDList)
-// 	var roomNameList []string
-// 	for _, s := range roomIDList {
-// 		room, err := handler.userService.GetRoomWithRoomID(s)
-// 		if err != nil {
-// 			log.Println("error getUserRoomByUserID", err.Error())
-// 			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-// 			return
-// 		}
-// 		roomNameList = append(roomNameList, room.RoomName)
-// 	}
+func (handler *UserRouteHandler) getUserRoomByUserIDHandler(context *gin.Context) {
+	var user model.User
+	err := context.ShouldBindJSON(&user)
+	rooms, err := handler.userService.GetUserRoomByUserID(user.UserID.Hex())
+	if err != nil {
+		log.Println("error getUserRoomByUserID", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
 
-// 	context.JSON(http.StatusOK, gin.H{"username": userResult.Name, "RoomIDList": userResult.Room, "RoomNameList": roomNameList})
-// }
+	context.JSON(http.StatusOK, gin.H{"status": "success", "Room": rooms})
+}
 
 // AddUserHandeler api
 func (handler *UserRouteHandler) addUserHandeler(context *gin.Context) {

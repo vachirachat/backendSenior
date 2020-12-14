@@ -89,7 +89,10 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 	}
 	for _, s := range listUser {
 		var user model.User
-		err = roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).FindId(bson.ObjectIdHex(s)).One(&user)
+		err = roomMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.ObjectIdHex(s)).One(&user)
+		if err != nil {
+			return fmt.Errorf("roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).FindId%s", err)
+		}
 		didntAdd := false
 		for _, v := range user.Room {
 			if v == bson.ObjectIdHex(roomID) {
@@ -99,7 +102,10 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 		if didntAdd == false {
 			newUser := bson.M{"$set": bson.M{"room": append(user.Room, bson.ObjectIdHex(roomID))}}
 			userID := bson.ObjectIdHex(s)
-			err = roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).UpdateId(userID, newUser)
+			err = roomMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(userID, newUser)
+			if err != nil {
+				return fmt.Errorf("roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).UpdateId %s", err)
+			}
 		}
 
 	}
