@@ -38,11 +38,7 @@ POST http://localhost:8080/api/v1/message/roommessages
 Content-Type: application/json
 
 {
-  "roomId": "5fd3721c584cb6a74d204b6d",
-  "timerange": {
-    "from":"2012-11-12T11:45:26.371Z" ,
-  "to": "2020-11-12T11:45:26.371Z"
-  }
+  "roomid": "5fd773a8da07c78321322d69"
 }
 
 
