@@ -1,0 +1,103 @@
+
+//User 1
+POST http://localhost:8080/api/v1/signup
+Content-Type: application/json
+
+{
+  "email": "rod8711@gmail.com",
+  "password": "top"
+}
+
+
+
+###
+POST http://localhost:8080/api/v1/signup
+Content-Type: application/json
+
+{
+  "email": "top@gmail.com",
+  "password": "top"
+}
+
+###
+POST http://localhost:8080/api/v1/login
+Content-Type: application/json
+
+{
+  "Email": "rod8711@gmail.com",
+  "Password": "top"
+}
+
+
+###GET USER
+GET http://localhost:8080/api/v1/user
+
+
+
+###Get All message
+GET http://localhost:8080/api/v1/message/
+
+
+### GET ALL Room
+GET http://localhost:8080/api/v1/room/listroom
+
+
+
+
+
+### Create Room
+POST   http://localhost:8080/api/v1/room/createroom
+Content-Type: application/json
+
+{
+	"RoomName": "TEST-Room-V1",       
+	"RoomType" :   "PRIVATE"     ,
+	"ListUser":   ["5fd76f188a4cc40120e591d6"]      
+}
+
+### Get room by ID
+POST   http://localhost:8080/api/v1/room/
+Content-Type: application/json
+
+{
+  "roomId":"5fd76f2bda07c77c5c1635f3"
+}
+
+
+### Edit Room Name na
+PUT    http://localhost:8080/api/v1/room/editroomname
+Content-Type: application/json
+
+{
+  "roomId":"5fd76f2bda07c77c5c1635f3",
+	"RoomName": "TEST-Room-EDIT",       
+	"RoomType" :   "PRIVATE"     
+}
+
+### Delete Room
+DELETE http://localhost:8080/api/v1/room/deleteroom
+Content-Type: application/json
+
+{
+ "roomId":"5fd610c996e1311c732729b0"
+}
+
+### Add member to Room
+POST   http://localhost:8080/api/v1/room/addmembertoroom
+Content-Type: application/json
+
+{
+ 		"roomId" : "5fd76f2bda07c77c5c1635f3",
+		"userIds": ["5fd76f188a4cc40120e591d6"]
+}
+
+### DeleteMemberToRoom
+POST   http://localhost:8080/api/v1/room/deletemembertoroom
+Content-Type: application/json
+
+{
+ 		"roomId" : "5fd76f2bda07c77c5c1635f3",
+		"userIds": ["5fd76f198a4cc40120e591db"]
+}
+
+

@@ -23,16 +23,6 @@ type User struct {
 	UserType string          `json:"userType" bson:"userType"`
 }
 
-// UserRaw is same as user expect all objectID are now string
-type UserRaw struct {
-	UserID   string   `json:"userID" bson:"_id,omitempty"`
-	Name     string   `json:"name" bson:"name"`
-	Email    string   `json:"email" bson:"email"`
-	Password string   `json:"password" bson:"password"`
-	Room     []string `json:"room" bson:"room"`
-	UserType string   `json:"userType" bson:"userType"`
-}
-
 type UserToken struct {
 	Email       string `json:"email" bson:"email"`
 	Token       string `json:"Token" bson:"Token"`

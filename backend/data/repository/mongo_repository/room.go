@@ -4,6 +4,7 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"backendSenior/utills"
+	"fmt"
 	"log"
 	"time"
 
@@ -67,23 +68,24 @@ func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID string) error {
 // AddMemberToRoom appends member ids to room, return errors when it doesn't exists
 func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []string) error {
 	// TODO might need to fix logic
-	log.Println("this is roomID")
-	log.Println(roomID)
-	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), bson.M{
+	fmt.Println(roomID)
+	bid := bson.ObjectIdHex(roomID)
+	fmt.Println(bid)
+	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(bid, bson.M{
 		"$push": bson.M{
 			"listUser": bson.M{
-				"$each": listUser, // add all from listUser to array
+				"$each": toObjectIdArr(listUser), // add all from listUser to array
 			},
 		},
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error updating room users %s", err)
 	}
 
 	var room model.Room
 	err = roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&room)
 	if err != nil {
-		return err
+		return fmt.Errorf("error re-getting room users %s", err)
 	}
 	for _, s := range listUser {
 		var user model.User
@@ -129,10 +131,10 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(roomID string, userID 
 	// roomIDString := roomID
 	for _, v := range toObjectIdArr(userID) {
 		var user model.User
-		err = ConnectionDB.DB(collectionUser).C(collectionUser).FindId(v).One(&user)
+		err = ConnectionDB.DB(dbName).C(collectionUser).FindId(v).One(&user)
 		NewListString = utills.RemoveFormListBson(user.Room, bson.ObjectIdHex(roomID))
 		newUser = bson.M{"$set": bson.M{"room": NewListString}}
-		ConnectionDB.DB(collectionUser).C(collectionUser).UpdateId(v, newUser)
+		ConnectionDB.DB(dbName).C(collectionUser).UpdateId(v, newUser)
 	}
 
 	return nil

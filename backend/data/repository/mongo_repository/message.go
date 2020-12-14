@@ -3,6 +3,7 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"fmt"
 	"log"
 
 	"github.com/globalsign/mgo"
@@ -46,7 +47,8 @@ func (messageMongo *MessageRepositoryMongo) GetAllMessages(timeRange *model.Time
 // GetMessagesByRoom return messages from specified room, with optional time filter
 func (messageMongo *MessageRepositoryMongo) GetMessagesByRoom(roomID string, timeRange *model.TimeRange) ([]model.Message, error) {
 	var messages []model.Message
-	filter := queryFromTimeRange(timeRange)
+	// filter := queryFromTimeRange(timeRange)
+	filter := bson.M{}
 	filter["roomId"] = bson.ObjectIdHex(roomID)
 	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Find(filter).All(&messages)
 	log.Println(messages)
@@ -63,7 +65,11 @@ func (messageMongo *MessageRepositoryMongo) GetMessageByID(messageID string) (mo
 // AddMessage insert message
 func (messageMongo *MessageRepositoryMongo) AddMessage(message model.Message) (string, error) {
 	message.MessageID = bson.NewObjectId()
-	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Insert(message)
+	cnt, err := messageMongo.ConnectionDB.DB(dbName).C(collectionRoom).FindId(message.RoomID).Count()
+	if cnt == 0 || err != nil {
+		return "", fmt.Errorf("room error: %s", err)
+	}
+	err = messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Insert(message)
 	return message.MessageID.Hex(), err
 }
 
