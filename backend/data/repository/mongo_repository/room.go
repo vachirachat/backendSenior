@@ -66,9 +66,7 @@ func (roomMongo RoomRepositoryMongo) DeleteRoomByID(roomID string) error {
 // AddMemberToRoom appends member ids to room, return errors when it doesn't exists
 func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []string) error {
 	// TODO might need to fix logic
-	fmt.Println(roomID)
 	bid := bson.ObjectIdHex(roomID)
-	fmt.Println(bid)
 	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(bid, bson.M{
 		"$push": bson.M{
 			"listUser": bson.M{
@@ -88,7 +86,6 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 
 	for _, s := range room.ListUser {
 		var user model.User
-		fmt.Println("user", s)
 		err = roomMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(s).One(&user)
 		if err != nil {
 			err = fmt.Errorf("error finding user %s", err)

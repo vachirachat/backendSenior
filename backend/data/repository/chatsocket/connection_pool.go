@@ -5,7 +5,6 @@ import (
 	"backendSenior/domain/model/chatsocket"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -91,7 +90,6 @@ func (pool *ConnectionPool) RemoveConnection(connID string) error {
 	if !hasRemoved {
 		return errors.New("Not Found")
 	}
-	fmt.Println(pool.connections, removedConn, hasRemoved)
 	pool.connectionsByUser[removedConn.UserID], _, _ = removeConn(connID, pool.connectionsByUser[removedConn.UserID])
 	delete(pool.connectionByID, connID)
 	close(pool.sendChannel[connID])

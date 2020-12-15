@@ -5,7 +5,6 @@ import (
 	"backendSenior/domain/model"
 	"backendSenior/utills"
 	"errors"
-	"fmt"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -16,7 +15,6 @@ func toStringArr(objIdArr []bson.ObjectId) []string {
 	n := len(objIdArr)
 	for i := 0; i < n; i++ {
 		result[i] = objIdArr[i].Hex()
-		fmt.Printf("obj %s hex %s\n", objIdArr[i], objIdArr[i].Hex())
 	}
 	return result
 }

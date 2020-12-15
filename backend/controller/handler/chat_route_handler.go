@@ -21,7 +21,7 @@ const (
 	writeWait = 10 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 20 * time.Second
+	pongWait = 60 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
@@ -52,14 +52,13 @@ type client struct {
 	conn        *websocket.Conn
 	chatService *service.ChatService // reference chat service to call
 	id          string
-	userID      bson.ObjectId
 }
 
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	routerGroup.GET("/ws", func(context *gin.Context) {
-		fmt.Println("new connection!")
+		// fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
 
@@ -71,14 +70,8 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			},
 		}
 
-		// Reading username from request parameter
-		username := r.URL.Query()
-		userID := username.Get("userID")
-		log.Println(username, userID)
-		if userID == "" {
-			context.JSON(http.StatusBadRequest, "no `userID` specified")
-		}
-		// Upgrading the HTTP connection socket connection
+		// Proxy use no auth ?
+		// TODO: distinguish by ID, but for now, just bcast to ALL
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println(err)
@@ -87,7 +80,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 		var conn = &chatsocket.SocketConnection{
 			Conn:   wsConn,
-			UserID: userID,
+			UserID: "foo",
 		}
 
 		id, err := handler.chatService.OnConnect(conn)
@@ -96,7 +89,6 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			conn:        wsConn,
 			chatService: handler.chatService,
 			id:          id,
-			userID:      bson.ObjectIdHex(userID),
 		}
 
 		go clnt.readPump()
@@ -117,7 +109,7 @@ func (c *client) readPump() {
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
 		_, message, err := c.conn.ReadMessage()
-		fmt.Printf("[chat] <-- %s\n", message)
+		// fmt.Printf("[chat] <-- %s\n", message)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -133,7 +125,10 @@ func (c *client) readPump() {
 
 		// Saving messag
 		msg.TimeStamp = time.Now()
-		msg.UserID = c.userID
+		if msg.UserID == "" {
+			fmt.Println("Bad Message, No User ID (proxy must fill it)")
+			continue
+		}
 
 		messageID, err := c.chatService.SaveMessage(msg)
 		if err != nil {
@@ -142,10 +137,10 @@ func (c *client) readPump() {
 		}
 		msg.MessageID = bson.ObjectIdHex(messageID)
 
-		// Bcast
+		// TODO: this is broadbast to ALL proxy for now
 		err = c.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
 		if err != nil {
-			fmt.Printf("Error basting message: %s\n", err.Error())
+			fmt.Printf("Error bcasting message: %s\n", err.Error())
 		}
 	}
 }
