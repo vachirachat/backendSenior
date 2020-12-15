@@ -72,7 +72,7 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 	bid := bson.ObjectIdHex(roomID)
 	fmt.Println(bid)
 	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(bid, bson.M{
-		"$push": bson.M{
+		"$addToSet": bson.M{
 			"listUser": bson.M{
 				"$each": toObjectIdArr(listUser), // add all from listUser to array
 			},
@@ -91,21 +91,31 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 		var user model.User
 		err = roomMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.ObjectIdHex(s)).One(&user)
 		if err != nil {
-			return fmt.Errorf("roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).FindId%s", err)
+			return fmt.Errorf("roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).FindId %s", err)
 		}
-		didntAdd := false
-		for _, v := range user.Room {
-			if v == bson.ObjectIdHex(roomID) {
-				didntAdd = true
-			}
-		}
-		if didntAdd == false {
+		// check for duplicate room id
+		if len(user.Room) == 0 {
 			newUser := bson.M{"$set": bson.M{"room": append(user.Room, bson.ObjectIdHex(roomID))}}
 			userID := bson.ObjectIdHex(s)
 			err = roomMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(userID, newUser)
 			if err != nil {
 				return fmt.Errorf("roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).UpdateId %s", err)
 			}
+		}
+		for _, v := range user.Room {
+			didntAdd := false
+			if v == bson.ObjectIdHex(roomID) {
+				didntAdd = true
+			}
+			if didntAdd == false {
+				newUser := bson.M{"$set": bson.M{"room": append(user.Room, bson.ObjectIdHex(roomID))}}
+				userID := bson.ObjectIdHex(s)
+				err = roomMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(userID, newUser)
+				if err != nil {
+					return fmt.Errorf("roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).UpdateId %s", err)
+				}
+			}
+			log.Println(didntAdd)
 		}
 
 	}
@@ -129,6 +139,7 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(roomID string, userID 
 		NewListString := utills.RemoveFormListBson(room.ListUser, v)
 		log.Println(NewListString)
 	}
+	log.Println(NewListString)
 	newUser := bson.M{"$set": bson.M{"listUser": NewListString}}
 	ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), newUser)
 	// for delete in user

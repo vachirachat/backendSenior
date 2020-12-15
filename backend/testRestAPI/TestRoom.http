@@ -52,7 +52,7 @@ Content-Type: application/json
 {
 	"RoomName": "TEST-Room-V-2",       
 	"RoomType" :   "PRIVATE"     ,
-	"ListUser":   ["5fd76f188a4cc40120e591d6"]      
+	"ListUser":   ["5fd83ca80ca261c401b57c76"]      
 }
 // 5fd773a8da07c78321322d69
 
@@ -61,7 +61,7 @@ POST   http://localhost:8080/api/v1/room/
 Content-Type: application/json
 
 {
-  "roomId":"5fd76f2bda07c77c5c1635f3"
+  "roomId":"5fd83d24e89bde01c23b92ed"
 }
 
 
@@ -88,8 +88,8 @@ POST   http://localhost:8080/api/v1/room/addmembertoroom
 Content-Type: application/json
 
 {
- 		"roomId" : "5fd76f2bda07c77c5c1635f3",
-		"userIds": ["5fd76f188a4cc40120e591d6"]
+ 		"roomId" : "5fd83d24e89bde01c23b92ed",
+		"userIds": ["5fd83d5c0ca261c401b57c9d", "5fd83ca80ca261c401b57c76"]
 }
 
 ### DeleteMemberToRoom
@@ -97,8 +97,8 @@ POST   http://localhost:8080/api/v1/room/deletemembertoroom
 Content-Type: application/json
 
 {
- 		"roomId" : "5fd76f2bda07c77c5c1635f3",
-		"userIds": ["5fd76f198a4cc40120e591db"]
+ 		"roomId" : "5fd83d24e89bde01c23b92ed",
+		"userIds": ["5fd83d5c0ca261c401b57c9d", "5fd83ca80ca261c401b57c76"]
 }
 
 
