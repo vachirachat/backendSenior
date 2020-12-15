@@ -42,7 +42,7 @@ func main() {
 	go func() {
 		for {
 			data := <-pipe
-			fmt.Printf("[recv] receive message from upstream: %s\n", data)
+			fmt.Printf("[upstream] <-- %s\n", data)
 			var msg model.Message
 			err := json.Unmarshal(data, &msg)
 			if err != nil {

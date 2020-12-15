@@ -66,9 +66,10 @@ func (chat *ChatDownstreamService) BroadcastMessageToRoom(roomID string, message
 				// fmt.Printf("\\-- User %s: conn %s\n", userID, connID)
 				connWg.Add(1)
 				go func(connID string, wg *sync.WaitGroup) {
+					fmt.Printf("[%s] --> %+v\n", connID, message)
 					err := chat.send.SendMessage(connID, message)
 					if err != nil {
-						// fmt.Printf("Error sending message: %s\n", err)
+						fmt.Printf("Error sending message: %s\n", err)
 					}
 					connWg.Done()
 					// fmt.Println("Done ")
