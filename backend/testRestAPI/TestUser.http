@@ -61,6 +61,6 @@ POST    http://localhost:8080/api/v1/getroombyuserid
 Content-Type: application/json
 
 {
-  "userID": "5fd76f188a4cc40120e591d6"
+  "userID": "5fd83ca80ca261c401b57c76"
 }
 
