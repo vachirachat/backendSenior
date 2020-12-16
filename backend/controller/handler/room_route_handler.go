@@ -162,6 +162,7 @@ func (handler *RoomRouteHandler) deleteMemberFromRoom(context *gin.Context) {
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }

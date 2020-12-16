@@ -4,6 +4,7 @@ import (
 	route "backendSenior/controller/handler"
 	"backendSenior/data/repository/chatsocket"
 	"backendSenior/data/repository/mongo_repository"
+	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
@@ -41,7 +42,8 @@ func main() {
 	}
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo)
-	roomSvc := service.NewRoomService(roomRepo)
+	// TODO
+	roomSvc := service.NewRoomService(roomRepo, roomUserRepo, repository.RoomUserRepository(nil))
 	chatSvc := service.NewChatService(roomUserRepo, chatPool, chatPool, messageRepo)
 
 	routerDeps := route.RouterDeps{
