@@ -70,7 +70,7 @@ PUT    http://localhost:8080/api/v1/room/editroomname
 Content-Type: application/json
 
 {
-  "roomId":"5fd76f2bda07c77c5c1635f3",
+  "roomId":"5fd83d24e89bde01c23b92ed",
 	"RoomName": "TEST-Room-EDIT",       
 	"RoomType" :   "PRIVATE"     
 }

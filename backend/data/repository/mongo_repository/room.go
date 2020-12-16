@@ -93,7 +93,7 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 		if err != nil {
 			return fmt.Errorf("roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).FindId %s", err)
 		}
-		// check for duplicate room id
+		//in case at inital dont have any room
 		if len(user.Room) == 0 {
 			newUser := bson.M{"$set": bson.M{"room": append(user.Room, bson.ObjectIdHex(roomID))}}
 			userID := bson.ObjectIdHex(s)
@@ -102,6 +102,7 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 				return fmt.Errorf("roomMongo.ConnectionDB.DB(collectionUser).C(collectionUser).UpdateId %s", err)
 			}
 		}
+		// check for duplicate room id
 		for _, v := range user.Room {
 			didntAdd := false
 			if v == bson.ObjectIdHex(roomID) {
