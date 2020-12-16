@@ -5,4 +5,5 @@ const (
 	collectionMessage = "messages"
 	collectionUser    = "users"
 	collectionRoom    = "rooms"
+	collectionProxy   = "proxies"
 )

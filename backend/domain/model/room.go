@@ -16,6 +16,7 @@ type Room struct {
 	CreatedTimeStamp time.Time       `json:"-" bson:"createdTimestamp"`
 	RoomType         string          `json:"roomType" bson:"roomType"`
 	ListUser         []bson.ObjectId `json:"listUser" bson:"listUser"`
+	ListProxy        []bson.ObjectId `json:"listProxy" bson:"listProxy"`
 }
 
 // Map return Room struct as Map
@@ -26,5 +27,6 @@ func (room *Room) Map() map[string]interface{} {
 		"timestamp": room.CreatedTimeStamp,
 		"roomType":  room.RoomType,
 		"listUser":  room.ListUser,
+		"listProxy": room.ListProxy,
 	}
 }

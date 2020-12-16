@@ -18,15 +18,6 @@ type RoomRepositoryMongo struct {
 
 var _ repository.RoomRepository = (*RoomRepositoryMongo)(nil)
 
-func toObjectIdArr(stringArr []string) []bson.ObjectId {
-	result := make([]bson.ObjectId, len(stringArr))
-	n := len(stringArr)
-	for i := 0; i < n; i++ {
-		result[i] = bson.ObjectIdHex(stringArr[i])
-	}
-	return result
-}
-
 func (roomMongo RoomRepositoryMongo) GetAllRooms() ([]model.Room, error) {
 	var rooms []model.Room
 	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).Find(nil).All(&rooms)
@@ -70,7 +61,7 @@ func (roomMongo RoomRepositoryMongo) AddMemberToRoom(roomID string, listUser []s
 	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(bid, bson.M{
 		"$push": bson.M{
 			"listUser": bson.M{
-				"$each": toObjectIdArr(listUser), // add all from listUser to array
+				"$each": utills.ToObjectIdArr(listUser), // add all from listUser to array
 			},
 		},
 	})
@@ -113,12 +104,12 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(roomID string, userID 
 	err = ConnectionDB.DB(dbName).C(collectionRoom).FindId(bson.ObjectId(roomID)).One(&room)
 
 	// TODO fix this, i just want it to compile for now
-	NewListString := utills.RemoveFormListBson(room.ListUser, toObjectIdArr(userID)[0])
+	NewListString := utills.RemoveFormListBson(room.ListUser, utills.ToObjectIdArr(userID)[0])
 	newUser := bson.M{"$set": bson.M{"listUser": NewListString}}
 	ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(roomID, newUser)
 	// for delete in user
 	var user model.User
-	err = ConnectionDB.DB(dbName).C(collectionRoom).FindId(toObjectIdArr(userID)).One(&user)
+	err = ConnectionDB.DB(dbName).C(collectionRoom).FindId(utills.ToObjectIdArr(userID)).One(&user)
 	NewListString = utills.RemoveFormListBson(user.Room, bson.ObjectIdHex(roomID))
 	newUser = bson.M{"$set": bson.M{"room": NewListString}}
 	ConnectionDB.DB("User").C("UserData").UpdateId(userID, newUser)

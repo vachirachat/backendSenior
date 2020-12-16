@@ -3,21 +3,13 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"backendSenior/utills"
 	"errors"
 	"fmt"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )
-
-func toStringArr(objIdArr []bson.ObjectId) []string {
-	var result = make([]string, len(objIdArr))
-	n := len(objIdArr)
-	for i := 0; i < n; i++ {
-		result[i] = objIdArr[i].Hex()
-	}
-	return result
-}
 
 // CachedRoomUserRepository	is repository for room/user relation, with cached GET
 type CachedRoomUserRepository struct {
@@ -49,7 +41,7 @@ func (repo *CachedRoomUserRepository) GetUserRooms(userID string) (roomIDs []str
 		if err != nil {
 			return nil, err
 		}
-		repo.userToRooms[userID] = toStringArr(user.Room)
+		repo.userToRooms[userID] = utills.ToStringArr(user.Room)
 		return repo.userToRooms[userID], nil
 	}
 	return rooms, nil
@@ -64,7 +56,7 @@ func (repo *CachedRoomUserRepository) GetRoomUsers(roomID string) (userIDs []str
 		if err != nil {
 			return nil, err
 		}
-		repo.roomToUsers[roomID] = toStringArr(room.ListUser)
+		repo.roomToUsers[roomID] = utills.ToStringArr(room.ListUser)
 		return repo.roomToUsers[roomID], nil
 	}
 	return users, nil
@@ -74,7 +66,7 @@ func (repo *CachedRoomUserRepository) GetRoomUsers(roomID string) (userIDs []str
 // It returns error if any of userIDs is invalid
 func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []string) (err error) {
 	// Preconfition check
-	n, err := repo.connection.DB(dbName).C(collectionUser).FindId(bson.M{"$in": toObjectIdArr(userIDs)}).Count()
+	n, err := repo.connection.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(userIDs)}).Count()
 
 	if err != nil {
 		return err
@@ -92,7 +84,7 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 	err = repo.connection.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), bson.M{
 		"$addToSet": bson.M{
 			"listUser": bson.M{
-				"$each": toObjectIdArr(userIDs), // add all from listUser to array
+				"$each": utills.ToObjectIdArr(userIDs), // add all from listUser to array
 			},
 		},
 	})
@@ -100,7 +92,7 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 		return err
 	}
 
-	err = repo.connection.DB(dbName).C(collectionUser).UpdateId(bson.M{"$in": toObjectIdArr(userIDs)}, bson.M{
+	err = repo.connection.DB(dbName).C(collectionUser).UpdateId(bson.M{"$in": utills.ToObjectIdArr(userIDs)}, bson.M{
 		"$addToSet": bson.M{
 			"room": bson.ObjectIdHex(roomID),
 		},
@@ -123,7 +115,7 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 // return error if any of userIDs is invalid
 func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs []string) (err error) {
 	// Precondition check
-	n, err := repo.connection.DB(dbName).C(collectionUser).FindId(bson.M{"$in": toObjectIdArr(userIDs)}).Count()
+	n, err := repo.connection.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(userIDs)}).Count()
 	if err != nil {
 		return err
 	}
@@ -139,14 +131,14 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 	// Update database
 	err = repo.connection.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), bson.M{
 		"$pullAll": bson.M{
-			"listUser": toObjectIdArr(userIDs),
+			"listUser": utills.ToObjectIdArr(userIDs),
 		},
 	})
 	if err != nil {
 		return err
 	}
 
-	err = repo.connection.DB(dbName).C(collectionUser).UpdateId(bson.M{"$in": toObjectIdArr(userIDs)}, bson.M{
+	err = repo.connection.DB(dbName).C(collectionUser).UpdateId(bson.M{"$in": utills.ToObjectIdArr(userIDs)}, bson.M{
 		"$pull": bson.M{
 			"room": bson.ObjectIdHex(roomID),
 		},
