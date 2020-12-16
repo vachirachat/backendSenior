@@ -1,7 +1,14 @@
 package repository
 
-import "backendSenior/domain/model"
+import (
+	"proxySenior/domain/model"
+	"time"
+)
 
 type Keystore interface {
-	GetKeyForMessage(message *model.Message) (key string, err error)
+	GetKeyForMessage(roomID string, timestamp time.Time) (key model.KeyRecord, err error)
+	GetKeyByRoom(roomID string) (keys []model.KeyRecord, err error)
+	AddNewKey(model.KeyRecord)
+
+	RequestKeyForMessage(roomID string, timestamp time.Time) (key model.KeyRecord, err error)
 }

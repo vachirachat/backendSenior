@@ -26,8 +26,9 @@ func main() {
 	pool := chatsocket.NewConnectionPool()
 	msgRepo := &be_mongo_repository.MessageRepositoryMongo{ConnectionDB: conn}
 	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN)
+	keystore := &mongo_repository.KeyRepository{}
 
-	enc := &service.EncryptionService{}
+	enc := service.NewEncryptionService(keystore)
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, msgRepo, enc)
 	upstreamService := service.NewChatUpstreamService(upstream, enc)
 

@@ -23,7 +23,11 @@ func NewChatUpstreamService(controller repository.UpstreamMessageRepository, enc
 
 // SendMessage encrypt mesasge and forward to upstream
 func (service *ChatUpstreamService) SendMessage(message model.Message) error {
-	encryptedMessage := service.encryption.Encrypt(message)
+	encryptedMessage, err := service.encryption.Encrypt(message)
+	if err != nil {
+		fmt.Println("send error: can't encrypt: %s\n", err.Error())
+		return err
+	}
 	data, err := json.Marshal(encryptedMessage)
 	if err != nil {
 		return err
