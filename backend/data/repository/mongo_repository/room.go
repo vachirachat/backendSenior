@@ -49,10 +49,16 @@ func (roomMongo RoomRepositoryMongo) AddRoom(room model.Room) (string, error) {
 // UpdateRoom updates room, return error when not found
 func (roomMongo RoomRepositoryMongo) UpdateRoom(roomID string, room model.Room) error {
 	updateMap := room.Map()
-
 	// delete(updateMap, "_id")
 	// delete(updateMap, "listUser")
+	var roomOld model.Room
+	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&roomOld)
+	if err != nil {
+		return fmt.Errorf("error in UpdateRoom")
+	}
+	updateMap["listUser"] = roomOld.ListUser
 	updateMap["updatedTime"] = time.Now()
+	
 
 	return roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), bson.M{
 		"$set": updateMap,
