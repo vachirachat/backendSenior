@@ -32,6 +32,8 @@ func NewRoomRouteHandler(roomService *service.RoomService, authService *auth.Aut
 func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	routerGroup.GET("/:id/member", handler.getRoomMemberIDs)
+	routerGroup.POST("/:id/member", handler.addMemberToRoom)
+	routerGroup.DELETE("/:id/member", handler.deleteMemberFromRoom)
 	routerGroup.GET("/:id/proxy", handler.getRoomProxies)
 	routerGroup.POST("/:id/proxy", handler.addProxiesToRoom)
 	routerGroup.DELETE("/:id/proxy", handler.removeProxiesFromRoom)
@@ -130,6 +132,7 @@ func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context) {
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }

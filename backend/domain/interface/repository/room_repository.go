@@ -12,6 +12,4 @@ type RoomRepository interface {
 	AddRoom(room model.Room) (string, error)
 	UpdateRoom(roomID string, room model.Room) error
 	DeleteRoomByID(roomID string) error
-	AddMemberToRoom(roomID string, listUser []string) error
-	DeleteMemberFromRoom(roomID string, userID []string) error
 }

@@ -22,7 +22,7 @@ type Room struct {
 // Map return Room struct as Map
 func (room *Room) Map() map[string]interface{} {
 	return map[string]interface{}{
-		"roomId":    room.RoomID,
+		"_id":       room.RoomID,
 		"roomName":  room.RoomName,
 		"timestamp": room.CreatedTimeStamp,
 		"roomType":  room.RoomType,

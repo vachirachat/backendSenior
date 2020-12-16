@@ -18,9 +18,9 @@ type CachedRoomProxyRepository struct {
 	roomToProxies map[string][]string
 }
 
-// NewCachedRoomProxtRepository create new room user repository from mongo connection, cache isn't initialized
+// NewCachedRoomProxyRepository create new room user repository from mongo connection, cache isn't initialized
 // Note that consistency isn't geauranteed (there might be race condition)
-func NewCachedRoomProxtRepository(conn *mgo.Session) *CachedRoomProxyRepository {
+func NewCachedRoomProxyRepository(conn *mgo.Session) *CachedRoomProxyRepository {
 	return &CachedRoomProxyRepository{
 		connection:    conn,
 		proxyToRooms:  make(map[string][]string),
