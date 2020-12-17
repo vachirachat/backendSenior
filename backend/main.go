@@ -30,10 +30,12 @@ func main() {
 	roomRepo := &mongo_repository.RoomRepositoryMongo{
 		ConnectionDB: connectionDB,
 	}
+	proxyRepo := mongo_repository.NewProxyRepositoryMongo(connectionDB)
 
 	chatPool := chatsocket.NewConnectionPool()
 
 	roomUserRepo := mongo_repository.NewCachedRoomUserRepository(connectionDB)
+	roomProxyRepo := mongo_repository.NewCachedRoomProxyRepository(connectionDB)
 
 	// Init service
 	authSvc := &auth.AuthService{
@@ -41,8 +43,9 @@ func main() {
 	}
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo)
-	roomSvc := service.NewRoomService(roomRepo)
+	roomSvc := service.NewRoomService(roomRepo, roomUserRepo, roomProxyRepo)
 	chatSvc := service.NewChatService(roomUserRepo, chatPool, chatPool, messageRepo)
+	proxySvc := service.NewProxyService(proxyRepo)
 
 	routerDeps := route.RouterDeps{
 		RoomService:    roomSvc,
@@ -50,6 +53,7 @@ func main() {
 		UserService:    userSvc,
 		AuthService:    authSvc,
 		ChatService:    chatSvc,
+		ProxyService:   proxySvc,
 	}
 
 	router := routerDeps.NewRouter()

@@ -15,7 +15,7 @@ type UserRepository interface {
 	EditUserRole(model.UserSecret) error
 	DeleteUserByID(userID string) error
 	GetUserByEmail(email string) (model.User, error)
-	GetUserRoomByUserID(userID string) ([]string, error)
+
 	//login
 	GetUserTokenById(email string) (model.UserToken, error)
 	GetUserIdByToken(token string) (model.UserToken, error)
