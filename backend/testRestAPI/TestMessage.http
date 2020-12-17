@@ -8,6 +8,19 @@ Content-Type: application/json
   "password": "top"
 }
 
+
+
+###
+POST http://localhost:8080/api/v1/signup
+Content-Type: application/json
+
+{
+  "Email": "Warit@gmail.com",
+  "Password": "top"
+}
+
+
+
 ###
 POST http://localhost:8080/api/v1/login
 Content-Type: application/json
@@ -38,7 +51,7 @@ POST http://localhost:8080/api/v1/message/roommessages
 Content-Type: application/json
 
 {
-  "roomid": "5fd773a8da07c78321322d69"
+  "roomid": "xxxxx"
 }
 
 

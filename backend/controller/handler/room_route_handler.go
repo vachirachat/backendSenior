@@ -32,7 +32,7 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
 	routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
 	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.postRoomByIDHandler)
-	routerGroup.GET("/listroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.roomListHandler)
+	routerGroup.GET("/listroom", handler.authService.AuthMiddleware("user", "view"), handler.roomListHandler)
 	routerGroup.GET("/getroommember" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomMemberHandler)
 }
 
@@ -106,7 +106,6 @@ func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	log.Println(room)
 	err = handler.roomService.EditRoomName(room.RoomID.Hex(), room)
 	if err != nil {
 		log.Println("error EditRoomNametHandler", err.Error())

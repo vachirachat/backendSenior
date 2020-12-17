@@ -1,13 +1,15 @@
 package model
 
-import "github.com/globalsign/mgo/bson"
+import (
+	"github.com/globalsign/mgo/bson"
+)
 
 type UserInfo struct {
 	User []User `json:"users"`
 }
 
 type UserInfoSecrect struct {
-	UserLogin []UserLogin `json:"users"`
+	UserSecret []UserSecret `json:"users"`
 }
 
 type UserTokenInfo struct {
@@ -24,13 +26,7 @@ type User struct {
 }
 
 type UserToken struct {
-	Email       string `json:"email" bson:"email"`
-	Token       string `json:"Token" bson:"Token"`
-	TimeExpired string `json:"TimeExpired" bson:"TimeExpired"`
-}
-
-type UserLogin struct {
-	Email    string `json:"email" bson:"email"`
-	Password string `json:"password" bson:"password"`
-	isAdmin  bool   `json:"isadmin" bson:"isadmin"`
+	UserID      bson.ObjectId `json:"userID" bson:"_id,omitempty"`
+	Token       string        `json:"token" bson:"token"`
+	TimeExpired string        `json:"timeexpired" bson:"timeexpired"`
 }

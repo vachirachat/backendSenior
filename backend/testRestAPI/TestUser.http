@@ -4,7 +4,7 @@ POST http://localhost:8080/api/v1/signup
 Content-Type: application/json
 
 {
-  "email": "rod8711@gmail.com",
+  "email": "test-2@gmail.com",
   "password": "top"
 }
 
@@ -13,14 +13,28 @@ POST http://localhost:8080/api/v1/login
 Content-Type: application/json
 
 {
-  "Email": "rod8711@gmail.com",
+  "Email": "test-2@gmail.com",
   "Password": "top"
 }
+
+###
+PUT http://localhost:8080/api/v1/user/editrole
+Content-Type: application/json
+
+{
+  "Email": "test-2@gmail.com",
+  "Password": "top",
+  "Role": "admin"
+}
+
 
 
 ###GET USER
 GET http://localhost:8080/api/v1/user
 
+
+###GET USER
+GET http://localhost:8080/api/v1/token
 
 
 ###Get All message
