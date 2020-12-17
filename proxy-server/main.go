@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"proxySenior/controller/route"
 	"proxySenior/data/repository/mongo_repository"
 	"proxySenior/data/repository/upstream"
@@ -14,6 +15,7 @@ import (
 	"proxySenior/utils"
 
 	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
 )
 
 func main() {
@@ -25,7 +27,13 @@ func main() {
 	roomUserRepo := mongo_repository.NewCachedRoomUserRepository(conn)
 	pool := chatsocket.NewConnectionPool()
 	msgRepo := &be_mongo_repository.MessageRepositoryMongo{ConnectionDB: conn}
-	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN)
+
+	clientID := os.Getenv("CLIENT_ID")
+	if !bson.IsObjectIdHex(clientID) {
+		log.Fatalln("error: please set valid CLIENT_ID")
+	}
+
+	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN, clientID)
 	keystore := &mongo_repository.KeyRepository{}
 
 	enc := service.NewEncryptionService(keystore)

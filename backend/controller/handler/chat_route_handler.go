@@ -70,8 +70,14 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			},
 		}
 
-		// Proxy use no auth ?
-		// TODO: distinguish by ID, but for now, just bcast to ALL
+		// TODO authen using token
+		clientID := context.Query("clientID")
+		if !bson.IsObjectIdHex(clientID) {
+			fmt.Println(clientID, "not valid OID")
+			context.JSON(http.StatusBadRequest, gin.H{"status": "bad client ID (must be objectId)"})
+			return
+		}
+
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println(err)
@@ -80,7 +86,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 		var conn = &chatsocket.SocketConnection{
 			Conn:   wsConn,
-			UserID: "foo",
+			UserID: clientID,
 		}
 
 		id, err := handler.chatService.OnConnect(conn)
