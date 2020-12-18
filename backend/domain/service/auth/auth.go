@@ -5,6 +5,7 @@ import (
 	"backendSenior/domain/model"
 	"backendSenior/utills"
 	"log"
+
 	"net/http"
 	"time"
 
@@ -21,27 +22,60 @@ var SCOPES = []string{"view", "add", "edit", "query"}
 func (auth AuthService) AuthMiddleware(resouce string, scope string) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		auth.canAccessResource(context, resouce, scope)
+		// auth.canAccessResource(context, "admin", "")
+		// auth.canAccessResource(context, "user", "add")
+		// auth.canAccessResource(context, "user", "view")
 	}
 }
 
+// JWT MERGE To Auth.
+// func CreateTodo(c *gin.Context) {
+// 	var td *Todo
+// 	if err := c.ShouldBindJSON(&td); err != nil {
+// 		c.JSON(http.StatusUnprocessableEntity, "invalid json")
+// 		return
+// 	}
+// 	tokenAuth, err := ExtractTokenMetadata(c.Request)
+// 	if err != nil {
+// 		c.JSON(http.StatusUnauthorized, "unauthorized")
+// 		return
+// 	}
+// 	userId, err = FetchAuth(tokenAuth)
+// 	if err != nil {
+// 		c.JSON(http.StatusUnauthorized, "unauthorized")
+// 		return
+// 	}
+// 	td.UserID = userId
+
+// 	//you can proceed to save the Todo to a database
+// 	//but we will just return it to the caller here:
+// 	c.JSON(http.StatusCreated, td)
+// }
+
 func (auth AuthService) canAccessResource(context *gin.Context, resouce string, scope string) {
-	_, role, ok := auth.getSession(context)
-	log.Println(">>>>>>  ", role)
+	session, _ := VerifyToken(context)
+	token := mapClaimToModel(session)
+
 	// if isAdmin(role) || utills.ADMIN_MODE {
-	if isAdmin(role) {
+	if isAdmin(token.Role) {
 		context.Writer.WriteHeader(http.StatusOK)
+		if !auth.roleScopesHandler(context, token.Role, scope) {
+			context.Abort()
+			context.Writer.WriteHeader(http.StatusUnauthorized)
+			context.Writer.Write([]byte("Unauthorized:Role no permission"))
+		}
 	} else {
-		if !ok {
+		if !auth.hasSession(context) {
 			context.Abort()
 			context.Writer.WriteHeader(http.StatusUnauthorized)
 			context.Writer.Write([]byte("Unauthorized: not login state"))
 		}
-		if !hasPermission(context, role, "view") {
+		if !hasPermission(context, token.Role, scope) {
 			context.Abort()
 			context.Writer.WriteHeader(http.StatusUnauthorized)
 			context.Writer.Write([]byte("Unauthorized: no permission"))
 		}
-		if !auth.roleScopesHandler(context, role, scope) {
+		if !auth.roleScopesHandler(context, token.Role, scope) {
 			context.Abort()
 			context.Writer.WriteHeader(http.StatusUnauthorized)
 			context.Writer.Write([]byte("Unauthorized:Role no permission"))
@@ -50,47 +84,57 @@ func (auth AuthService) canAccessResource(context *gin.Context, resouce string, 
 	}
 }
 
-func (auth AuthService) getSession(context *gin.Context) (string, string, bool) {
-	if auth.hasSession(context) {
-		session, err := context.Request.Cookie("SESSION_ID")
-		if err != nil {
-			log.Println("error getSession", err.Error())
-			context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-			return "", "", false
-		}
-		cookie, err := auth.UserRepository.GetUserIdByToken(session.Value)
-		if err != nil {
-			log.Println("error getSession", err.Error())
-			context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-			return "", "", false
-		}
-		role, err := auth.UserRepository.GetUserRole(cookie.UserID.Hex())
-		if err != nil {
-			log.Println("error getSession", err.Error())
-			context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-			return "", "", false
-		}
-		return cookie.UserID.Hex(), role, true
-	}
-	return "", "", false
-}
+// :: TODO -> Implement With DB
+// func (auth AuthService) getSession(context *gin.Context) (string, string, bool) {
+// 	if auth.hasSession(context) {
+// 		session, err := context.Request.Cookie("SESSION_ID")
+// 		if err != nil {
+// 			log.Println("error getSession", err.Error())
+// 			context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
+// 			return "", "", false
+// 		}
+// 		cookie, err := auth.UserRepository.GetUserIdByToken(session.Value)
+// 		if err != nil {
+// 			log.Println("error getSession", err.Error())
+// 			context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
+// 			return "", "", false
+// 		}
+// 		role, err := auth.UserRepository.GetUserRole(cookie.UserID.Hex())
+// 		if err != nil {
+// 			log.Println("error getSession", err.Error())
+// 			context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
+// 			return "", "", false
+// 		}
+// 		return cookie.UserID.Hex(), role, true
+// 	}
+// 	return "", "", false
+// }
+
+// :: TODO -> Implement With DB
+// func (auth AuthService) hasSession(context *gin.Context) bool {
+// 	session, err := context.Request.Cookie("SESSION_ID")
+// 	if err == nil {
+// 		cookie, err := auth.UserRepository.GetUserIdByToken(session.Value)
+// 		if err == nil {
+// 			userTimeExp, _ := time.Parse(time.RFC3339, cookie.TimeExpired)
+// 			if !isSessionExpire(userTimeExp) {
+// 				return true
+// 			} else {
+// 				context.Abort()
+// 				context.Writer.WriteHeader(http.StatusUnauthorized)
+// 				context.Writer.Write([]byte("Unauthorized: your login state is expire"))
+// 			}
+// 		}
+// 	}
+// 	return false
+// }
 
 func (auth AuthService) hasSession(context *gin.Context) bool {
-	session, err := context.Request.Cookie("SESSION_ID")
-	if err == nil {
-		cookie, err := auth.UserRepository.GetUserIdByToken(session.Value)
-		if err == nil {
-			userTimeExp, _ := time.Parse(time.RFC3339, cookie.TimeExpired)
-			if !isSessionExpire(userTimeExp) {
-				return true
-			} else {
-				context.Abort()
-				context.Writer.WriteHeader(http.StatusUnauthorized)
-				context.Writer.Write([]byte("Unauthorized: your login state is expire"))
-			}
-		}
+	_, err := VerifyToken(context)
+	if err != nil {
+		return false
 	}
-	return false
+	return true
 }
 
 func (auth AuthService) roleScopesHandler(context *gin.Context, role string, scope string) bool {
@@ -124,7 +168,7 @@ func isAdmin(role string) bool {
 }
 
 func hasPermissionWithAdminFlag(role string, scope string, isAdmin bool) bool {
-	if isAdmin || (scope == "view" && !isAdminResource(role)) {
+	if isAdmin || (scope == "view" && !isAdminResource(role) || (role == "user" && scope == "add")) {
 		return true
 	}
 	return false

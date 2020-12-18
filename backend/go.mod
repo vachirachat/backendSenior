@@ -8,6 +8,7 @@ require (
 	github.com/cornelk/hashmap v1.0.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/safefile v0.0.0-20151022103144-855e8d98f185 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7 // indirect
 	github.com/gin-gonic/gin v1.3.0
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
@@ -21,6 +22,7 @@ require (
 	github.com/minio/minio-go/v7 v7.0.5
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/satori/go.uuid v1.2.0
 	github.com/segmentio/ksuid v1.0.3
 	github.com/stretchr/testify v1.6.1
 	github.com/ugorji/go/codec v0.0.0-20181022190402-e5e69e061d4f // indirect

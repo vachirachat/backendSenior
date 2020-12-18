@@ -2,14 +2,12 @@ package service
 
 import (
 	"backendSenior/domain/interface/repository"
+	"backendSenior/domain/service/auth"
 	"errors"
 	"strings"
-	"time"
 
 	"backendSenior/domain/model"
 	"backendSenior/utills"
-
-	"github.com/segmentio/ksuid"
 )
 
 // UserService provide access to user related functions
@@ -128,24 +126,38 @@ type messageLogin struct {
 }
 
 //Login find user with matching username, password, isAdmin, return token
-func (service *UserService) Login(credentials model.UserSecret) (string, string, error) {
+// func (service *UserService) Login(credentials model.UserSecret) (string, string, error) {
+// 	user, err := service.userRepository.GetUserSecret(credentials)
+// 	if err != nil {
+// 		return "", "", errors.New("User not exists")
+// 	}
+// 	var usertoken model.UserToken
+// 	usertoken, err = service.userRepository.GetUserTokenById(user.UserID.Hex())
+
+// 	timeExp, _ := time.Parse(time.RFC3339, usertoken.TimeExpired)
+
+// 	if err != nil || !timeExp.Before(time.Now()) {
+// 		usertoken.UserID = user.UserID
+// 		usertoken.Token = ksuid.New().String()
+// 		usertoken.TimeExpired = time.Now().Add(24 * time.Hour).String()
+// 		err = service.userRepository.AddToken(usertoken)
+// 	}
+
+// 	return usertoken.Token, usertoken.TimeExpired, nil
+// }
+
+func (service *UserService) Login(credentials model.UserSecret) (*model.TokenDetails, error) {
+	// var token model.TokenDetails
 	user, err := service.userRepository.GetUserSecret(credentials)
 	if err != nil {
-		return "", "", errors.New("User not exists")
+		return nil, errors.New("User not exists")
 	}
-	var usertoken model.UserToken
-	usertoken, err = service.userRepository.GetUserTokenById(user.UserID.Hex())
-
-	timeExp, _ := time.Parse(time.RFC3339, usertoken.TimeExpired)
-
-	if err != nil || !timeExp.Before(time.Now()) {
-		usertoken.UserID = user.UserID
-		usertoken.Token = ksuid.New().String()
-		usertoken.TimeExpired = time.Now().Add(24 * time.Hour).String()
-		err = service.userRepository.AddToken(usertoken)
+	userId := user.UserID.Hex()
+	token, err := auth.CreateToken(userId)
+	if err != nil {
+		return nil, errors.New("Create Token Fail")
 	}
-
-	return usertoken.Token, usertoken.TimeExpired, nil
+	return token, nil
 }
 
 //Login find user with matching username, password, isAdmin, return token

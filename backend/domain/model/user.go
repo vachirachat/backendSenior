@@ -30,3 +30,9 @@ type UserToken struct {
 	Token       string        `json:"token" bson:"token"`
 	TimeExpired string        `json:"timeexpired" bson:"timeexpired"`
 }
+
+type UserSecret struct {
+	Email    string `json:"email" bson:"email"`
+	Password string `json:"password" bson:"password"`
+	Role     string `json:"role" bson:"role"`
+}

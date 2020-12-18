@@ -44,7 +44,7 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	// routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
 	// routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
 	routerGroup.GET("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomByIDHandler)
-	routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.roomListHandler)
+	routerGroup.GET("/", handler.authService.AuthMiddleware("object", "view"), handler.roomListHandler)
 }
 
 func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {

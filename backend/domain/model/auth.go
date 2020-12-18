@@ -5,10 +5,24 @@ type Permission struct {
 	Scopes   []string `json:"scopes" bson:"scopes"`
 }
 
-type UserSecret struct {
-	Email    string `json:"email" bson:"email"`
-	Password string `json:"password" bson:"password"`
-	Role     string `json:"role" bson:"role"`
+type TokenDetails struct {
+	AccessToken  string
+	RefreshToken string
+	AccessUuid   string
+	RefreshUuid  string
+	AtExpires    int64
+	RtExpires    int64
 }
 
-//Role now :admin / user
+type AccessDetails struct {
+	AccessUuid string
+	UserId     uint64
+}
+
+type JWTClaim struct {
+	AccessUuid string `json:"access_uuid"`
+	Authorized string `json:"authorized"`
+	Exp        string `json:"exp"`
+	Role       string `json:"role"`
+	UserId     string `json:"user_id"`
+}

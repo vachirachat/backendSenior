@@ -232,14 +232,12 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 	var credentials model.UserSecret
 	err := context.ShouldBindJSON(&credentials)
 
-	token, timeExp, err := handler.userService.Login(credentials)
+	token, err := handler.userService.Login(credentials)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	// For test propose
-	context.SetCookie("SESSION_ID", token, 3600*24, "/", "localhost", false, true)
-	context.JSON(http.StatusOK, gin.H{"status": "success", "token": token, "timeExp": timeExp})
+	context.JSON(http.StatusOK, gin.H{"status": "success", "token": token})
 }
 
 // Signup API
