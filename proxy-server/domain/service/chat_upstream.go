@@ -25,7 +25,7 @@ func NewChatUpstreamService(controller repository.UpstreamMessageRepository, enc
 func (service *ChatUpstreamService) SendMessage(message model.Message) error {
 	encryptedMessage, err := service.encryption.Encrypt(message)
 	if err != nil {
-		fmt.Println("send error: can't encrypt: %s\n", err.Error())
+		fmt.Printf("send error: can't encrypt: %s\n", err.Error())
 		return err
 	}
 	data, err := json.Marshal(encryptedMessage)
@@ -37,10 +37,12 @@ func (service *ChatUpstreamService) SendMessage(message model.Message) error {
 	return err
 }
 
+// RegsiterHandler add channel to be notified when message is received
 func (service *ChatUpstreamService) RegsiterHandler(channel chan []byte) error {
 	return service.upstream.RegisterHandler(channel)
 }
 
+// UnRegsiterHandler remove channel from being notified when message is received
 func (service *ChatUpstreamService) UnRegsiterHandler(channel chan []byte) error {
 	return service.upstream.UnRegisterHandler(channel)
 }
