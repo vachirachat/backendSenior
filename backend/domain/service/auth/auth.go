@@ -56,6 +56,11 @@ func (auth AuthService) AuthMiddleware(resouce string, scope string) gin.Handler
 
 func (auth AuthService) canAccessResource(context *gin.Context, resouce string, scope string) {
 	session, _ := VerifyToken(context)
+	if session == nil {
+		context.Abort()
+		context.Writer.WriteHeader(http.StatusUnauthorized)
+		context.Writer.Write([]byte("Unauthorized: Token no already expired"))
+	}
 	token := mapClaimToModel(session)
 
 	// if isAdmin(role) || utills.ADMIN_MODE {
@@ -64,7 +69,7 @@ func (auth AuthService) canAccessResource(context *gin.Context, resouce string, 
 		if !auth.roleScopesHandler(context, token.Role, scope) {
 			context.Abort()
 			context.Writer.WriteHeader(http.StatusUnauthorized)
-			context.Writer.Write([]byte("Unauthorized:Role no permission"))
+			context.Writer.Write([]byte("Unauthorized: Role no permission"))
 		}
 	} else {
 		if !auth.hasSession(context) {

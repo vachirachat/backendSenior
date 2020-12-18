@@ -4,7 +4,6 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"backendSenior/utills"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -48,16 +47,18 @@ func CreateToken(userid string) (*model.TokenDetails, error) {
 	td.RefreshUuid = uuid.NewV4().String()
 
 	// Encode payload  userid / roloeUser
-	userIdb64 := base64.StdEncoding.EncodeToString([]byte(userid))
-	roleUserb64 := base64.StdEncoding.EncodeToString([]byte(utills.ROLEUSER))
+	// userIdb64 := base64.StdEncoding.EncodeToString([]byte(userid))
+	// roleUserb64 := base64.StdEncoding.EncodeToString([]byte(utills.ROLEUSER))
 
 	var err error
 	// Claims Access token payload map
 	atClaims := jwt.MapClaims{}
 	atClaims["authorized"] = true
 	atClaims["access_uuid"] = td.AccessUuid
-	atClaims["user_id"] = userIdb64
-	atClaims["role"] = roleUserb64
+	// atClaims["user_id"] = userIdb64
+	// atClaims["role"] = roleUserb64
+	atClaims["user_id"] = userid
+	atClaims["role"] = utills.ROLEUSER
 	atClaims["exp"] = td.AtExpires
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
 	// Sign with SigningMethodHS256
@@ -101,15 +102,15 @@ func VerifyToken(context *gin.Context) (*jwt.Token, error) {
 
 // Remap interface MapClaim to Struct
 func mapClaimToModel(token *jwt.Token) model.JWTClaim {
-	jsonString, _ := json.Marshal(token.Claims)
-	// convert json to struct
 	tokenMap := model.JWTClaim{}
+	// convert json to struct
+	jsonString, _ := json.Marshal(token.Claims)
 	json.Unmarshal(jsonString, &tokenMap)
-	tokenRole, _ := base64.StdEncoding.DecodeString(tokenMap.Role)
-	tokenUserId, _ := base64.StdEncoding.DecodeString(tokenMap.UserId)
+	// tokenRole, _ := base64.StdEncoding.DecodeString(tokenMap.Role)
+	// tokenUserId, _ := base64.StdEncoding.DecodeString(tokenMap.UserId)
 
-	tokenMap.Role = byteToString(tokenRole)
-	tokenMap.UserId = byteToString(tokenUserId)
+	// tokenMap.Role = byteToString(tokenRole)
+	// tokenMap.UserId = byteToString(tokenUserId)
 
 	return tokenMap
 }
