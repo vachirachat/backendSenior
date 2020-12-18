@@ -21,10 +21,12 @@ var SCOPES = []string{"view", "add", "edit", "query"}
 
 func (auth AuthService) AuthMiddleware(resouce string, scope string) gin.HandlerFunc {
 	return func(context *gin.Context) {
+		// For Dev
+		// auth.canAccessResource(context, "admin", scope)
+
+		// For User
 		auth.canAccessResource(context, resouce, scope)
-		// auth.canAccessResource(context, "admin", "")
-		// auth.canAccessResource(context, "user", "add")
-		// auth.canAccessResource(context, "user", "view")
+
 	}
 }
 

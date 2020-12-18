@@ -40,15 +40,19 @@ var (
 
 func CreateToken(userid string) (*model.TokenDetails, error) {
 	td := &model.TokenDetails{}
-	td.AtExpires = time.Now().Add(time.Minute * 15).Unix()
+	// Create Access Key expire
+	td.AtExpires = time.Now().Add(time.Minute * time.Duration(ACCESSTOKENEXPIRES)).Unix()
 	td.AccessUuid = uuid.NewV4().String()
-
-	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
+	// Create Refresh Key expire
+	td.RtExpires = time.Now().Add(time.Hour * time.Duration(REFRESHTOKENSECRET)).Unix()
 	td.RefreshUuid = uuid.NewV4().String()
+
+	// Encode payload  userid / roloeUser
 	userIdb64 := base64.StdEncoding.EncodeToString([]byte(userid))
 	roleUserb64 := base64.StdEncoding.EncodeToString([]byte(utills.ROLEUSER))
 
 	var err error
+	// Claims Access token payload map
 	atClaims := jwt.MapClaims{}
 	atClaims["authorized"] = true
 	atClaims["access_uuid"] = td.AccessUuid
@@ -56,12 +60,13 @@ func CreateToken(userid string) (*model.TokenDetails, error) {
 	atClaims["role"] = roleUserb64
 	atClaims["exp"] = td.AtExpires
 	at := jwt.NewWithClaims(jwt.SigningMethodHS256, atClaims)
-
+	// Sign with SigningMethodHS256
 	td.AccessToken, err = at.SignedString([]byte(ACCESSSECRET))
 	if err != nil {
 		return nil, err
 	}
 
+	// Claims Refresh token payload map
 	rtClaims := jwt.MapClaims{}
 	rtClaims["refresh_uuid"] = td.RefreshUuid
 	rtClaims["user_id"] = userid
@@ -94,6 +99,7 @@ func VerifyToken(context *gin.Context) (*jwt.Token, error) {
 	return token, nil
 }
 
+// Remap interface MapClaim to Struct
 func mapClaimToModel(token *jwt.Token) model.JWTClaim {
 	jsonString, _ := json.Marshal(token.Claims)
 	// convert json to struct
@@ -101,13 +107,25 @@ func mapClaimToModel(token *jwt.Token) model.JWTClaim {
 	json.Unmarshal(jsonString, &tokenMap)
 	tokenRole, _ := base64.StdEncoding.DecodeString(tokenMap.Role)
 	tokenUserId, _ := base64.StdEncoding.DecodeString(tokenMap.UserId)
+
 	tokenMap.Role = byteToString(tokenRole)
 	tokenMap.UserId = byteToString(tokenUserId)
+
 	return tokenMap
 }
 
 func byteToString(byteArr []byte) string {
 	return string(byteArr[:])
+}
+
+func extractToken(context *gin.Context) string {
+	// Get JWT from Header Authorization
+	bearToken := context.Request.Header.Get("Authorization")
+	strArr := strings.Split(bearToken, " ")
+	if len(strArr) == 2 {
+		return strArr[1]
+	}
+	return ""
 }
 
 // SAVE to DB
@@ -170,12 +188,3 @@ func byteToString(byteArr []byte) string {
 // 	userID, _ := strconv.ParseUint(userid, 10, 64)
 // 	return userID, nil
 // }
-
-func extractToken(context *gin.Context) string {
-	bearToken := context.Request.Header.Get("Authorization")
-	strArr := strings.Split(bearToken, " ")
-	if len(strArr) == 2 {
-		return strArr[1]
-	}
-	return ""
-}
