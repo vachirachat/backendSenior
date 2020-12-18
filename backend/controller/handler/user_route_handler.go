@@ -130,7 +130,7 @@ func (handler *UserRouteHandler) addUserHandeler(context *gin.Context) {
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
 		log.Println("error AddUserHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
 	err = handler.userService.AddUser(user)
@@ -149,7 +149,7 @@ func (handler *UserRouteHandler) editUserNameHandler(context *gin.Context) {
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
 		log.Println("error EditUserNametHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
 	err = handler.userService.EditUserName(user.UserID.Hex(), user)
@@ -166,7 +166,7 @@ func (handler *UserRouteHandler) updateUserHandler(context *gin.Context) {
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
 		log.Println("error UpdateUserHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
 	log.Println(user.UserID)
@@ -231,6 +231,10 @@ func (handler *UserRouteHandler) editUseRoleHandler(context *gin.Context) {
 func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 	var credentials model.UserSecret
 	err := context.ShouldBindJSON(&credentials)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
+	}
 
 	token, err := handler.userService.Login(credentials)
 	if err != nil {
