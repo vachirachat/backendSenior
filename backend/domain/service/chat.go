@@ -36,28 +36,51 @@ func (chat *ChatService) SaveMessage(message model.Message) (string, error) {
 // []byte will be sent as is, but other value will be marshalled
 // TODO: this is currently broadcast to all
 func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{}) error {
-	// TODO: for now user id is always foo
-	connIDs, err := chat.mapConn.GetConnectionByUser("foo")
+
+	userIDs, err := chat.mapRoom.GetRoomUsers(roomID)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting room's users: %s", err)
 	}
-	// TODO: make error inside error too
-	// send message to all user
-	var connWg sync.WaitGroup
-	// fmt.Println("User in rooms", userIDs)
-	for _, connID := range connIDs {
-		// fmt.Printf("\\-- User: %x\n", userID)
-		connWg.Add(1)
-		go func(connID string, wg *sync.WaitGroup) {
-			// loop to all connection of user
-			err := chat.send.SendMessage(connID, data)
+
+	fmt.Println("room", roomID, "has users", userIDs)
+
+	var allWg sync.WaitGroup
+
+	for _, uid := range userIDs {
+		allWg.Add(1)
+
+		go func(uid string, wg *sync.WaitGroup) {
+			defer wg.Done()
+
+			connIDs, err := chat.mapConn.GetConnectionByUser(uid)
 			if err != nil {
-				fmt.Println("Error sending message", err)
+				fmt.Printf("error getting user connections: %s\n", err.Error())
+				return
 			}
-			wg.Done()
-		}(connID, &connWg)
+			// TODO: make error inside error too
+
+			var userWg sync.WaitGroup
+			// fmt.Println("User in rooms", userIDs)
+			for _, connID := range connIDs {
+				// fmt.Printf("\\-- User: %x\n", userID)
+				userWg.Add(1)
+				go func(connID string, wg *sync.WaitGroup) {
+					defer wg.Done()
+					// loop to all connection of user
+					err := chat.send.SendMessage(connID, data)
+					if err != nil {
+						fmt.Println("Error sending message", err)
+					}
+				}(connID, &userWg)
+			}
+
+			userWg.Wait() // wait all user done
+
+		}(uid, &allWg)
 	}
-	connWg.Wait()
+
+	allWg.Wait()
+
 	// end send message to all user
 	return nil
 }

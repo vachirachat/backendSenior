@@ -44,7 +44,8 @@ func main() {
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo)
 	roomSvc := service.NewRoomService(roomRepo, roomUserRepo, roomProxyRepo)
-	chatSvc := service.NewChatService(roomUserRepo, chatPool, chatPool, messageRepo)
+	// we use room proxy repo to map!
+	chatSvc := service.NewChatService(roomProxyRepo, chatPool, chatPool, messageRepo)
 	proxySvc := service.NewProxyService(proxyRepo)
 
 	routerDeps := route.RouterDeps{

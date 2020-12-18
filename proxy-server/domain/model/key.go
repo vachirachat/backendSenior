@@ -6,5 +6,5 @@ import "time"
 type KeyRecord struct {
 	Key       []byte    `json:"key" bson:"key"`
 	ValidFrom time.Time `json:"from" bson:"from"`
-	ValidTo   time.Time `json:"from" bson:"to"`
+	ValidTo   time.Time `json:"to" bson:"to"`
 }

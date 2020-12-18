@@ -23,16 +23,18 @@ type UpstreamRepository struct {
 	origin      string
 	sendChannel chan []byte
 	receivers   []chan []byte
+	clientID    string
 }
 
 var _ repository.UpstreamMessageRepository = (*UpstreamRepository)(nil)
 
 // NewUpStreamController create new upstream controller
-func NewUpStreamController(origin string) *UpstreamRepository {
+func NewUpStreamController(origin string, clientID string) *UpstreamRepository {
 	ctrl := &UpstreamRepository{
 		origin:      origin,
 		sendChannel: make(chan []byte, 10),
 		receivers:   make([]chan []byte, 0),
+		clientID:    clientID,
 	}
 	go ctrl.connect()
 	return ctrl
@@ -41,9 +43,10 @@ func NewUpStreamController(origin string) *UpstreamRepository {
 func (upstream *UpstreamRepository) connect() {
 	for {
 		url := url.URL{
-			Scheme: "ws",
-			Host:   upstream.origin,
-			Path:   "/api/v1/chat/ws",
+			Scheme:   "ws",
+			Host:     upstream.origin,
+			Path:     "/api/v1/chat/ws",
+			RawQuery: "clientID=" + upstream.clientID,
 		}
 
 		c, _, err := websocket.DefaultDialer.Dial(url.String(), nil)

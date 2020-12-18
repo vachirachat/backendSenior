@@ -1,8 +1,16 @@
 @base = http://localhost:8080/api/v1/room
-@roomId = 5fda230026dcb9c6f8453d0a
+@roomA = 5fda230026dcb9c6f8453d0a
+@roomB = 5fda4fde26dcb96ffc1b3340
+
+@proxyA = 5fda1e8e26dcb9c396daba2f
+@proxyB = 5fdb379526dcb9b433a318cb
+
+@userA = 5fd9dfa10f043c4236c09724
+@userB = 5fd9dfa70f043c4236c09729
 
 ### GET ALL ROOMS
-GET {{base}}
+GET {{base}}/
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjE5NWVjNTZlLWYxM2MtNDdhOS04ODIzLWNjMGViMTgzZDNlOCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MTYwODI4Mjc1MCwicm9sZSI6ImRYTmxjZz09IiwidXNlcl9pZCI6Ik5XWmtPV1JtWVRjd1pqQTBNMk0wTWpNMll6QTVOekk1In0.HrFJjEEWyQ7zbSSht-Bzz9ORS0X-LZdv9vrWggGRwT0
 
 ### CREATE ROOM
 POST {{base}}
@@ -15,11 +23,11 @@ Content-Type: application/json
 
 
 ### GET room by ID
-GET {{base}}/{{roomId}}
+GET {{base}}/{{roomA}}
 
 
 ### EDIT room
-POST {{base}}/{{roomId}}/name
+POST {{base}}/{{roomA}}/name
 Content-Type: application/json
 
 {
@@ -27,48 +35,48 @@ Content-Type: application/json
 }
 
 ### Get Member
-GET {{base}}/{{roomId}}/member   
+GET {{base}}/{{roomA}}/member   
 
 ### Add Member
-POST {{base}}/{{roomId}}/member   
+POST {{base}}/{{roomB}}/member   
 Content-Type: application/json
 
 {
-  "userIds": ["5fd9dfa10f043c4236c09724"]
+  "userIds": ["{{userB}}"]
 }
 
 ### remove user
-DELETE {{base}}/{{roomId}}/member   
+DELETE {{base}}/{{roomA}}/member   
 Content-Type: application/json
 
 {
-  "userIds": ["5fd9dfa10f043c4236c09724"]
+  "userIds": ["{{userA}}"]
 }
 
 ### get proxy
-GET {{base}}/{{roomId}}/proxy    
+GET {{base}}/{{roomB}}/proxy    
 
 ###
-POST {{base}}/{{roomId}}/proxy    
+POST {{base}}/{{roomB}}/proxy    
 Content-Type: application/json
 
 {
-  "proxyIds": ["5fda1e8e26dcb9c396daba2f"]
+  "proxyIds": ["{{proxyB}}"]
 }
 
 ###
-DELETE {{base}}/{{roomId}}/proxy    
+DELETE {{base}}/{{roomA}}/proxy    
 Content-Type: application/json
 
 {
-  "proxyIds": ["5fda1e8e26dcb9c396daba2f"]
+  "proxyIds": ["{{proxyA}}"]
 }
 ###          
-POST {{base}}/{{roomId}}/name     
+POST {{base}}/{{roomA}}/name     
 Content-Type: application/json
 
 {
   "roomName": "FOO BAR"
 }
 ###
-DELETE {{base}}/{{roomId}}     
+DELETE {{base}}/{{roomA}}     

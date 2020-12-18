@@ -43,11 +43,11 @@ func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, err
 	plainText := []byte(message.Data)
 	plainText, err = pkcs7.Pad(plainText, aes.BlockSize)
 	if err != nil {
-		return message, fmt.Errorf("padding plaintext: %s\n", err.Error())
+		return message, fmt.Errorf("padding plaintext: %s", err.Error())
 	}
 
 	if len(plainText)%aes.BlockSize != 0 {
-		return message, fmt.Errorf("padding error: wrong size\n")
+		return message, fmt.Errorf("padding error: wrong size")
 	}
 
 	block, err := aes.NewCipher(key)

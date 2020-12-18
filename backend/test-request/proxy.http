@@ -9,5 +9,5 @@ POST {{base}}
 Content-Type: application/json
 
 {
-  "name": "Test Proxy"
+  "name": "Company B"
 }
