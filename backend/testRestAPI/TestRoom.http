@@ -1,0 +1,181 @@
+
+
+###GET USER
+GET http://localhost:8080/api/v1/user
+
+
+
+###Get All message
+GET http://localhost:8080/api/v1/message/
+
+
+### GET ALL Room
+GET http://localhost:8080/api/v1/room/listroom
+
+
+
+//User 1
+POST http://localhost:8080/api/v1/signup
+Content-Type: application/json
+
+{
+  "email": "rod8711@gmail.com",
+  "password": "top"
+}
+
+
+-----------------------------------------// USER //-----------------------------------------
+### User 2
+POST http://localhost:8080/api/v1/signup
+Content-Type: application/json
+
+{
+  "email": "top@gmail.com",
+  "password": "top"
+}
+
+###
+POST http://localhost:8080/api/v1/login
+Content-Type: application/json
+
+{
+  "Email": "rod8711@gmail.com",
+  "Password": "top"
+}
+
+-----------------------------------------// USER //-----------------------------------------
+
+
+
+-----------------------------------------// Rooom //-----------------------------------------
+
+### Create Room
+POST   http://localhost:8080/api/v1/room/createroom
+Content-Type: application/json
+
+{
+	"RoomName": "TEST-Room",       
+	"RoomType" :   "PRIVATE"     ,
+	"ListUser":   ["5fda08038234d7a18e3b8bdc"]      
+}
+
+
+### Get room by ID
+POST   http://localhost:8080/api/v1/room/
+Content-Type: application/json
+
+{
+  "roomId":"5fd9f1a1584cb6766f39cc90"
+}
+
+### Get room by ID
+GET   http://localhost:8080/api/v1/room/getroommember
+Content-Type: application/json
+
+{
+  "roomId":"5fda1304da07c7adb213b855"
+}
+
+
+
+### Edit Room Name na
+PUT    http://localhost:8080/api/v1/room/editroomname
+Content-Type: application/json
+
+{
+  "roomId":"5fd9f1a1584cb6766f39cc90",
+	"RoomName": "TEST-Room-EDIT",       
+	"RoomType" :   "PRIVATE"     
+}
+
+### Delete Room
+DELETE http://localhost:8080/api/v1/room/deleteroom
+Content-Type: application/json
+
+{
+ "roomId":"xxxx"
+}
+
+### Add member to Room
+POST   http://localhost:8080/api/v1/room/addmembertoroom
+Content-Type: application/json
+
+{
+ 		"roomId" : "5fd9f1da584cb6766f39cc91",
+		"userIds": ["5fd9f18be4e70dd48ce502d9"]
+}
+
+### DeleteMemberToRoom
+POST   http://localhost:8080/api/v1/room/deletemembertoroom
+Content-Type: application/json
+
+{
+ 		"roomId" : "5fda1304da07c7adb213b855",
+		"userIds": ["5fda08038234d7a18e3b8bdc"]
+}
+5fda08038234d7a18e3b8bdc
+
+-----------------------------------------// Rooom //-----------------------------------------
+
+
+-----------------------------------------// Message //-----------------------------------------
+
+// TEST Message //
+### FIND Message in Room
+POST http://localhost:8080/api/v1/message/roommessages 
+Content-Type: application/json
+
+{
+  "roomid": "5fd822c4584cb63db1aa0c17"
+}
+
+
+
+
+### Add message Must - Find "2016-11-12T11:45:26.371Z"
+POST http://localhost:8080/api/v1/message/ 
+Content-Type: application/json
+
+{
+  "TimeStamp": "2016-11-12T11:45:26.371Z",
+	"RoomID": "5fd9f1da584cb6766f39cc91",
+	"UserID":   "5fd4a1a1c4037c682124c6a2",
+	"Data" :     "Hello Test Find ME Message"        ,
+	"Type" :     "PRIVATE"        
+}
+
+### Message Must - Find "2012-11-12T11:45:26.371Z"
+POST http://localhost:8080/api/v1/message/ 
+Content-Type: application/json
+
+{
+  "TimeStamp": "2012-11-12T11:45:26.371Z",
+	"RoomID": "5fd9f1da584cb6766f39cc91",
+	"UserID":   "5fd4a1a1c4037c682124c6a2",
+	"Data" :     "Hello Test Cannnot FIND ME Message"        ,
+	"Type" :     "PRIVATE"        
+}
+
+
+### FIND Message in Room// by date range
+POST http://localhost:8080/api/v1/message/roommessages 
+Content-Type: application/json
+
+{
+  "roomid": "5fd9f1da584cb6766f39cc91",
+  "timerange": {
+	  "to": "2014-11-12T11:45:26.371Z",
+	  "from":"2016-11-12T11:45:26.371Z"
+  }
+}
+
+
+
+
+###DELETE message
+DELETE http://localhost:8080/api/v1/message/ 
+Content-Type: application/json
+
+{
+"messageId": "5fd9f1da584cb6766f39cc91"
+}

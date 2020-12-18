@@ -2,6 +2,7 @@ package route
 
 import (
 	"backendSenior/domain/service"
+	"backendSenior/domain/service/auth"
 
 	"backendSenior/domain/model"
 	"log"
@@ -13,12 +14,13 @@ import (
 // UserRouteHandler is handler for route
 type UserRouteHandler struct {
 	userService *service.UserService
+	authService *auth.AuthService
 }
 
-// NewUserRouteHandler create new route handler
-func NewUserRouteHandler(userService *service.UserService) *UserRouteHandler {
+func NewUserRouteHandler(userService *service.UserService, authService *auth.AuthService) *UserRouteHandler {
 	return &UserRouteHandler{
 		userService: userService,
+		authService: authService,
 	}
 }
 
@@ -30,9 +32,33 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("getuserbyemail", handler.getUserByEmail)
 
 	//SignIN/UP API
-	routerGroup.GET("token", handler.userTokenListHandler)
-	routerGroup.POST("login", handler.loginHandle)
-	routerGroup.POST("signup", handler.addUserSignUpHandeler)
+	routerGroup.GET("/token", handler.userTokenListHandler)
+	routerGroup.POST("/login", handler.loginHandle)
+	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
+	routerGroup.GET("/me", handler.authService.AuthMiddleware("user", "view"), handler.getMeHandler)
+}
+
+func (handler *UserRouteHandler) getMeHandler(context *gin.Context) {
+	var user model.User
+	session, err := context.Request.Cookie("SESSION_ID")
+	if err != nil {
+		log.Println("error GetMe", err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
+		return
+	}
+	cookie, err := handler.userService.GetUserIdByToken(session.Value)
+	if err != nil {
+		log.Println("error GetMe", err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
+		return
+	}
+	user, err = handler.userService.GetUserByID(cookie.UserID.Hex())
+	if err != nil {
+		log.Println("error GetMe", err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, user)
 }
 
 func (handler *UserRouteHandler) userListHandler(context *gin.Context) {
@@ -176,38 +202,42 @@ func (handler *UserRouteHandler) userTokenListHandler(context *gin.Context) {
 	context.JSON(http.StatusOK, usersTokenInfo)
 }
 
-func (handler *UserRouteHandler) getUserTokenByIDHandler(context *gin.Context) {
-	userID := context.Param("token_id")
-	token, err := handler.userService.GetUserTokenByID(userID)
+// func (handler *UserRouteHandler) getUserTokenByIDHandler(context *gin.Context) {
+// 	userID := context.Param("token_id")
+// 	token, err := handler.userService.GetUserTokenByID(userID)
+// 	if err != nil {
+// 		log.Println("error GetUserTokenByIDHandler", err.Error())
+// 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+// 		return
+// 	}
+// 	context.JSON(http.StatusOK, token)
+// }
+
+func (handler *UserRouteHandler) editUseRoleHandler(context *gin.Context) {
+	var credentials model.UserSecret
+	err := context.ShouldBindJSON(&credentials)
 	if err != nil {
-		log.Println("error GetUserTokenByIDHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, token)
-}
-
-type messageLogin struct {
-	status string
-	Email  string
-	token  string
+	err = handler.userService.EditUserRole(credentials)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
 func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
-	// test cookie
-	var credentials model.UserLogin
+	var credentials model.UserSecret
 	err := context.ShouldBindJSON(&credentials)
-	log.Println("Login Handle")
-	log.Println(credentials)
 
 	token, err := handler.userService.Login(credentials)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-
-	m := messageLogin{"success", credentials.Email, token}
-	context.JSON(http.StatusOK, m)
+	context.JSON(http.StatusOK, gin.H{"status": "success", "token": token})
 }
 
 // Signup API
@@ -240,6 +270,6 @@ func (handler *UserRouteHandler) getUserListSecrect(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	usersInfo.UserLogin = users
+	usersInfo.UserSecret = users
 	context.JSON(http.StatusOK, usersInfo)
 }

@@ -21,7 +21,7 @@ type RouterDeps struct {
 func (deps *RouterDeps) NewRouter() *gin.Engine {
 
 	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, deps.AuthService)
-	userRouteHandler := NewUserRouteHandler(deps.UserService)
+	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.AuthService)
 	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.AuthService)
 	chatRouteHandler := NewChatRouteHandler(deps.ChatService)
 	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService)
@@ -31,7 +31,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	subgroup := r.Group("/api/v1")
 
 	roomRouteHandler.Mount(subgroup.Group("/room"))
-	userRouteHandler.Mount(subgroup) // this subroute isn't restful so I mount like this
+	userRouteHandler.Mount(subgroup.Group("/user")) // this subroute isn't restful so I mount like this
 	messageRouteHandler.Mount(subgroup.Group("/message"))
 	chatRouteHandler.Mount(subgroup.Group("/chat"))
 	proxyRouteHandler.Mount(subgroup.Group("/proxy"))

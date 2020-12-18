@@ -2,6 +2,7 @@ package utills
 
 import (
 	"log"
+	"reflect"
 
 	"github.com/globalsign/mgo/bson"
 	"golang.org/x/crypto/bcrypt"
@@ -56,4 +57,24 @@ func ArrStringRemoveMatched(arr []string, match []string) ([]string, int) {
 	// resize slice
 	result = result[:idx]
 	return result, n - idx
+}
+
+func In_array(val interface{}, array interface{}) (exists bool, index int) {
+	exists = false
+	index = -1
+
+	switch reflect.TypeOf(array).Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(array)
+
+		for i := 0; i < s.Len(); i++ {
+			if reflect.DeepEqual(val, s.Index(i).Interface()) == true {
+				index = i
+				exists = true
+				return
+			}
+		}
+	}
+
+	return
 }
