@@ -92,7 +92,7 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 		return err
 	}
 
-	err = repo.connection.DB(dbName).C(collectionUser).UpdateId(bson.M{"$in": utills.ToObjectIdArr(userIDs)}, bson.M{
+	_, err = repo.connection.DB(dbName).C(collectionUser).UpdateAll(bson.M{"$in": utills.ToObjectIdArr(userIDs)}, bson.M{
 		"$addToSet": bson.M{
 			"room": bson.ObjectIdHex(roomID),
 		},
@@ -138,7 +138,7 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 		return err
 	}
 
-	err = repo.connection.DB(dbName).C(collectionUser).UpdateId(bson.M{"$in": utills.ToObjectIdArr(userIDs)}, bson.M{
+	_, err = repo.connection.DB(dbName).C(collectionUser).UpdateAll(idInArr(userIDs), bson.M{
 		"$pull": bson.M{
 			"room": bson.ObjectIdHex(roomID),
 		},
@@ -155,4 +155,13 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 	delete(repo.roomToUsers, roomID)
 
 	return nil
+}
+
+// used for {_id: {$in: ... }}
+func idInArr(ids []string) interface{} {
+	return bson.M{
+		"_id": bson.M{
+			"$in": utills.ToObjectIdArr(ids),
+		},
+	}
 }

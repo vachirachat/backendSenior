@@ -92,7 +92,7 @@ func (repo *CachedRoomProxyRepository) AddUsersToRoom(roomID string, proxyIDs []
 		return err
 	}
 
-	err = repo.connection.DB(dbName).C(collectionProxy).UpdateId(bson.M{"$in": utills.ToObjectIdArr(proxyIDs)}, bson.M{
+	err = repo.connection.DB(dbName).C(collectionProxy).UpdateAll(idInArr(proxyIDs)), bson.M{
 		"$addToSet": bson.M{
 			"rooms": bson.ObjectIdHex(roomID),
 		},
@@ -138,7 +138,7 @@ func (repo *CachedRoomProxyRepository) RemoveUsersFromRoom(roomID string, proxyI
 		return err
 	}
 
-	err = repo.connection.DB(dbName).C(collectionProxy).UpdateId(bson.M{"$in": utills.ToObjectIdArr(proxyIDs)}, bson.M{
+	_, err = repo.connection.DB(dbName).C(collectionProxy).UpdateAll(idInArr(proxyIDs), bson.M{
 		"$pull": bson.M{
 			"rooms": bson.ObjectIdHex(roomID),
 		},
