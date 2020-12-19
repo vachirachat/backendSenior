@@ -3,7 +3,6 @@ package route
 import (
 	"backendSenior/domain/model"
 	"backendSenior/domain/service"
-	"backendSenior/domain/service/auth"
 	"log"
 	"net/http"
 
@@ -13,14 +12,12 @@ import (
 // MessageRouteHandler is Handler (controller) for message related route
 type MessageRouteHandler struct {
 	messageService *service.MessageService
-	authService    *auth.AuthService
 }
 
 // NewMessageRouteHandler create handler for message route
-func NewMessageRouteHandler(msgService *service.MessageService, authService *auth.AuthService) *MessageRouteHandler {
+func NewMessageRouteHandler(msgService *service.MessageService) *MessageRouteHandler {
 	return &MessageRouteHandler{
 		messageService: msgService,
-		authService:    authService,
 	}
 }
 

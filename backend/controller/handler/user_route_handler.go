@@ -1,8 +1,10 @@
 package route
 
 import (
+	authMw "backendSenior/controller/middleware/auth"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
+	"backendSenior/utills"
 
 	"backendSenior/domain/model"
 	"log"
@@ -13,14 +15,16 @@ import (
 
 // UserRouteHandler is handler for route
 type UserRouteHandler struct {
-	userService *service.UserService
-	authService *auth.AuthService
+	userService    *service.UserService
+	jwtService     *auth.JWTService
+	authMiddleware *authMw.JWTMiddleware
 }
 
-func NewUserRouteHandler(userService *service.UserService, authService *auth.AuthService) *UserRouteHandler {
+func NewUserRouteHandler(userService *service.UserService, jwtService *auth.JWTService, authMiddleware *authMw.JWTMiddleware) *UserRouteHandler {
 	return &UserRouteHandler{
-		userService: userService,
-		authService: authService,
+		userService:    userService,
+		jwtService:     jwtService,
+		authMiddleware: authMiddleware,
 	}
 }
 
@@ -32,30 +36,19 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("getuserbyemail", handler.getUserByEmail)
 
 	//SignIN/UP API
-	routerGroup.GET("/token", handler.userTokenListHandler)
+	// routerGroup.GET("/token", handler.userTokenListHandler)
 	routerGroup.POST("/login", handler.loginHandle)
 	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
-	routerGroup.GET("/me", handler.authService.AuthMiddleware("user", "view"), handler.getMeHandler)
+	routerGroup.GET("/me", handler.authMiddleware.SetUserMiddleware(), handler.getMeHandler)
 }
 
 func (handler *UserRouteHandler) getMeHandler(context *gin.Context) {
-	var user model.User
-	session, err := context.Request.Cookie("SESSION_ID")
+	id := context.GetString(authMw.UserIdField)
+
+	user, err := handler.userService.GetUserByID(id)
 	if err != nil {
 		log.Println("error GetMe", err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-		return
-	}
-	cookie, err := handler.userService.GetUserIdByToken(session.Value)
-	if err != nil {
-		log.Println("error GetMe", err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-		return
-	}
-	user, err = handler.userService.GetUserByID(cookie.UserID.Hex())
-	if err != nil {
-		log.Println("error GetMe", err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusOK, user)
@@ -189,44 +182,21 @@ func (handler *UserRouteHandler) deleteUserByIDHandler(context *gin.Context) {
 	context.JSON(http.StatusNoContent, gin.H{"status": "success"})
 }
 
-// Token
-func (handler *UserRouteHandler) userTokenListHandler(context *gin.Context) {
-	var usersTokenInfo model.UserTokenInfo
-	usersTokens, err := handler.userService.UserTokenList()
-	if err != nil {
-		log.Println("error userListHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	usersTokenInfo.UserToken = usersTokens
-	context.JSON(http.StatusOK, usersTokenInfo)
-}
-
-// func (handler *UserRouteHandler) getUserTokenByIDHandler(context *gin.Context) {
-// 	userID := context.Param("token_id")
-// 	token, err := handler.userService.GetUserTokenByID(userID)
+// // Edit user role
+// func (handler *UserRouteHandler) editUseRoleHandler(context *gin.Context) {
+// 	var credentials model.UserSecret
+// 	err := context.ShouldBindJSON(&credentials)
 // 	if err != nil {
-// 		log.Println("error GetUserTokenByIDHandler", err.Error())
 // 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 // 		return
 // 	}
-// 	context.JSON(http.StatusOK, token)
+// 	err = handler.userService.EditUserRole(credentials)
+// 	if err != nil {
+// 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+// 		return
+// 	}
+// 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 // }
-
-func (handler *UserRouteHandler) editUseRoleHandler(context *gin.Context) {
-	var credentials model.UserSecret
-	err := context.ShouldBindJSON(&credentials)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	err = handler.userService.EditUserRole(credentials)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	context.JSON(http.StatusOK, gin.H{"status": "success"})
-}
 
 func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 	var credentials model.UserSecret
@@ -236,12 +206,17 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 		return
 	}
 
-	token, err := handler.userService.Login(credentials)
+	user, err := handler.userService.Login(credentials.Email, credentials.Password)
+	tokenDetails, err := handler.jwtService.CreateToken(model.UserDetail{
+		Role:   utills.ROLEUSER, // TODO: placeholder, implement role later
+		UserId: user.UserID.Hex(),
+	})
+
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, gin.H{"status": "success", "token": token})
+	context.JSON(http.StatusOK, gin.H{"status": "success", "token": tokenDetails})
 }
 
 // Signup API
@@ -264,16 +239,15 @@ func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
 }
 
-//GetUserListSecrect
-
-func (handler *UserRouteHandler) getUserListSecrect(context *gin.Context) {
-	var usersInfo model.UserInfoSecrect
-	users, err := handler.userService.GetAllUserSecret()
-	if err != nil {
-		log.Println("error userListHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-	usersInfo.UserSecret = users
-	context.JSON(http.StatusOK, usersInfo)
-}
+// //GetUserListSecrect
+// func (handler *UserRouteHandler) getUserListSecrect(context *gin.Context) {
+// 	var usersInfo model.UserInfoSecrect
+// 	users, err := handler.userService.GetAllUserSecret()
+// 	if err != nil {
+// 		log.Println("error userListHandler", err.Error())
+// 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+// 		return
+// 	}
+// 	usersInfo.UserSecret = users
+// 	context.JSON(http.StatusOK, usersInfo)
+// }

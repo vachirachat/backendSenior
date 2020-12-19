@@ -19,3 +19,7 @@ Content-Type: application/json
   "email": "rod8711@gmail.com",
   "password": "12345678"
 }
+
+### GET me
+GET {{base}}/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6Ijk2YjA1ZjE5LTg1MzAtNDdiMi05MGIxLTU2NzA2NTA2NmVlMyIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MTYwODM1MjI3Nywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZkOWRmYTcwZjA0M2M0MjM2YzA5NzI5In0.CPPG7AhqqgMKjcRIfIGkK4jzsR1-NQLlype7Ndx8rOU

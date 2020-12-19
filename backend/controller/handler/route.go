@@ -1,6 +1,7 @@
 package route
 
 import (
+	authMw "backendSenior/controller/middleware/auth"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 
@@ -12,17 +13,20 @@ type RouterDeps struct {
 	MessageService *service.MessageService
 	RoomService    *service.RoomService
 	UserService    *service.UserService
-	AuthService    *auth.AuthService
 	ChatService    *service.ChatService
 	ProxyService   *service.ProxyService
+	JWTService     *auth.JWTService
 }
 
 // NewRouter create new router (gin server) with various handler
 func (deps *RouterDeps) NewRouter() *gin.Engine {
+	// create middleware first
+	authMiddleware := authMw.NewJWTMiddleware(deps.JWTService)
 
-	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, deps.AuthService)
-	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.AuthService)
-	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.AuthService)
+	// create handler (some require middleware)
+	roomRouteHandler := NewRoomRouteHandler(deps.RoomService)
+	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.JWTService, authMiddleware)
+	messageRouteHandler := NewMessageRouteHandler(deps.MessageService)
 	chatRouteHandler := NewChatRouteHandler(deps.ChatService)
 	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService)
 

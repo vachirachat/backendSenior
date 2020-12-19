@@ -2,7 +2,6 @@ package route
 
 import (
 	"backendSenior/domain/service"
-	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
 	"fmt"
 
@@ -17,14 +16,12 @@ import (
 
 type RoomRouteHandler struct {
 	roomService *service.RoomService
-	authService *auth.AuthService
 }
 
 // NewRoomHandler create new handler for room
-func NewRoomRouteHandler(roomService *service.RoomService, authService *auth.AuthService) *RoomRouteHandler {
+func NewRoomRouteHandler(roomService *service.RoomService) *RoomRouteHandler {
 	return &RoomRouteHandler{
 		roomService: roomService,
-		authService: authService,
 	}
 }
 
@@ -44,7 +41,7 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	// routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
 	// routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
 	routerGroup.GET("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomByIDHandler)
-	routerGroup.GET("/", handler.authService.AuthMiddleware("object", "view"), handler.roomListHandler)
+	routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.roomListHandler)
 }
 
 func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {

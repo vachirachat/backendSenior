@@ -17,13 +17,9 @@ type UserRepository interface {
 	GetUserByEmail(email string) (model.User, error)
 
 	//login
-	GetUserTokenById(email string) (model.UserToken, error)
-	GetUserIdByToken(token string) (model.UserToken, error)
+	// GetUserTokenById(email string) (model.UserToken, error)
+	// GetUserIdByToken(token string) (model.UserToken, error)
 	GetUserRole(userID string) (string, error)
-	AddToken(UserToken model.UserToken) error
-	GetUserSecret(userSecret model.UserSecret) (model.User, error)
-	//SignUp
-	AddUserSecrect(user model.UserSecret) error
-	GetAllUserSecret() ([]model.UserSecret, error)
-	//GetRoomWithRoomID(roomID bson.ObjectId) (model.Room, error)
+	// AddToken(UserToken model.UserToken) error
+	// GetUserSecret(userSecret model.UserSecret) (model.User, error)
 }

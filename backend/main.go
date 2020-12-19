@@ -4,6 +4,7 @@ import (
 	route "backendSenior/controller/handler"
 	"backendSenior/data/repository/chatsocket"
 	"backendSenior/data/repository/mongo_repository"
+	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
@@ -38,11 +39,12 @@ func main() {
 	roomProxyRepo := mongo_repository.NewCachedRoomProxyRepository(connectionDB)
 
 	// Init service
-	authSvc := &auth.AuthService{
-		UserRepository: userRepo,
-	}
+
+	// TODO: implement token repo, no hardcode secret
+	jwtSvc := auth.NewJWTService((repository.TokenRepository)(nil), []byte("secret_access"), []byte("secret_refresh"))
+
 	msgSvc := service.NewMessageService(messageRepo)
-	userSvc := service.NewUserService(userRepo)
+	userSvc := service.NewUserService(userRepo, jwtSvc)
 	roomSvc := service.NewRoomService(roomRepo, roomUserRepo, roomProxyRepo)
 	// we use room proxy repo to map!
 	chatSvc := service.NewChatService(roomProxyRepo, chatPool, chatPool, messageRepo)
@@ -52,7 +54,7 @@ func main() {
 		RoomService:    roomSvc,
 		MessageService: msgSvc,
 		UserService:    userSvc,
-		AuthService:    authSvc,
+		JWTService:     jwtSvc,
 		ChatService:    chatSvc,
 		ProxyService:   proxySvc,
 	}
