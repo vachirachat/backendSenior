@@ -13,9 +13,9 @@ type ProxyAuth struct {
 	proxyRepo repository.ProxyRepository
 }
 
-func NewProxyAuth(proxyRepo *repository.ProxyRepository) *ProxyAuth {
+func NewProxyAuth(proxyRepo repository.ProxyRepository) *ProxyAuth {
 	return &ProxyAuth{
-		proxyRepo: *proxyRepo,
+		proxyRepo: proxyRepo,
 	}
 }
 

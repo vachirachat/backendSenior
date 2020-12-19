@@ -35,6 +35,11 @@ func (chat *ChatDownstreamService) SaveMessage(message model.Message) (string, e
 	return id, err
 }
 
+// SendMessageToConnection send message to specific connection, data will be marshalled
+func (chat *ChatDownstreamService) SendMessageToConnection(connID string, message interface{}) error {
+	return chat.send.SendMessage(connID, message)
+}
+
 // BroadcastMessageToRoom send message to socket of all users in the room
 // []byte will be sent as is, but other value will be marshalled
 // TODO: in the future there should be broadcast event etc.

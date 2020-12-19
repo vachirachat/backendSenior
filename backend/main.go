@@ -49,6 +49,7 @@ func main() {
 	// we use room proxy repo to map!
 	chatSvc := service.NewChatService(roomProxyRepo, chatPool, chatPool, messageRepo)
 	proxySvc := service.NewProxyService(proxyRepo)
+	proxyAuthSvc := auth.NewProxyAuth(proxyRepo)
 
 	routerDeps := route.RouterDeps{
 		RoomService:    roomSvc,
@@ -57,6 +58,7 @@ func main() {
 		JWTService:     jwtSvc,
 		ChatService:    chatSvc,
 		ProxyService:   proxySvc,
+		ProxyAuth:      proxyAuthSvc,
 	}
 
 	router := routerDeps.NewRouter()

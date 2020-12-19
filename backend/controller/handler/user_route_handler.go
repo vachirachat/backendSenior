@@ -40,6 +40,9 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/login", handler.loginHandle)
 	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
 	routerGroup.GET("/me", handler.authMiddleware.AuthRequired(), handler.getMeHandler)
+
+	// Verify Token API (for proxy)
+	routerGroup.POST("/verify", handler.verifyToken)
 }
 
 func (handler *UserRouteHandler) getMeHandler(context *gin.Context) {
@@ -239,15 +242,23 @@ func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
 }
 
-// //GetUserListSecrect
-// func (handler *UserRouteHandler) getUserListSecrect(context *gin.Context) {
-// 	var usersInfo model.UserInfoSecrect
-// 	users, err := handler.userService.GetAllUserSecret()
-// 	if err != nil {
-// 		log.Println("error userListHandler", err.Error())
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-// 		return
-// 	}
-// 	usersInfo.UserSecret = users
-// 	context.JSON(http.StatusOK, usersInfo)
-// }
+func (handler *UserRouteHandler) verifyToken(context *gin.Context) {
+	var body struct {
+		Token string `json:"token"`
+	}
+	err := context.ShouldBindJSON(&body)
+	if err != nil || body.Token == "" {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
+	}
+
+	claim, err := handler.jwtService.VerifyToken(body.Token)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "verify error: " + err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{
+		"userId": claim.UserId,
+	})
+}

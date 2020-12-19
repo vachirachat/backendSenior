@@ -3,6 +3,8 @@ package route
 import (
 	"proxySenior/domain/service"
 
+	"proxySenior/controller/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,14 +12,17 @@ import (
 type RouterDeps struct {
 	UpstreamService   *service.ChatUpstreamService
 	DownstreamService *service.ChatDownstreamService
+	AuthService       *service.DelegateAuthService
+	RoomUserMap       *service.RoomUserMap
 }
 
 // NewRouter create router from deps
 func (deps *RouterDeps) NewRouter() *gin.Engine {
+	authMiddleware := middleware.NewAuthMiddleware(deps.AuthService)
 
 	r := gin.Default()
 
-	chatRouteHandler := NewChatRouteHandler(deps.UpstreamService, deps.DownstreamService)
+	chatRouteHandler := NewChatRouteHandler(deps.UpstreamService, deps.DownstreamService, authMiddleware, deps.RoomUserMap)
 
 	subgroup := r.Group("/api/v1")
 

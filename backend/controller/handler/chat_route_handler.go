@@ -1,6 +1,7 @@
 package route
 
 import (
+	"backendSenior/controller/middleware/auth"
 	"backendSenior/domain/model"
 	"backendSenior/domain/model/chatsocket"
 	"backendSenior/domain/service"
@@ -38,12 +39,16 @@ var (
 // ChatRouteHandler is handler for real time chat (websocket)
 type ChatRouteHandler struct {
 	chatService *service.ChatService
+	proxyMw     *auth.ProxyMiddleware
+	roomService *service.RoomService // for mapping
 }
 
 // NewChatRouteHandler create new `ChatRouteHandler`
-func NewChatRouteHandler(chatService *service.ChatService) *ChatRouteHandler {
+func NewChatRouteHandler(chatService *service.ChatService, proxyMw *auth.ProxyMiddleware, roomSvc *service.RoomService) *ChatRouteHandler {
 	return &ChatRouteHandler{
 		chatService: chatService,
+		proxyMw:     proxyMw,
+		roomService: roomSvc,
 	}
 }
 
@@ -51,13 +56,15 @@ func NewChatRouteHandler(chatService *service.ChatService) *ChatRouteHandler {
 type client struct {
 	conn        *websocket.Conn
 	chatService *service.ChatService // reference chat service to call
-	id          string
+	roomService *service.RoomService
+	connID      string
+	proxyID     string
 }
 
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/ws", func(context *gin.Context) {
+	routerGroup.GET("/ws", handler.proxyMw.AuthRequired(), func(context *gin.Context) {
 		// fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
@@ -70,13 +77,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			},
 		}
 
-		// TODO authen using token
-		clientID := context.Query("clientID")
-		if !bson.IsObjectIdHex(clientID) {
-			fmt.Println(clientID, "not valid OID")
-			context.JSON(http.StatusBadRequest, gin.H{"status": "bad client ID (must be objectId)"})
-			return
-		}
+		clientID := context.GetString(auth.UserIdField)
 
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -94,7 +95,9 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 		clnt := client{
 			conn:        wsConn,
 			chatService: handler.chatService,
-			id:          id,
+			roomService: handler.roomService,
+			connID:      id,
+			proxyID:     clientID,
 		}
 
 		go clnt.readPump()
@@ -107,7 +110,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 // for more information about read/writePump, see https://github.com/gorilla/websocket/tree/master/examples/chat
 func (c *client) readPump() {
 	defer func() {
-		c.chatService.OnDisconnect(c.id)
+		c.chatService.OnDisconnect(c.connID)
 		c.conn.Close()
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
@@ -125,9 +128,25 @@ func (c *client) readPump() {
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 
 		// handle message here
-		fmt.Printf("[%s] <-- %s\n", c.id, message)
+		fmt.Printf("[%s] <-- %s\n", c.connID, message)
 		var msg model.Message
-		json.Unmarshal(message, &msg)
+		err = json.Unmarshal(message, &msg)
+		if err != nil {
+			c.chatService.SendMessageToConnection(c.connID, bson.M{"status": "bad JSON: " + err.Error()})
+			continue
+		}
+
+		if ok, err := c.chatService.IsUserInRoom(c.proxyID, msg.RoomID.Hex()); err != nil {
+			c.chatService.SendMessageToConnection(c.connID, bson.M{
+				"status": "error checking room: " + err.Error(),
+			})
+			continue
+		} else if !ok {
+			c.chatService.SendMessageToConnection(c.connID, bson.M{
+				"status": "unauthorized to send to this room",
+			})
+			continue
+		}
 
 		// Saving messag
 		msg.TimeStamp = time.Now()

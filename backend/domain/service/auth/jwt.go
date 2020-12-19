@@ -18,7 +18,7 @@ type JWTService struct {
 	refreshSecret   []byte
 }
 
-// NewMessageService create message service from repository
+// NewJWTService create message service from repository
 func NewJWTService(tokenRepo repository.TokenRepository, accessSecret []byte, refreshSecret []byte) *JWTService {
 	return &JWTService{
 		tokenRepository: tokenRepo,
@@ -28,8 +28,8 @@ func NewJWTService(tokenRepo repository.TokenRepository, accessSecret []byte, re
 }
 
 var (
-	ACCESSTOKENEXPIRES = 15     //Min
-	REFRESHTOKENSECRET = 24 * 7 //Hours
+	ACCESSTOKENEXPIRES = 9999999 //Min // I think there should be no expire ?
+	REFRESHTOKENSECRET = 24 * 7  //Hours
 )
 
 // CreateToken create JWTToken from provied userDetail (userID + role)

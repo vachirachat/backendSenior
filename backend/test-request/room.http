@@ -1,12 +1,12 @@
 @base = http://localhost:8080/api/v1/room
-@roomA = 5fda230026dcb9c6f8453d0a
-@roomB = 5fda4fde26dcb96ffc1b3340
+@roomA = 5fde116026dcb940569b15bd
+@roomB = 5fde116526dcb940569b15be
 
-@proxyA = 5fda1e8e26dcb9c396daba2f
-@proxyB = 5fdb379526dcb9b433a318cb
+@proxyA = 5fde119f26dcb940569b15bf
+@proxyB = 5fde11a326dcb940569b15c0
 
-@userA = 5fd9dfa10f043c4236c09724
-@userB = 5fd9dfa70f043c4236c09729
+@userA = 5fde1148c3cae674040aeebd
+@userB = 5fde114bc3cae674040aeec1
 
 ### GET ALL ROOMS
 GET {{base}}
@@ -17,7 +17,7 @@ POST {{base}}
 Content-Type: application/json
 
 {
-  "roomName": "FOO ROOM",
+  "roomName": "BAR ROOM",
   "roomType": "GROUP"
 }
 
@@ -38,11 +38,11 @@ Content-Type: application/json
 GET {{base}}/{{roomA}}/member   
 
 ### Add Member
-POST {{base}}/{{roomB}}/member   
+POST {{base}}/{{roomA}}/member   
 Content-Type: application/json
 
 {
-  "userIds": ["{{userB}}"]
+  "userIds": ["{{userB}}", "{{userA}}"]
 }
 
 ### remove user
@@ -54,14 +54,14 @@ Content-Type: application/json
 }
 
 ### get proxy
-GET {{base}}/{{roomB}}/proxy    
+GET {{base}}/{{roomA}}/proxy    
 
 ###
-POST {{base}}/{{roomB}}/proxy    
+POST {{base}}/{{roomA}}/proxy    
 Content-Type: application/json
 
 {
-  "proxyIds": ["{{proxyB}}"]
+  "proxyIds": ["{{proxyA}}"]
 }
 
 ###

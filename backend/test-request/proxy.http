@@ -1,5 +1,6 @@
 @base = http://localhost:8080/api/v1/proxy
-@proxyId = 5fda1e8e26dcb9c396daba2f
+@proxyId = 5fde119f26dcb940569b15bf
+@proxyId2 = 5fde11a326dcb940569b15c0
 
 ###
 GET {{base}}
@@ -10,7 +11,7 @@ POST {{base}}
 Content-Type: application/json
 
 {
-  "name": "Company C"
+  "name": "Company B"
 }
 
 

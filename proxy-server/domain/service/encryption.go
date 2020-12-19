@@ -32,8 +32,6 @@ func NewEncryptionService(keystore repository.Keystore) *EncryptionService {
 
 // Encrypt takes a message, then return message with data encrypted
 func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, error) {
-	// TODO: encryption logic
-
 	keyRec, err := enc.keystore.GetKeyForMessage(message.RoomID.Hex(), message.TimeStamp)
 	if err != nil {
 		return message, fmt.Errorf("getting key: %s", err.Error())

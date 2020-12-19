@@ -26,10 +26,32 @@ func NewChatService(roomUserRepo repository.RoomUserRepository, sender repositor
 	}
 }
 
+// IsUserInRoom check whether user is in room
+func (chat *ChatService) IsUserInRoom(userID string, roomID string) (bool, error) {
+	rooms, err := chat.mapRoom.GetUserRooms(userID)
+	u, err := chat.mapRoom.GetRoomUsers(roomID)
+
+	_ = u
+	if err != nil {
+		return false, err
+	}
+	for _, r := range rooms {
+		if r == roomID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // SaveMessage save speicified message to repository, returning the ID of message
 func (chat *ChatService) SaveMessage(message model.Message) (string, error) {
 	id, err := chat.msgRepo.AddMessage(message)
 	return id, err
+}
+
+// SendMessageToConnection send message to specific connection, data will be marshalled
+func (chat *ChatService) SendMessageToConnection(connID string, message interface{}) error {
+	return chat.send.SendMessage(connID, message)
 }
 
 // BroadcastMessageToRoom send message to socket of all users in the room

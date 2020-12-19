@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"proxySenior/controller/middleware"
 	"proxySenior/domain/service"
 	"time"
 
@@ -17,14 +18,18 @@ import (
 )
 
 type ChatRouteHandler struct {
-	upstream   *service.ChatUpstreamService
-	downstream *service.ChatDownstreamService
+	upstream       *service.ChatUpstreamService
+	downstream     *service.ChatDownstreamService
+	authMiddleware *middleware.AuthMiddleware
+	roomUserMap    *service.RoomUserMap
 }
 
-func NewChatRouteHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService) *ChatRouteHandler {
+func NewChatRouteHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, authMw *middleware.AuthMiddleware, roomUser *service.RoomUserMap) *ChatRouteHandler {
 	return &ChatRouteHandler{
-		upstream:   upstream,
-		downstream: downstream,
+		upstream:       upstream,
+		downstream:     downstream,
+		authMiddleware: authMw,
+		roomUserMap:    roomUser,
 	}
 }
 
@@ -50,8 +55,7 @@ var (
 // client abstraction
 type client struct {
 	conn       *websocket.Conn
-	upstream   *service.ChatUpstreamService
-	downstream *service.ChatDownstreamService // reference chat service to call
+	handlerRef *ChatRouteHandler
 	connID     string
 	userID     string
 }
@@ -59,7 +63,7 @@ type client struct {
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/ws", func(context *gin.Context) {
+	routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
 		// fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
@@ -72,10 +76,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			},
 		}
 
-		userID := context.Query("userID")
-		if userID == "" {
-			context.JSON(http.StatusBadRequest, "Must Specify userID to connect")
-		}
+		userID := context.GetString(middleware.UserIdField)
 		// Proxy use no auth ?
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -92,8 +93,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 		clnt := client{
 			conn:       wsConn,
-			upstream:   handler.upstream,
-			downstream: handler.downstream,
+			handlerRef: handler,
 			connID:     id,
 			userID:     userID,
 		}
@@ -108,7 +108,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 // for more information about read/writePump, see https://github.com/gorilla/websocket/tree/master/examples/chat
 func (c *client) readPump() {
 	defer func() {
-		c.downstream.OnDisconnect(c.connID)
+		c.handlerRef.downstream.OnDisconnect(c.connID)
 		c.conn.Close()
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
@@ -128,29 +128,31 @@ func (c *client) readPump() {
 		// handle message here
 		fmt.Printf("[%s] <-- %s\n", c.connID, message)
 		var msg model.Message
-		json.Unmarshal(message, &msg)
+		err = json.Unmarshal(message, &msg)
+		if err != nil {
+			fmt.Println("error marshalling message:", err.Error())
+			continue
+		}
+
+		if ok, err := c.handlerRef.roomUserMap.IsUserInRoom(c.userID, msg.RoomID.Hex()); err != nil {
+			fmt.Println("userID", c.userID, "roomID", msg.RoomID.Hex())
+			fmt.Println("error checking room:", err.Error())
+			continue
+		} else if !ok {
+			c.handlerRef.downstream.SendMessageToConnection(c.connID, bson.M{
+				"error": "unauthorized to send to this room",
+			})
+			continue
+		}
 
 		// Saving messag
 		msg.TimeStamp = time.Now()
 		msg.UserID = bson.ObjectIdHex(c.userID)
 
-		err = c.upstream.SendMessage(msg)
+		err = c.handlerRef.upstream.SendMessage(msg)
 		if err != nil {
 			fmt.Println("Error sending to upstream:", err)
 			continue
 		}
-
-		// messageID, err := c.downstream.SaveMessage(msg)
-		// if err != nil {
-		// 	fmt.Printf("error saving message %s\n", err.Error())
-		// 	continue
-		// }
-		// msg.MessageID = bson.ObjectIdHex(messageID)
-
-		// // TODO: this is broadbast to ALL proxy for now
-		// err = c.downstream.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
-		// if err != nil {
-		// 	fmt.Printf("Error bcasting message: %s\n", err.Error())
-		// }
 	}
 }

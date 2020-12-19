@@ -24,25 +24,35 @@ func main() {
 		log.Fatalln("Error connecting to mongo:", err)
 	}
 
+	// Repo
 	roomUserRepo := mongo_repository.NewCachedRoomUserRepository(conn)
 	pool := chatsocket.NewConnectionPool()
 	msgRepo := &be_mongo_repository.MessageRepositoryMongo{ConnectionDB: conn}
 
+	// Service
 	clientID := os.Getenv("CLIENT_ID")
 	if !bson.IsObjectIdHex(clientID) {
 		log.Fatalln("error: please set valid CLIENT_ID")
 	}
+	clientSecret := os.Getenv("CLIENT_SECRET")
+	if clientSecret == "" {
+		log.Fatalln("error: please set client secret")
+	}
 
-	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN, clientID)
+	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN, clientID, clientSecret)
 	keystore := &mongo_repository.KeyRepository{}
 
 	enc := service.NewEncryptionService(keystore)
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, msgRepo, enc)
 	upstreamService := service.NewChatUpstreamService(upstream, enc)
+	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)
+	roomUserMap := service.NewRoomUserMap(roomUserRepo)
 
 	router := (&route.RouterDeps{
 		UpstreamService:   upstreamService,
 		DownstreamService: downstreamService,
+		AuthService:       delegateAuth,
+		RoomUserMap:       roomUserMap,
 	}).NewRouter()
 
 	pipe := make(chan []byte, 100)

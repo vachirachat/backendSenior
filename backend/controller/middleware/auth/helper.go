@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"encoding/base64"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -14,4 +15,22 @@ func extractToken(context *gin.Context) string {
 		return strArr[1]
 	}
 	return ""
+}
+
+func extractBasicHeader(context *gin.Context) (string, string) {
+	// Get JWT from Header Authorization
+	basicToken := context.Request.Header.Get("Authorization")
+	strArr := strings.Split(basicToken, " ")
+	if len(strArr) == 2 {
+		userPass, err := base64.StdEncoding.DecodeString(strArr[1])
+		if err != nil {
+			return "", ""
+		}
+		userPassArr := strings.Split(string(userPass), ":")
+		if len(userPassArr) != 2 {
+			return "", ""
+		}
+		return userPassArr[0], userPassArr[1]
+	}
+	return "", ""
 }

@@ -55,7 +55,7 @@ func (repo *ProxyRepositoryMongo) DeleteProxy(proxyID string) error {
 }
 func (repo *ProxyRepositoryMongo) UpdateProxy(proxyID string, update model.Proxy) error {
 	update.ProxyID = ""
-	err := repo.conn.DB(dbName).C(collectionProxy).UpdateId(bson.ObjectIdHex(proxyID), update)
+	err := repo.conn.DB(dbName).C(collectionProxy).UpdateId(bson.ObjectIdHex(proxyID), bson.M{"$set": update})
 	return err
 }
 func (repo *ProxyRepositoryMongo) GetByID(proxyID string) (model.Proxy, error) {

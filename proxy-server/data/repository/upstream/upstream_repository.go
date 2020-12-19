@@ -2,9 +2,11 @@ package upstream
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"proxySenior/domain/interface/repository"
 	"time"
@@ -20,21 +22,23 @@ const (
 // UpstreamRepository is the client to upstream (controller)
 // It manage websocket connection automatically
 type UpstreamRepository struct {
-	origin      string
-	sendChannel chan []byte
-	receivers   []chan []byte
-	clientID    string
+	origin       string
+	sendChannel  chan []byte
+	receivers    []chan []byte
+	clientID     string
+	clientSecret string
 }
 
 var _ repository.UpstreamMessageRepository = (*UpstreamRepository)(nil)
 
 // NewUpStreamController create new upstream controller
-func NewUpStreamController(origin string, clientID string) *UpstreamRepository {
+func NewUpStreamController(origin string, clientID string, clientSecret string) *UpstreamRepository {
 	ctrl := &UpstreamRepository{
-		origin:      origin,
-		sendChannel: make(chan []byte, 10),
-		receivers:   make([]chan []byte, 0),
-		clientID:    clientID,
+		origin:       origin,
+		sendChannel:  make(chan []byte, 10),
+		receivers:    make([]chan []byte, 0),
+		clientID:     clientID,
+		clientSecret: clientSecret,
 	}
 	go ctrl.connect()
 	return ctrl
@@ -43,13 +47,17 @@ func NewUpStreamController(origin string, clientID string) *UpstreamRepository {
 func (upstream *UpstreamRepository) connect() {
 	for {
 		url := url.URL{
-			Scheme:   "ws",
-			Host:     upstream.origin,
-			Path:     "/api/v1/chat/ws",
-			RawQuery: "clientID=" + upstream.clientID,
+			Scheme: "ws",
+			Host:   upstream.origin,
+			Path:   "/api/v1/chat/ws",
 		}
 
-		c, _, err := websocket.DefaultDialer.Dial(url.String(), nil)
+		authHeader := base64.StdEncoding.EncodeToString([]byte(upstream.clientID + ":" + upstream.clientSecret))
+
+		var h = http.Header{}
+		h.Add("Authorization", "Basic "+authHeader)
+
+		c, _, err := websocket.DefaultDialer.Dial(url.String(), h)
 		if err != nil {
 			fmt.Println("Error connecting to upstream:", err)
 			fmt.Println("Retrying in 5 seconds")
