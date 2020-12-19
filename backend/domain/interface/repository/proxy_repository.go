@@ -4,7 +4,7 @@ import "backendSenior/domain/model"
 
 // ProxyRepository represent interface for managing proxy
 type ProxyRepository interface {
-	AddProxy(name string) (string, error)
+	AddProxy(model.Proxy) (string, error)
 	GetAllProxies() ([]model.Proxy, error)
 	DeleteProxy(proxyID string) error
 	UpdateProxy(proxyID string, update model.Proxy) error

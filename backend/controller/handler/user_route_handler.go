@@ -39,7 +39,7 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	// routerGroup.GET("/token", handler.userTokenListHandler)
 	routerGroup.POST("/login", handler.loginHandle)
 	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
-	routerGroup.GET("/me", handler.authMiddleware.SetUserMiddleware(), handler.getMeHandler)
+	routerGroup.GET("/me", handler.authMiddleware.AuthRequired(), handler.getMeHandler)
 }
 
 func (handler *UserRouteHandler) getMeHandler(context *gin.Context) {

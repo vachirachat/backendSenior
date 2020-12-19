@@ -28,13 +28,12 @@ func orEmpty(slice []model.Proxy) []model.Proxy {
 }
 
 // AddProxy create new proxy and return ID
-func (repo *ProxyRepositoryMongo) AddProxy(name string) (string, error) {
+func (repo *ProxyRepositoryMongo) AddProxy(proxy model.Proxy) (string, error) {
 	proxyID := bson.NewObjectId()
-	err := repo.conn.DB(dbName).C(collectionProxy).Insert(model.Proxy{
-		ProxyID: proxyID,
-		Name:    name,
-		Rooms:   []bson.ObjectId{},
-	})
+	proxy.ProxyID = proxyID
+	proxy.Rooms = []bson.ObjectId{}
+
+	err := repo.conn.DB(dbName).C(collectionProxy).Insert(proxy)
 	if err != nil {
 		return "", err
 	}
@@ -51,13 +50,16 @@ func (repo *ProxyRepositoryMongo) GetAllProxies() ([]model.Proxy, error) {
 	return orEmpty(proxies), nil
 }
 func (repo *ProxyRepositoryMongo) DeleteProxy(proxyID string) error {
-	panic("Not implemented")
-
+	err := repo.conn.DB(dbName).C(collectionProxy).RemoveId(bson.ObjectIdHex(proxyID))
+	return err
 }
 func (repo *ProxyRepositoryMongo) UpdateProxy(proxyID string, update model.Proxy) error {
-	panic("Not implemented")
-
+	update.ProxyID = ""
+	err := repo.conn.DB(dbName).C(collectionProxy).UpdateId(bson.ObjectIdHex(proxyID), update)
+	return err
 }
 func (repo *ProxyRepositoryMongo) GetByID(proxyID string) (model.Proxy, error) {
-	panic("Not implemented")
+	var proxy model.Proxy
+	err := repo.conn.DB(dbName).C(collectionProxy).FindId(bson.ObjectIdHex(proxyID)).One(&proxy)
+	return proxy, err
 }
