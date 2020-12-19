@@ -92,7 +92,7 @@ func (repo *CachedRoomProxyRepository) AddUsersToRoom(roomID string, proxyIDs []
 		return err
 	}
 
-	err = repo.connection.DB(dbName).C(collectionProxy).UpdateAll(idInArr(proxyIDs)), bson.M{
+	_, err = repo.connection.DB(dbName).C(collectionProxy).UpdateAll(idInArr(proxyIDs), bson.M{
 		"$addToSet": bson.M{
 			"rooms": bson.ObjectIdHex(roomID),
 		},
