@@ -9,12 +9,12 @@ type Permission struct {
 
 // TokenDetails represent pair of access token and refresh token along with other informations
 type TokenDetails struct {
-	AccessToken  string
-	RefreshToken string
-	AccessUuid   string
-	RefreshUuid  string
-	AtExpires    int64
-	RtExpires    int64
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
+	AccessUuid   string `json:"-"`
+	RefreshUuid  string `json:"-"`
+	AtExpires    int64  `json:"expiresAt"`
+	RtExpires    int64  `json:"refreshExpiresAt"`
 }
 
 type AccessDetails struct {
