@@ -17,10 +17,10 @@ type UserTokenInfo struct {
 }
 
 type User struct {
-	UserID   bson.ObjectId   `json:"userID" bson:"_id,omitempty"`
+	UserID   bson.ObjectId   `json:"userId" bson:"_id,omitempty"`
 	Name     string          `json:"name" bson:"name"`
 	Email    string          `json:"email" bson:"email"`
-	Password string          `json:"password" bson:"password"`
+	Password string          `json:"-" bson:"password"`
 	Room     []bson.ObjectId `json:"room" bson:"room"`
 	UserType string          `json:"userType" bson:"userType"`
 }
