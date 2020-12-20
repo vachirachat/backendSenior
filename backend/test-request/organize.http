@@ -9,6 +9,10 @@
 GET {{baseUser}}
 
 
+### GET All org
+GET {{base}}
+
+
 ### CREATE Org
 POST {{base}}
 Content-Type: application/json
@@ -16,9 +20,6 @@ Content-Type: application/json
 {
   "name": "BAR ROOM"
 }
-
-### GET All org
-GET {{base}}
 
 
 ### CREATE Org
@@ -51,14 +52,23 @@ Content-Type: application/json
 }
 
 ### GET User in Org.
-GET {{base}}/{{orgA}}/member
+GET {{base}}/{{orgC}}/member
 
 ### Invite User to Org.
-POST {{base}}/{{orgA}}/member
+POST {{base}}/{{orgC}}/admin
 Content-Type: application/json
 
 {
-  "UserIDs": ["{{userA}}"]
+  "UserIDs": ["{{userA}}","{{userB}}"]
 }
 
+### Invite User to Org.
+DELETE  {{base}}/{{orgC}}/admin
+Content-Type: application/json
 
+{
+  "UserIDs": ["{{userA}}","{{userB}}"]
+}
+
+### GET User in Org.
+GET {{base}}/{{userA}}/member

@@ -86,7 +86,7 @@ func (repo *OrganizeUserRepositoryMongo) AddMembersToOrganize(organizeID string,
 		return err
 	}
 
-	err = repo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(bson.M{"$in": utills.ToObjectIdArr(employeeIds)}, bson.M{
+	_, err = repo.ConnectionDB.DB(dbName).C(collectionUser).UpdateAll(bson.M{"_id": bson.M{"$in": utills.ToObjectIdArr(employeeIds)}}, bson.M{
 		"$addToSet": bson.M{
 			"organize": bson.ObjectIdHex(organizeID),
 		},
@@ -124,16 +124,6 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeAdmin(organizeID string, 
 		return err
 	}
 
-	err = repo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(bson.M{"$in": utills.ToObjectIdArr(adminIds)}, bson.M{
-		"$pull": bson.M{
-			"organize": bson.ObjectIdHex(organizeID),
-		},
-	})
-	if err != nil {
-		// TODO it should revert
-		return err
-	}
-
 	return nil
 }
 
@@ -155,14 +145,14 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeMember(organizeID string,
 	// Update database
 	err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
 		"$pullAll": bson.M{
-			"listAdmin": utills.ToObjectIdArr(employeeIds),
+			"listMember": utills.ToObjectIdArr(employeeIds),
 		},
 	})
 	if err != nil {
 		return err
 	}
 
-	err = repo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(bson.M{"$in": utills.ToObjectIdArr(employeeIds)}, bson.M{
+	_, err = repo.ConnectionDB.DB(dbName).C(collectionUser).UpdateAll(bson.M{"_id": bson.M{"$in": utills.ToObjectIdArr(employeeIds)}}, bson.M{
 		"$pull": bson.M{
 			"organize": bson.ObjectIdHex(organizeID),
 		},
