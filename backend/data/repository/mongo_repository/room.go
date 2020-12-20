@@ -156,11 +156,7 @@ func (roomMongo RoomRepositoryMongo) DeleteMemberFromRoom(roomID string, userID 
 	for _, v := range toObjectIdArr(userID) {
 		var user model.User
 		err = ConnectionDB.DB(dbName).C(collectionUser).FindId(v).One(&user)
-		log.Println("This is User")
-		log.Println(user)
 		NewListString = utills.RemoveFormListBson(user.Room, bson.ObjectIdHex(roomID))
-		log.Println("New List String")
-		log.Println(NewListString)
 		newUser = bson.M{"$set": bson.M{"room": NewListString}}
 		ConnectionDB.DB(dbName).C(collectionUser).UpdateId(v, newUser)
 	}
