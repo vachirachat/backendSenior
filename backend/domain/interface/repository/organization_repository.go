@@ -5,9 +5,9 @@ import (
 )
 
 type OrganizationRepository interface {
-	GetAllOrganization() ([]model.organization, error)
-	GetMemberInOrganization(orgID string) ([]model.user, error)
-	AddOrganization(organization model.organization) (string, error)
-	UpdateOrganization(organization model.organization) (string, error)
+	GetAllOrganization() ([]model.Organization, error)
+	GetMemberInOrganization(orgID string) ([]model.User, error)
+	AddOrganization(organization model.Organization) (string, error)
+	UpdateOrganization(organization model.Organization) (string, error)
 	DeleteOrganization(orgID string) error
 }

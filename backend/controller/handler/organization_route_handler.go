@@ -1,10 +1,15 @@
 package route
 
-import (
-	"backendSenior/domain/model"
-	"backendSenior/domain/service"
-	"log"
-	"net/http"
+import "backendSenior/domain/service/auth"
 
-	"github.com/gin-gonic/gin"
-)
+type OrganizationRouteHandler struct {
+	organizationService *service.organizationService
+	authService         *auth.AuthService
+}
+
+func NewOrganizationRouteHandler(organizationService *service.organizationService, authService *auth.AuthService) *OrganizationRouteHandler {
+	return &OrganizationRouteHandler{
+		organizationService: organizationService,
+		authService:         authService,
+	}
+}

@@ -3,7 +3,8 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
-	"fmt"
+
+	// "fmt"
 	"log"
 
 	"github.com/globalsign/mgo"
@@ -15,35 +16,46 @@ type OrganizationRepositoryMongo struct {
 }
 
 var _ repository.OrganizationRepository = (*OrganizationRepositoryMongo)(nil)
+
 // finish
 // GetAllMessages return all message from all rooms with optional time filter
-func (messageMongo *OrganizationRepositoryMongo) GetAllOrganization() ([]model.Message, error) {
+func (organizationMongo *OrganizationRepositoryMongo) GetAllOrganization() ([]model.Organization, error) {
 	var organizations []model.Organization
 	err := organizationMongo.ConnectionDB.DB(dbName).C(collectionOrganization).Find(nil).All(&organizations)
 	return organizations, err
 }
+
 //finish
 // GetMessagesByRoom return messages from specified room, with optional time filter
-func (messageMongo *OrganizationRepositoryMongo) GetMemberInOrganization(orgID string) ([]model.user, error) {
+func (organizationMongo *OrganizationRepositoryMongo) GetMemberInOrganization(orgID string) ([]model.User, error) {
 	var organization model.Organization
 	err := organizationMongo.ConnectionDB.DB(dbName).C(collectionOrganization).Find(bson.ObjectIdHex(orgID)).All(&organization)
 	log.Println(organization)
-	return organization.UserIDList, err
+	var userList []model.User
+	for _, v := range organization.UserIDList {
+		var user model.User
+		objectID := bson.ObjectIdHex(v)
+		err := organizationMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(objectID).One(&user)
+		userList = append(userList, user)
+	}
+	return userList, err
 }
+
 // finish
 // AddOrganization into database
-func (messageMongo *OrganizationRepositoryMongo) AddOrganization(organization model.organization) (string, error) {
+func (organizationMongo *OrganizationRepositoryMongo) AddOrganization(organization model.Organization) (string, error) {
 	organization.OrganizationID = bson.NewObjectId()
-	err = organizationMongo.ConnectionDB.DB(dbName).C(collectionOrganization).Insert(organization)
+	err := organizationMongo.ConnectionDB.DB(dbName).C(collectionOrganization).Insert(organization)
 	return organization.OrganizationID.Hex(), err
 }
 
 // Update new organization
-func (messageMongo *OrganizationRepositoryMongo) UpdateOrganization(organization model.organization) (string, error) {
-	return organizationMongo.ConnectionDB.DB(dbName).C(collectionOrganization).RemoveId(bson.ObjectIdHex(messageID))
+func (organizationMongo *OrganizationRepositoryMongo) UpdateOrganization(organization model.Organization) (string, error) {
+	err := organizationMongo.ConnectionDB.DB(dbName).C(collectionOrganization).RemoveId(bson.ObjectIdHex(organization.OrganizationID))
+	return "string", err
 }
 
 //finish
-func (messageMongo *OrganizationRepositoryMongo) DeleteOrganization(orgId string) error {
-	return organizationMongo.ConnectionDB.DB(dbName).C(collectionOrganization).RemoveId(bson.ObjectIdHex(orgID))
+func (organizationMongo *OrganizationRepositoryMongo) DeleteOrganization(orgId string) error {
+	return organizationMongo.ConnectionDB.DB(dbName).C(collectionOrganization).RemoveId(bson.ObjectIdHex(orgId))
 }

@@ -18,27 +18,27 @@ func NewOrganizationService(orgRepo repository.OrganizationRepository) *Organiza
 	}
 }
 
-func (service *OrganizationService) GetAllOrganization() ([]model.Message, error) {
-	messages, err := service.organizationRepo.GetAllOrganization(nil)
-	return messages, err
+func (service *OrganizationService) GetAllOrganization() ([]model.Organization, error) {
+	organizations, err := service.organizationRepo.GetAllOrganization()
+	return organizations, err
 }
 
-func (service *OrganizationService) GetMemberInOrganization(orgID string) ([]model.user, error) {
-	messages, err := service.organizationRepo.GetMemnerInOrganization(orgID)
-	return messages, err
+func (service *OrganizationService) GetMemberInOrganization(orgID string) ([]model.User, error) {
+	users, err := service.organizationRepo.GetMemberInOrganization(orgID)
+	return users, err
 }
 
-func (service *OrganizationService) AddOrganization(organization model.organization) (string, error) {
-	msg, err := service.organizationRepo.AddOrganization(organization)
-	return msg, err
+func (service *OrganizationService) AddOrganization(organization model.Organization) (string, error) {
+	org, err := service.organizationRepo.AddOrganization(organization)
+	return org, err
 }
 
-func (service *OrganizationService) UpdateOrganization(organization model.organization) (string, error) {
+func (service *OrganizationService) UpdateOrganization(organization model.Organization) (string, error) {
 	msgID, err := service.organizationRepo.UpdateOrganization(organization)
 	return msgID, err
 }
 
 func (service *OrganizationService) DeleteOrganization(orgId string) error {
-	err := service.organizationRepo.DeleteMessageByID(orgId)
+	err := service.organizationRepo.DeleteOrganization(orgId)
 	return err
 }
