@@ -1,0 +1,64 @@
+@base = http://localhost:8080/api/v1/org
+@baseUser = http://localhost:8080/api/v1/user/user
+@orgA = 5fdf624767a8a2d866e57f39
+
+@userA = 5fdf66b98b48bef42550a42b
+@userB = 5fda0cb38234d7a18e3b8c74
+
+### GET All Users
+GET {{baseUser}}
+
+
+### CREATE Org
+POST {{base}}
+Content-Type: application/json
+
+{
+  "name": "BAR ROOM"
+}
+
+### GET All org
+GET {{base}}
+
+
+### CREATE Org
+GET {{base}}/{{orgA}}
+
+
+### Edit Org
+PUT {{base}}/{{orgA}}
+Content-Type: application/json
+
+{
+  "name": "BATH Org"
+}
+
+
+### Invite User to Org.
+POST {{base}}/{{orgA}}/member
+Content-Type: application/json
+
+{
+  "UserIDs": ["{{userA}}"]
+}
+
+### Invite User to Org.
+POST {{base}}/{{orgA}}/member
+Content-Type: application/json
+
+{
+  "UserIDs": ["{{userA}}"]
+}
+
+### GET User in Org.
+GET {{base}}/{{orgA}}/member
+
+### Invite User to Org.
+POST {{base}}/{{orgA}}/member
+Content-Type: application/json
+
+{
+  "UserIDs": ["{{userA}}"]
+}
+
+
