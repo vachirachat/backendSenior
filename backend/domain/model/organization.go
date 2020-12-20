@@ -1,0 +1,19 @@
+package model
+
+import (
+	"time"
+
+	"github.com/globalsign/mgo/bson"
+)
+
+type OrganizationsResponse struct {
+	Organizations []Organization `json:"organizations"`
+}
+
+type Organization struct {
+	OrganizationID bson.ObjectId `json:"organizationId" bson:"_id,omitempty"`
+	TimeStamp time.Time     `json:"timestamp" bson:"timestamp"`
+	UserIDList []string `json:"userIdList" bson:"userIdList"`
+	AdminIDList []string `json:"adminIdList" bson:"adminIdList"`
+	Name      	string        `json:"name" bson:"name"`
+}
