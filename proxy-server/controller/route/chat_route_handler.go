@@ -21,15 +21,13 @@ type ChatRouteHandler struct {
 	upstream       *service.ChatUpstreamService
 	downstream     *service.ChatDownstreamService
 	authMiddleware *middleware.AuthMiddleware
-	roomUserMap    *service.RoomUserMap
 }
 
-func NewChatRouteHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, authMw *middleware.AuthMiddleware, roomUser *service.RoomUserMap) *ChatRouteHandler {
+func NewChatRouteHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, authMw *middleware.AuthMiddleware) *ChatRouteHandler {
 	return &ChatRouteHandler{
 		upstream:       upstream,
 		downstream:     downstream,
 		authMiddleware: authMw,
-		roomUserMap:    roomUser,
 	}
 }
 
@@ -134,7 +132,7 @@ func (c *client) readPump() {
 			continue
 		}
 
-		if ok, err := c.handlerRef.roomUserMap.IsUserInRoom(c.userID, msg.RoomID.Hex()); err != nil {
+		if ok, err := c.handlerRef.downstream.IsUserInRoom(c.userID, msg.RoomID.Hex()); err != nil {
 			fmt.Println("userID", c.userID, "roomID", msg.RoomID.Hex())
 			fmt.Println("error checking room:", err.Error())
 			continue

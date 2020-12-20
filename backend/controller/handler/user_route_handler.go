@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo/bson"
 )
 
 // UserRouteHandler is handler for route
@@ -32,7 +33,7 @@ func NewUserRouteHandler(userService *service.UserService, jwtService *auth.JWTS
 func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("user", handler.userListHandler)
 	routerGroup.PUT("user/updateuserprofile", handler.editUserNameHandler)
-	routerGroup.DELETE("user/:user_id", handler.deleteUserByIDHandler)
+	routerGroup.DELETE("byid/:user_id", handler.deleteUserByIDHandler)
 	routerGroup.POST("getuserbyemail", handler.getUserByEmail)
 
 	//SignIN/UP API
@@ -41,8 +42,9 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
 	routerGroup.GET("/me", handler.authMiddleware.AuthRequired(), handler.getMeHandler)
 
-	// Verify Token API (for proxy)
+	// (for proxy)
 	routerGroup.POST("/verify", handler.verifyToken)
+	routerGroup.GET("/byid/:id", handler.getUserByIDHandler)
 }
 
 func (handler *UserRouteHandler) getMeHandler(context *gin.Context) {
@@ -70,16 +72,20 @@ func (handler *UserRouteHandler) userListHandler(context *gin.Context) {
 }
 
 // for get user by id
-// func (handler *UserRouteHandler) getUserByIDHandler(context *gin.Context) {
-// 	userID := context.Param("user_id")
-// 	// user, err := handler.userService.GetUserByID(userID)
-// 	if err != nil {
-// 		log.Println("error GetUserByIDHandler", err.Error())
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-// 		return
-// 	}
-// 	context.JSON(http.StatusOK, user)
-// }
+func (handler *UserRouteHandler) getUserByIDHandler(context *gin.Context) {
+	userID := context.Param("id")
+	if !bson.IsObjectIdHex(userID) {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "bad user id"})
+		return
+	}
+	user, err := handler.userService.GetUserByID(userID)
+	if err != nil {
+		log.Println("error GetUserByIDHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, user)
+}
 
 // GetUserByEmail for get user by id
 func (handler *UserRouteHandler) getUserByEmail(context *gin.Context) {

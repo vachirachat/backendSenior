@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"proxySenior/controller/route"
+	"proxySenior/data/repository/delegate"
 	"proxySenior/data/repository/mongo_repository"
 	"proxySenior/data/repository/upstream"
 	"proxySenior/domain/service"
@@ -25,7 +26,7 @@ func main() {
 	}
 
 	// Repo
-	roomUserRepo := mongo_repository.NewCachedRoomUserRepository(conn)
+	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.CONTROLLER_ORIGIN)
 	pool := chatsocket.NewConnectionPool()
 	msgRepo := &be_mongo_repository.MessageRepositoryMongo{ConnectionDB: conn}
 
@@ -46,13 +47,11 @@ func main() {
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, msgRepo, enc)
 	upstreamService := service.NewChatUpstreamService(upstream, enc)
 	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)
-	roomUserMap := service.NewRoomUserMap(roomUserRepo)
 
 	router := (&route.RouterDeps{
 		UpstreamService:   upstreamService,
 		DownstreamService: downstreamService,
 		AuthService:       delegateAuth,
-		RoomUserMap:       roomUserMap,
 	}).NewRouter()
 
 	pipe := make(chan []byte, 100)

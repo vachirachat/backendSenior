@@ -13,7 +13,6 @@ type RouterDeps struct {
 	UpstreamService   *service.ChatUpstreamService
 	DownstreamService *service.ChatDownstreamService
 	AuthService       *service.DelegateAuthService
-	RoomUserMap       *service.RoomUserMap
 }
 
 // NewRouter create router from deps
@@ -22,7 +21,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 
 	r := gin.Default()
 
-	chatRouteHandler := NewChatRouteHandler(deps.UpstreamService, deps.DownstreamService, authMiddleware, deps.RoomUserMap)
+	chatRouteHandler := NewChatRouteHandler(deps.UpstreamService, deps.DownstreamService, authMiddleware)
 
 	subgroup := r.Group("/api/v1")
 

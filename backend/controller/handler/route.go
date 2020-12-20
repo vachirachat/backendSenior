@@ -37,7 +37,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	subgroup := r.Group("/api/v1")
 
 	roomRouteHandler.Mount(subgroup.Group("/room"))
-	userRouteHandler.Mount(subgroup.Group("/user")) // this subroute isn't restful so I mount like this
+	userRouteHandler.Mount(subgroup.Group("/user"))
 	messageRouteHandler.Mount(subgroup.Group("/message"))
 	chatRouteHandler.Mount(subgroup.Group("/chat"))
 	proxyRouteHandler.Mount(subgroup.Group("/proxy"))

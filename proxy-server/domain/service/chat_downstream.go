@@ -35,6 +35,20 @@ func (chat *ChatDownstreamService) SaveMessage(message model.Message) (string, e
 	return id, err
 }
 
+// IsUserInRoom return whether `userID` is in `roomID`
+func (chat *ChatDownstreamService) IsUserInRoom(userID string, roomID string) (bool, error) {
+	rooms, err := chat.mapRoom.GetUserRooms(userID)
+	if err != nil {
+		return false, err
+	}
+	for _, u := range rooms {
+		if u == roomID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // SendMessageToConnection send message to specific connection, data will be marshalled
 func (chat *ChatDownstreamService) SendMessageToConnection(connID string, message interface{}) error {
 	return chat.send.SendMessage(connID, message)

@@ -29,9 +29,7 @@ func NewChatService(roomUserRepo repository.RoomUserRepository, sender repositor
 // IsUserInRoom check whether user is in room
 func (chat *ChatService) IsUserInRoom(userID string, roomID string) (bool, error) {
 	rooms, err := chat.mapRoom.GetUserRooms(userID)
-	u, err := chat.mapRoom.GetRoomUsers(roomID)
 
-	_ = u
 	if err != nil {
 		return false, err
 	}
