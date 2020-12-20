@@ -26,7 +26,7 @@ var _ repository.OrganizeUserRepository = (*OrganizeUserRepositoryMongo)(nil)
 
 func (repo *OrganizeUserRepositoryMongo) AddAdminToOrganize(organizeID string, adminIds []string) error {
 	// Preconfition check
-	n, err := repo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(bson.M{"$in": utills.ToObjectIdArr(adminIds)}).Count()
+	n, err := repo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(adminIds)}).Count()
 
 	if err != nil {
 		return err
@@ -40,11 +40,14 @@ func (repo *OrganizeUserRepositoryMongo) AddAdminToOrganize(organizeID string, a
 		return errors.New("Invalid organizeID")
 	}
 
-	// Update database
+	// Update database for add
 	err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
 		"$addToSet": bson.M{
 			"listAdmin": bson.M{
 				"$each": utills.ToObjectIdArr(adminIds), // add all from listUser to array
+			},
+			"listMember": bson.M{
+				"$each": utills.ToObjectIdArr(adminIds), // add all from listUser to array and Add to MemberList
 			},
 		},
 	})

@@ -1,8 +1,8 @@
 @base = http://localhost:8080/api/v1/org
 @baseUser = http://localhost:8080/api/v1/user/user
-@orgA = 5fdf624767a8a2d866e57f39
+@orgA = 5fdf7e4de89bde05f327dc5c
 
-@userA = 5fdf66b98b48bef42550a42b
+@userA = 5fdf7e7033b41136d5bc0645
 @userB = 5fda0cb38234d7a18e3b8c74
 
 ### GET All Users
@@ -42,8 +42,8 @@ Content-Type: application/json
   "UserIDs": ["{{userA}}"]
 }
 
-### Invite User to Org.
-POST {{base}}/{{orgA}}/member
+### Invite Admin to Org.
+POST {{base}}/{{orgA}}/admin
 Content-Type: application/json
 
 {
