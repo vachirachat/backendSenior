@@ -1,12 +1,17 @@
 @base = http://localhost:8080/api/v1/org
 @baseUser = http://localhost:8080/api/v1/user/user
 @orgA = 5fdf624767a8a2d866e57f39
-
+@orgB = 5fdf625c67a8a2d866e57f3a
+@orgC = 5fdf625d67a8a2d866e57f3b
 @userA = 5fdf66b98b48bef42550a42b
 @userB = 5fda0cb38234d7a18e3b8c74
 
 ### GET All Users
 GET {{baseUser}}
+
+
+### GET All org
+GET {{base}}
 
 
 ### CREATE Org
@@ -16,9 +21,6 @@ Content-Type: application/json
 {
   "name": "BAR ROOM"
 }
-
-### GET All org
-GET {{base}}
 
 
 ### CREATE Org
@@ -51,14 +53,23 @@ Content-Type: application/json
 }
 
 ### GET User in Org.
-GET {{base}}/{{orgA}}/member
+GET {{base}}/{{orgC}}/member
 
 ### Invite User to Org.
-POST {{base}}/{{orgA}}/member
+POST {{base}}/{{orgC}}/admin
 Content-Type: application/json
 
 {
-  "UserIDs": ["{{userA}}"]
+  "UserIDs": ["{{userA}}","{{userB}}"]
 }
 
+### Invite User to Org.
+DELETE  {{base}}/{{orgC}}/admin
+Content-Type: application/json
 
+{
+  "UserIDs": ["{{userA}}","{{userB}}"]
+}
+
+### GET User in Org.
+GET {{base}}/{{userA}}/member
