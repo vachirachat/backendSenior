@@ -9,12 +9,13 @@ import (
 
 // RouterDeps declare dependency for router, it's used to create route handlers
 type RouterDeps struct {
-	MessageService *service.MessageService
-	RoomService    *service.RoomService
-	UserService    *service.UserService
-	AuthService    *auth.AuthService
-	ChatService    *service.ChatService
-	ProxyService   *service.ProxyService
+	MessageService   *service.MessageService
+	RoomService      *service.RoomService
+	UserService      *service.UserService
+	AuthService      *auth.AuthService
+	ChatService      *service.ChatService
+	ProxyService     *service.ProxyService
+	OraganizeService *service.OrganizeService
 }
 
 // NewRouter create new router (gin server) with various handler
@@ -25,7 +26,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.AuthService)
 	chatRouteHandler := NewChatRouteHandler(deps.ChatService)
 	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService)
-
+	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, deps.AuthService)
 	r := gin.Default()
 
 	subgroup := r.Group("/api/v1")
@@ -35,6 +36,6 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	messageRouteHandler.Mount(subgroup.Group("/message"))
 	chatRouteHandler.Mount(subgroup.Group("/chat"))
 	proxyRouteHandler.Mount(subgroup.Group("/proxy"))
-
+	OrganizeRouteHandler.Mount(subgroup.Group("/org"))
 	return r
 }

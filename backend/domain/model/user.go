@@ -22,6 +22,7 @@ type User struct {
 	Email    string          `json:"email" bson:"email"`
 	Password string          `json:"password" bson:"password"`
 	Room     []bson.ObjectId `json:"room" bson:"room"`
+	Organize []bson.ObjectId `json:"organize" bson:"organize"`
 	UserType string          `json:"userType" bson:"userType"`
 }
 
