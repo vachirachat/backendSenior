@@ -39,6 +39,7 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	//SignIN/UP API
 	// routerGroup.GET("/token", handler.userTokenListHandler)
 	routerGroup.POST("/login", handler.loginHandle)
+	routerGroup.GET("/logout", handler.logoutHandle)
 	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
 	routerGroup.GET("/me", handler.authMiddleware.AuthRequired(), handler.getMeHandler)
 
@@ -226,6 +227,24 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success", "token": tokenDetails})
+}
+
+func (handler *UserRouteHandler) logoutHandle(context *gin.Context) {
+	var body struct {
+		Token string `json:"token"`
+	}
+	err := context.ShouldBindJSON(&body)
+	metadata, err := handler.jwtService.ExtractTokenMetadata(body.Token)
+	if err != nil {
+		context.JSON(http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	delErr := handler.jwtService.DeleteAuth(metadata.AccessUuid)
+	if delErr != nil {
+		context.JSON(http.StatusUnauthorized, delErr.Error())
+		return
+	}
+	context.JSON(http.StatusOK, "Successfully logged out")
 }
 
 // Signup API

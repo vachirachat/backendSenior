@@ -41,7 +41,7 @@ func main() {
 	// Init service
 
 	// TODO: implement token repo, no hardcode secret
-	jwtSvc := auth.NewJWTService((repository.TokenRepository)(nil), []byte("secret_access"), []byte("secret_refresh"))
+	jwtSvc := auth.NewJWTService((repository.TokenRepository)(nil), []byte("secret_access"), []byte("secret_refresh"), make(map[string]bool))
 
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo, jwtSvc)

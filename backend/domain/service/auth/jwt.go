@@ -3,8 +3,11 @@ package auth
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -16,14 +19,23 @@ type JWTService struct {
 	tokenRepository repository.TokenRepository
 	accessSecret    []byte
 	refreshSecret   []byte
+	userValidToken  map[string]bool
 }
 
+type AccessDetails struct {
+	AccessUuid string
+	UserId     uint64
+}
+
+// userValidToken := map[string]bool
+
 // NewJWTService create message service from repository
-func NewJWTService(tokenRepo repository.TokenRepository, accessSecret []byte, refreshSecret []byte) *JWTService {
+func NewJWTService(tokenRepo repository.TokenRepository, accessSecret []byte, refreshSecret []byte, userValidToken map[string]bool) *JWTService {
 	return &JWTService{
 		tokenRepository: tokenRepo,
 		accessSecret:    accessSecret,
 		refreshSecret:   refreshSecret,
+		userValidToken:  userValidToken,
 	}
 }
 
@@ -87,4 +99,65 @@ func (service *JWTService) VerifyToken(token string) (model.JWTClaim, error) {
 	}
 
 	return claim, nil
+}
+
+func (service *JWTService) TokenValid(tokenIn string) error {
+	token, err := service.VerifyToken(tokenIn)
+	if err != nil {
+		return err
+	}
+	newToken, err := mapClaimToModel(token)
+
+	log.Println(newToken)
+
+	if newToken.Authorized == false /* && newToken.jwt.StandardClaims.Valid*/ {
+		return err
+	}
+	return nil
+}
+
+func (service *JWTService) ExtractTokenMetadata(tokenIn string) (*AccessDetails, error) {
+	token, err := service.VerifyToken(tokenIn)
+	if err != nil {
+		return nil, err
+	}
+	claims := token
+
+	accessUuid := claims.AccessUuid
+	userId, err := strconv.ParseUint(fmt.Sprintf("%.f", claims.UserId), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return &AccessDetails{
+		AccessUuid: accessUuid,
+		UserId:     userId,
+	}, nil
+
+	return nil, err
+}
+
+func (service *JWTService) DeleteAuth(givenUuid string) error {
+	_, notInMap := service.userValidToken[givenUuid]
+	if !notInMap {
+		return errors.New("dont have value uuid")
+	}
+	service.userValidToken[givenUuid] = false
+	return nil
+}
+
+func mapClaimToModel(token model.JWTClaim) (model.JWTClaim, error) {
+	tokenMap := model.JWTClaim{}
+	// convert json to struct
+	jsonString, err := json.Marshal(token)
+	if err != nil {
+		return tokenMap, err
+	}
+	json.Unmarshal(jsonString, &tokenMap)
+	// tokenRole,  := base64.StdEncoding.DecodeString(tokenMap.Role)
+	// tokenUserId, _ := base64.StdEncoding.DecodeString(tokenMap.UserId)
+
+	// tokenMap.Role = byteToString(tokenRole)
+	// tokenMap.UserId = byteToString(tokenUserId)
+
+	return tokenMap, err
 }
