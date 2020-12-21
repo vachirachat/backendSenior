@@ -10,14 +10,20 @@ type RoomService struct {
 	roomRepository      repository.RoomRepository
 	roomUserRepository  repository.RoomUserRepository
 	roomProxyRepository repository.RoomUserRepository
+	// for get user/org by room
+	userRepository  repository.UserRepository
+	proxyRepository repository.ProxyRepository
 }
 
 // NewRoomService create new room service instance
-func NewRoomService(roomRepo repository.RoomRepository, roomUser repository.RoomUserRepository, roomProxy repository.RoomUserRepository) *RoomService {
+func NewRoomService(roomRepo repository.RoomRepository, roomUser repository.RoomUserRepository, roomProxy repository.RoomUserRepository,
+	userRepo repository.UserRepository, proxyRepo repository.ProxyRepository) *RoomService {
 	return &RoomService{
 		roomRepository:      roomRepo,
 		roomUserRepository:  roomUser,
 		roomProxyRepository: roomProxy,
+		userRepository:      userRepo,
+		proxyRepository:     proxyRepo,
 	}
 }
 
@@ -31,6 +37,12 @@ func (service *RoomService) GetAllRooms() ([]model.Room, error) {
 func (service *RoomService) GetRoomByID(roomID string) (model.Room, error) {
 	room, err := service.roomRepository.GetRoomByID(roomID)
 	return room, err
+}
+
+// GetRoomsByUser return rooms of user
+func (service *RoomService) GetRoomsByUser(userID string) ([]model.Room, error) {
+	rooms, err := service.roomRepository.GetRoomsByUser(userID)
+	return rooms, err
 }
 
 // AddRoom insert room into database and return id of newly inserted room
@@ -67,9 +79,15 @@ func (service *RoomService) DeleteMemberFromRoom(roomID string, userList []strin
 	return err
 }
 
-// GetRoomMembers return list of members in rooms
-func (service *RoomService) GetRoomMembers(roomID string) ([]string, error) {
+// GetRoomMemberIDs return list of members in rooms (as ID)
+func (service *RoomService) GetRoomMemberIDs(roomID string) ([]string, error) {
 	members, err := service.roomUserRepository.GetRoomUsers(roomID)
+	return members, err
+}
+
+// GetRoomMembers return list of members in rooms (as object)
+func (service *RoomService) GetRoomMembers(roomID string) ([]model.User, error) {
+	members, err := service.userRepository.GetUsersByRoom(roomID)
 	return members, err
 }
 
@@ -87,8 +105,14 @@ func (service *RoomService) DeleteProxiesFromRoom(roomID string, userList []stri
 	return err
 }
 
-// GetRoomProxies return list of proxies in rooms
-func (service *RoomService) GetRoomProxies(roomID string) ([]string, error) {
+// GetRoomProxyIDs return list of proxies in rooms as ID
+func (service *RoomService) GetRoomProxyIDs(roomID string) ([]string, error) {
 	members, err := service.roomProxyRepository.GetRoomUsers(roomID)
 	return members, err
+}
+
+// GetRoomProxies return list of proxies in room as object
+func (service *RoomService) GetRoomProxies(roomID string) ([]model.Proxy, error) {
+	proxies, err := service.proxyRepository.GetByRoom(roomID)
+	return proxies, err
 }

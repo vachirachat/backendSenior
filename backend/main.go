@@ -45,7 +45,7 @@ func main() {
 
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo, jwtSvc)
-	roomSvc := service.NewRoomService(roomRepo, roomUserRepo, roomProxyRepo)
+	roomSvc := service.NewRoomService(roomRepo, roomUserRepo, roomProxyRepo, userRepo, proxyRepo)
 	// we use room proxy repo to map!
 	chatSvc := service.NewChatService(roomProxyRepo, chatPool, chatPool, messageRepo)
 	proxySvc := service.NewProxyService(proxyRepo)

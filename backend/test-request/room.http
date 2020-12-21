@@ -8,9 +8,15 @@
 @userA = 5fde1148c3cae674040aeebd
 @userB = 5fde114bc3cae674040aeec1
 
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImM0ZDE1YzJiLWEzYWMtNGQyYS1hNjE4LTBhNjRmNDZlZThmMSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwODUzMTg4Miwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZkZTExNDhjM2NhZTY3NDA0MGFlZWJkIn0.xz3WEVwoVQNmOCgWWPlZZ787YK97g1kG_pNtGyWqhzk
+
 ### GET ALL ROOMS
 GET {{base}}
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImRkMjRhZDhlLWIxZTMtNDU4My1hNzQxLTNiNDM4ZTE0ZDA4MiIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MTYwODI4NTMzOCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZkOWRmYTcwZjA0M2M0MjM2YzA5NzI5In0.VocMxkgQCxrszgQICIWB27aZvTevggbZ-SxJvZlURWo
+Authorization: Bearer {{token}}
+
+### GET My ROOMS
+GET {{base}}?me=true
+Authorization: Bearer {{token}}
 
 ### CREATE ROOM
 POST {{base}}
@@ -25,7 +31,6 @@ Content-Type: application/json
 ### GET room by ID
 GET {{base}}/{{roomA}}
 
-
 ### EDIT room
 POST {{base}}/{{roomA}}/name
 Content-Type: application/json
@@ -36,6 +41,9 @@ Content-Type: application/json
 
 ### Get Member
 GET {{base}}/{{roomA}}/member   
+
+### Get Member as object
+GET {{base}}/{{roomA}}/member?full=true
 
 ### Add Member
 POST {{base}}/{{roomA}}/member   
@@ -55,13 +63,15 @@ Content-Type: application/json
 
 ### get proxy
 GET {{base}}/{{roomA}}/proxy    
+### get proxy full
+GET {{base}}/{{roomA}}/proxy?full=true
 
 ###
 POST {{base}}/{{roomA}}/proxy    
 Content-Type: application/json
 
 {
-  "proxyIds": ["{{proxyA}}"]
+  "proxyIds": ["{{proxyA}}", "{{proxyB}}"]
 }
 
 ###

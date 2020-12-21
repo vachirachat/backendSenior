@@ -39,6 +39,15 @@ func (userMongo UserRepositoryMongo) GetUserByID(userID string) (model.User, err
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(objectID).One(&user)
 	return user, err
 }
+
+func (userMongo UserRepositoryMongo) GetUsersByRoom(roomID string) ([]model.User, error) {
+	var users []model.User
+	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).Find(bson.M{
+		"room": bson.ObjectIdHex(roomID), // rooms contains roomID
+	}).All(&users)
+	return users, err
+}
+
 func (userMongo UserRepositoryMongo) GetLastUser() (model.User, error) {
 	var user model.User
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).Find(nil).Sort("-created_time").One(&user)

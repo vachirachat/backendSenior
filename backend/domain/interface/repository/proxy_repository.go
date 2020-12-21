@@ -9,4 +9,5 @@ type ProxyRepository interface {
 	DeleteProxy(proxyID string) error
 	UpdateProxy(proxyID string, update model.Proxy) error
 	GetByID(proxyID string) (model.Proxy, error)
+	GetByRoom(roomID string) ([]model.Proxy, error)
 }

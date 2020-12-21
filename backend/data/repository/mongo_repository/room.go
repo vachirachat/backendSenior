@@ -28,6 +28,14 @@ func (roomMongo RoomRepositoryMongo) GetRoomByID(roomID string) (model.Room, err
 	return room, err
 }
 
+func (roomMongo RoomRepositoryMongo) GetRoomsByUser(userID string) ([]model.Room, error) {
+	var rooms []model.Room
+	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).FindId(bson.M{
+		"users": bson.ObjectIdHex(userID), // can use this syntax to lookup item in array
+	}).All(&rooms)
+	return rooms, err
+}
+
 func (roomMongo RoomRepositoryMongo) AddRoom(room model.Room) (string, error) {
 	room.RoomID = bson.NewObjectId()
 	room.ListUser = []bson.ObjectId{}
@@ -40,8 +48,8 @@ func (roomMongo RoomRepositoryMongo) UpdateRoom(roomID string, room model.Room) 
 	updateMap := room.Map()
 
 	delete(updateMap, "_id")
-	delete(updateMap, "listUser")
-	delete(updateMap, "listProxy")
+	delete(updateMap, "users")
+	delete(updateMap, "proxies")
 	updateMap["updatedTime"] = time.Now()
 
 	return roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), bson.M{

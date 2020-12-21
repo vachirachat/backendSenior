@@ -83,8 +83,8 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 	// Update database
 	err = repo.connection.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), bson.M{
 		"$addToSet": bson.M{
-			"listUser": bson.M{
-				"$each": utills.ToObjectIdArr(userIDs), // add all from listUser to array
+			"users": bson.M{
+				"$each": utills.ToObjectIdArr(userIDs),
 			},
 		},
 	})
@@ -92,7 +92,7 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 		return err
 	}
 
-	_, err = repo.connection.DB(dbName).C(collectionUser).UpdateAll(bson.M{"$in": utills.ToObjectIdArr(userIDs)}, bson.M{
+	_, err = repo.connection.DB(dbName).C(collectionUser).UpdateAll(idInArr(userIDs), bson.M{
 		"$addToSet": bson.M{
 			"room": bson.ObjectIdHex(roomID),
 		},
@@ -131,7 +131,7 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 	// Update database
 	err = repo.connection.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), bson.M{
 		"$pullAll": bson.M{
-			"listUser": utills.ToObjectIdArr(userIDs),
+			"users": utills.ToObjectIdArr(userIDs),
 		},
 	})
 	if err != nil {

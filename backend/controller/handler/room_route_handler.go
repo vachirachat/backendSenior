@@ -1,6 +1,7 @@
 package route
 
 import (
+	"backendSenior/controller/middleware/auth"
 	"backendSenior/domain/service"
 	"backendSenior/utills"
 	"fmt"
@@ -16,12 +17,14 @@ import (
 
 type RoomRouteHandler struct {
 	roomService *service.RoomService
+	authMw      *auth.JWTMiddleware
 }
 
 // NewRoomHandler create new handler for room
-func NewRoomRouteHandler(roomService *service.RoomService) *RoomRouteHandler {
+func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware) *RoomRouteHandler {
 	return &RoomRouteHandler{
 		roomService: roomService,
+		authMw:      authMw,
 	}
 }
 
@@ -41,12 +44,23 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	// routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
 	// routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
 	routerGroup.GET("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomByIDHandler)
-	routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.roomListHandler)
+	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.roomListHandler)
 }
 
 func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
 	var roomsInfo model.RoomInfo
-	rooms, err := handler.roomService.GetAllRooms()
+
+	isMe := context.Query("me") != ""
+
+	var rooms []model.Room
+	var err error
+
+	if isMe {
+		myID := context.GetString(auth.UserIdField)
+		rooms, err = handler.roomService.GetRoomsByUser(myID)
+	} else {
+		rooms, err = handler.roomService.GetAllRooms()
+	}
 	if err != nil {
 		log.Println("error roomListHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -199,7 +213,16 @@ func (handler *RoomRouteHandler) getRoomMemberIDs(context *gin.Context) {
 		return
 	}
 
-	users, err := handler.roomService.GetRoomMembers(roomID)
+	isFull := context.Query("full") != ""
+
+	var users interface{} // either []string or []User
+	var err error
+
+	if isFull {
+		users, err = handler.roomService.GetRoomMembers(roomID)
+	} else {
+		users, err = handler.roomService.GetRoomMemberIDs(roomID)
+	}
 	if err != nil {
 		fmt.Println("[Room handler] getRoomMembers: ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
@@ -218,7 +241,17 @@ func (handler *RoomRouteHandler) getRoomProxies(context *gin.Context) {
 		return
 	}
 
-	proxies, err := handler.roomService.GetRoomProxies(roomID)
+	isFull := context.Query("full") != ""
+
+	var proxies interface{} // either []string or []User
+	var err error
+
+	if isFull {
+		proxies, err = handler.roomService.GetRoomProxies(roomID)
+	} else {
+		proxies, err = handler.roomService.GetRoomProxyIDs(roomID)
+	}
+
 	if err != nil {
 		fmt.Println("[Room handler] getRoomMembers: ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
