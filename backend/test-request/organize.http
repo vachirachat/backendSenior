@@ -1,9 +1,11 @@
 @base = http://localhost:8080/api/v1/org
 @baseUser = http://localhost:8080/api/v1/user/user
-@orgA = 5fdf7e4de89bde05f327dc5c
+@orgA = 5fe06fd026dcb9575f1a62bd
 
-@userA = 5fdf7e7033b41136d5bc0645
-@userB = 5fda0cb38234d7a18e3b8c74
+@userA = 5fde1148c3cae674040aeebd
+@userB = 5fde114bc3cae674040aeec1
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImM0ZDE1YzJiLWEzYWMtNGQyYS1hNjE4LTBhNjRmNDZlZThmMSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwODUzMTg4Miwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZkZTExNDhjM2NhZTY3NDA0MGFlZWJkIn0.xz3WEVwoVQNmOCgWWPlZZ787YK97g1kG_pNtGyWqhzk
 
 ### GET All Users
 GET {{baseUser}}
@@ -11,7 +13,11 @@ GET {{baseUser}}
 
 ### GET All org
 GET {{base}}
+Authorization: Bearer {{token}}
 
+### GET only My org
+GET {{base}}
+Authorization: Bearer {{token}}
 
 ### CREATE Org
 POST {{base}}
@@ -22,9 +28,8 @@ Content-Type: application/json
 }
 
 
-### CREATE Org
+### GET Org
 GET {{base}}/{{orgA}}
-
 
 ### Edit Org
 PUT {{base}}/{{orgA}}
@@ -35,6 +40,10 @@ Content-Type: application/json
 }
 
 
+### GET Org Member
+GET {{base}}/{{orgA}}/member
+
+
 ### Invite User to Org.
 POST {{base}}/{{orgA}}/member
 Content-Type: application/json
@@ -43,6 +52,11 @@ Content-Type: application/json
   "UserIDs": ["{{userA}}"]
 }
 
+
+### GET admin in Org.
+GET {{base}}/{{orgA}}/admin
+
+
 ### Invite Admin to Org.
 POST {{base}}/{{orgA}}/admin
 Content-Type: application/json
@@ -50,25 +64,3 @@ Content-Type: application/json
 {
   "UserIDs": ["{{userA}}"]
 }
-
-### GET User in Org.
-GET {{base}}/{{orgC}}/member
-
-### Invite User to Org.
-POST {{base}}/{{orgC}}/admin
-Content-Type: application/json
-
-{
-  "UserIDs": ["{{userA}}","{{userB}}"]
-}
-
-### Invite User to Org.
-DELETE  {{base}}/{{orgC}}/admin
-Content-Type: application/json
-
-{
-  "UserIDs": ["{{userA}}","{{userB}}"]
-}
-
-### GET User in Org.
-GET {{base}}/{{userA}}/member
