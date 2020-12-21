@@ -150,7 +150,7 @@ func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	context.JSON(http.StatusCreated, gin.H{"status": "success", "OrganizeId": OrganizeID})
+	context.JSON(http.StatusCreated, gin.H{"status": "success", "orgId": OrganizeID})
 }
 
 func (handler *OrganizeRouteHandler) editOrganizeNameHandler(context *gin.Context) {
