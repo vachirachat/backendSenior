@@ -50,7 +50,11 @@ POST {{base}}/{{roomA}}/member
 Content-Type: application/json
 
 {
+<<<<<<< HEAD
   "userIds": ["{{userB}}", "{{userA}}"]
+=======
+  "userIds": ["{{userA}}"]
+>>>>>>> main
 }
 
 ### remove user
@@ -63,8 +67,11 @@ Content-Type: application/json
 
 ### get proxy
 GET {{base}}/{{roomA}}/proxy    
+<<<<<<< HEAD
 ### get proxy full
 GET {{base}}/{{roomA}}/proxy?full=true
+=======
+>>>>>>> main
 
 ###
 POST {{base}}/{{roomA}}/proxy    
