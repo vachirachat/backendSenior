@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo/bson"
 )
 
 // MessageRouteHandler is Handler (controller) for message related route
@@ -34,7 +35,20 @@ func (handler *MessageRouteHandler) messageListHandler(context *gin.Context) {
 	// return value
 	var messagesInfo model.MessagesResponse
 
-	messages, err := handler.messageService.GetAllMessages()
+	roomID := context.Query("roomId")
+	if roomID != "" && !bson.IsObjectIdHex(roomID) {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "bad query"})
+		return
+	}
+
+	var messages []model.Message
+	var err error
+
+	if roomID != "" {
+		messages, err = handler.messageService.GetMessageByRoom(roomID)
+	} else {
+		messages, err = handler.messageService.GetAllMessages()
+	}
 
 	if err != nil {
 		log.Println("error MessageListHandler", err.Error())

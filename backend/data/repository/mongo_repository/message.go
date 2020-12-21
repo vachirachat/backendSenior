@@ -40,7 +40,7 @@ func (messageMongo *MessageRepositoryMongo) GetAllMessages(timeRange *model.Time
 func (messageMongo *MessageRepositoryMongo) GetMessagesByRoom(roomID string, timeRange *model.TimeRange) ([]model.Message, error) {
 	var messages []model.Message
 	filter := queryFromTimeRange(timeRange)
-	filter["roomId"] = roomID
+	filter["roomId"] = bson.ObjectIdHex(roomID)
 	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Find(filter).All(&messages)
 	return messages, err
 }

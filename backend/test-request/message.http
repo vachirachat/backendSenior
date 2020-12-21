@@ -1,0 +1,4 @@
+@base = http://localhost:8080/api/v1/message
+
+###
+GET {{base}}/?roomId=5fde116026dcb940569b15bf
