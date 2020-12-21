@@ -2,7 +2,6 @@ package main
 
 import (
 	"backendSenior/data/repository/chatsocket"
-	be_mongo_repository "backendSenior/data/repository/mongo_repository"
 	"backendSenior/domain/model"
 	"encoding/json"
 	"fmt"
@@ -15,20 +14,14 @@ import (
 	"proxySenior/domain/service"
 	"proxySenior/utils"
 
-	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )
 
 func main() {
-	conn, err := mgo.Dial(utils.MONGO_CONN_STRING)
-	if err != nil {
-		log.Fatalln("Error connecting to mongo:", err)
-	}
-
 	// Repo
 	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.CONTROLLER_ORIGIN)
 	pool := chatsocket.NewConnectionPool()
-	msgRepo := &be_mongo_repository.MessageRepositoryMongo{ConnectionDB: conn}
+	msgRepo := delegate.NewDelegateMessageRepository(utils.CONTROLLER_ORIGIN)
 
 	// Service
 	clientID := os.Getenv("CLIENT_ID")
@@ -44,14 +37,16 @@ func main() {
 	keystore := &mongo_repository.KeyRepository{}
 
 	enc := service.NewEncryptionService(keystore)
-	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, msgRepo, enc)
+	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil, enc)
 	upstreamService := service.NewChatUpstreamService(upstream, enc)
 	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)
+	messageService := service.NewMessageService(msgRepo, enc)
 
 	router := (&route.RouterDeps{
 		UpstreamService:   upstreamService,
 		DownstreamService: downstreamService,
 		AuthService:       delegateAuth,
+		MessageService:    messageService,
 	}).NewRouter()
 
 	pipe := make(chan []byte, 100)

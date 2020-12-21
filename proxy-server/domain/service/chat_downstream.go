@@ -31,8 +31,7 @@ func NewChatDownstreamService(roomUserRepo repository.RoomUserRepository, sender
 
 // SaveMessage save speicified message to repository, returning the ID of message
 func (chat *ChatDownstreamService) SaveMessage(message model.Message) (string, error) {
-	id, err := chat.msgRepo.AddMessage(message)
-	return id, err
+	panic("not allowed to save message in proxy")
 }
 
 // IsUserInRoom return whether `userID` is in `roomID`
