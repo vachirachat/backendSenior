@@ -32,7 +32,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	messageRouteHandler := NewMessageRouteHandler(deps.MessageService)
 	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService)
 	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService)
-	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, deps.JWTService)
+	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware)
 	r := gin.Default()
 
 	subgroup := r.Group("/api/v1")

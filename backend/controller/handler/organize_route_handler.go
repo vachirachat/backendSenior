@@ -1,9 +1,9 @@
 package route
 
 import (
+	"backendSenior/controller/middleware/auth"
 	"backendSenior/domain/model"
 	"backendSenior/domain/service"
-	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
 	"log"
 	"net/http"
@@ -15,34 +15,54 @@ import (
 // OrganizeRouteHandler is Handler (controller) for Organize related route
 type OrganizeRouteHandler struct {
 	organizeService *service.OrganizeService
-	authService     *auth.JWTService
+	authMw          *auth.JWTMiddleware
 }
 
 // NewOrganizeRouteHandler create handler for Organize route
-func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authService *auth.JWTService) *OrganizeRouteHandler {
+func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authMw *auth.JWTMiddleware) *OrganizeRouteHandler {
 	return &OrganizeRouteHandler{
 		organizeService: organizeService,
-		authService:     authService,
+		authMw:          authMw,
 	}
 }
 
 //Mount make OrganizeRouteHandler handler request from specific `RouterGroup`
 func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
+	routerGroup.GET("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getOrganizeByIDHandler)
+	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addOrganizeHandler)
+	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.organizeListHandler)
+	routerGroup.PUT("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editOrganizeNameHandler)
+	routerGroup.DELETE("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteOrganizeByIDHandler)
+
 	routerGroup.GET("/:id/member", handler.getOrganizesMemberID)
 	routerGroup.POST("/:id/member", handler.addMemberToOrganize)
 	routerGroup.DELETE("/:id/member", handler.deleteMemberFromOrganize)
 
-	// routerGroup.GET("/:id/admin", handler.getOrganizeAdmins)
+	routerGroup.GET("/:id/admin", handler.getOrganizesAdminIDs)
 	routerGroup.POST("/:id/admin", handler.addAdminsToOrganize)
 	routerGroup.DELETE("/:id/admin", handler.deleteAdminsFromOrganize)
 
-	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addOrganizeHandler)
-	routerGroup.GET("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getOrganizeByIDHandler)
-	routerGroup.GET("/" /* handler.authService.AuthMiddleware("object", "view")*/, handler.organizeListHandler)
-	routerGroup.PUT("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editOrganizeNameHandler)
-	routerGroup.DELETE("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteOrganizeByIDHandler)
 }
+
+func (handler *OrganizeRouteHandler) getOrganizesAdminIDs(context *gin.Context) {
+	UserID := context.Param("id")
+	if !bson.IsObjectIdHex(UserID) {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "bad OrganizeID"})
+		return
+	}
+
+	Organize, err := handler.organizeService.GetOrganizeById(UserID)
+	if err != nil {
+		log.Println("error GetOrganizeByIDHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{
+		"admins": Organize.ListAdmin,
+	})
+}
+
 func (handler *OrganizeRouteHandler) getOrganizesMemberID(context *gin.Context) {
 	UserID := context.Param("id")
 	if !bson.IsObjectIdHex(UserID) {
@@ -56,18 +76,46 @@ func (handler *OrganizeRouteHandler) getOrganizesMemberID(context *gin.Context) 
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, Organize)
+	context.JSON(http.StatusOK, gin.H{
+		"members": Organize.ListMember,
+	})
+}
+
+func isInObjArr(id bson.ObjectId, arr []bson.ObjectId) bool {
+	for _, x := range arr {
+		if id == x {
+			return true
+		}
+	}
+	return false
 }
 
 func (handler *OrganizeRouteHandler) organizeListHandler(context *gin.Context) {
 	var OrganizesInfo model.OrganizeInfo
-	Organizes, err := handler.organizeService.GetAllOrganizes()
+	// TODO HACK
+	isMe := context.Query("me") != ""
+	var orgs []model.Organize
+	var err error
+
+	orgs, err = handler.organizeService.GetAllOrganizes()
+	myId := bson.ObjectIdHex(context.GetString(auth.UserIdField))
+	idx := 0
+	if isMe {
+		for i := 0; i < len(orgs); i++ {
+			if isInObjArr(myId, orgs[i].ListMember) {
+				orgs[idx] = orgs[i]
+				idx++
+			}
+		}
+		orgs = orgs[:idx]
+	}
+
 	if err != nil {
 		log.Println("error OrganizeListHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	OrganizesInfo.Organize = Organizes
+	OrganizesInfo.Organize = orgs
 	context.JSON(http.StatusOK, OrganizesInfo)
 }
 
