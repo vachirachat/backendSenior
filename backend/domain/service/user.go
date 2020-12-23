@@ -99,7 +99,7 @@ func (service *UserService) Login(email string, password string) (model.User, er
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return model.User{}, err
+		return user, err
 	}
 	return user, nil
 }

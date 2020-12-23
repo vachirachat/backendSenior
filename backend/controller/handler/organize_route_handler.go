@@ -117,7 +117,7 @@ func (handler *OrganizeRouteHandler) getOrganizations(context *gin.Context) {
 	var err error
 
 	if isMe {
-		userID := context.Param(auth.UserIdField)
+		userID := context.GetString(auth.UserIdField)
 		orgs, err = handler.organizeService.GetUserOrganizations(userID)
 	} else {
 		orgs, err = handler.organizeService.GetAllOrganizes()
