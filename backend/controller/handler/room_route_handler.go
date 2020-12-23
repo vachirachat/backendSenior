@@ -16,22 +16,26 @@ import (
 )
 
 type RoomRouteHandler struct {
-	roomService *service.RoomService
-	authMw      *auth.JWTMiddleware
+	roomService  *service.RoomService
+	userService  *service.UserService
+	proxyService *service.ProxyService
+	authMw       *auth.JWTMiddleware
 }
 
 // NewRoomHandler create new handler for room
-func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware) *RoomRouteHandler {
+func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware, userService *service.UserService, proxyService *service.ProxyService) *RoomRouteHandler {
 	return &RoomRouteHandler{
-		roomService: roomService,
-		authMw:      authMw,
+		roomService:  roomService,
+		userService:  userService,
+		authMw:       authMw,
+		proxyService: proxyService,
 	}
 }
 
 //Mount make RoomRouteHandler handler request from specific `RouterGroup`
 func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/:id/member", handler.getRoomMemberIDs)
+	routerGroup.GET("/:id/member", handler.getRoomMember)
 	routerGroup.POST("/:id/member", handler.addMemberToRoom)
 	routerGroup.DELETE("/:id/member", handler.deleteMemberFromRoom)
 	routerGroup.GET("/:id/proxy", handler.getRoomProxies)
@@ -57,7 +61,7 @@ func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
 
 	if isMe {
 		myID := context.GetString(auth.UserIdField)
-		rooms, err = handler.roomService.GetRoomsByUser(myID)
+		rooms, err = handler.roomService.GetUserRooms(myID)
 	} else {
 		rooms, err = handler.roomService.GetAllRooms()
 	}
@@ -206,25 +210,31 @@ func (handler *RoomRouteHandler) deleteMemberFromRoom(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-func (handler *RoomRouteHandler) getRoomMemberIDs(context *gin.Context) {
+// TODO change this to return full object only, currently keep for compatibility of proxy
+func (handler *RoomRouteHandler) getRoomMember(context *gin.Context) {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
 		return
 	}
-
 	isFull := context.Query("full") != ""
 
-	var users interface{} // either []string or []User
-	var err error
-
-	if isFull {
-		users, err = handler.roomService.GetRoomMembers(roomID)
-	} else {
-		users, err = handler.roomService.GetRoomMemberIDs(roomID)
-	}
+	userIDs, err := handler.roomService.GetRoomMemberIDs(roomID)
 	if err != nil {
-		fmt.Println("[Room handler] getRoomMembers: ", err.Error())
+		fmt.Println("[getRoomMember] error", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return
+	}
+
+	if !isFull {
+		context.JSON(http.StatusOK, gin.H{
+			"members": userIDs,
+		})
+		return
+	}
+	users, err := handler.userService.GetUsersByIDs(userIDs)
+	if err != nil {
+		fmt.Println("[getRoomMember, full] error", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return
 	}
@@ -241,19 +251,16 @@ func (handler *RoomRouteHandler) getRoomProxies(context *gin.Context) {
 		return
 	}
 
-	isFull := context.Query("full") != ""
-
-	var proxies interface{} // either []string or []User
-	var err error
-
-	if isFull {
-		proxies, err = handler.roomService.GetRoomProxies(roomID)
-	} else {
-		proxies, err = handler.roomService.GetRoomProxyIDs(roomID)
+	proxyIDs, err := handler.roomService.GetRoomProxyIDs(roomID)
+	if err != nil {
+		fmt.Println("[getRoomProxies]", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return
 	}
 
+	proxies, err := handler.proxyService.GetProxiesByIDs(proxyIDs)
 	if err != nil {
-		fmt.Println("[Room handler] getRoomMembers: ", err.Error())
+		fmt.Println("[getRoomProxies]", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return
 	}
@@ -261,6 +268,7 @@ func (handler *RoomRouteHandler) getRoomProxies(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{
 		"proxies": proxies,
 	})
+
 }
 
 func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context) {

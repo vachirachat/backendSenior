@@ -64,6 +64,13 @@ func (repo *ProxyRepositoryMongo) GetByID(proxyID string) (model.Proxy, error) {
 	return proxy, err
 }
 
+// GetByIDs return multiple proxies by specifying array of IDs
+func (repo *ProxyRepositoryMongo) GetByIDs(proxyIDs []string) ([]model.Proxy, error) {
+	var proxies []model.Proxy
+	err := repo.conn.DB(dbName).C(collectionProxy).Find(idInArr(proxyIDs)).All(&proxies)
+	return proxies, err
+}
+
 func (repo *ProxyRepositoryMongo) GetByRoom(roomID string) ([]model.Proxy, error) {
 	var proxies []model.Proxy
 	err := repo.conn.DB(dbName).C(collectionProxy).Find(bson.M{

@@ -87,6 +87,11 @@ func (service *ProxyService) GetProxyByID(proxyID string) (model.Proxy, error) {
 	return service.proxyRepo.GetByID(proxyID)
 }
 
+// GetProxiesByIDs return proxy with specified ID
+func (service *ProxyService) GetProxiesByIDs(proxyIDs []string) ([]model.Proxy, error) {
+	return service.proxyRepo.GetByIDs(proxyIDs)
+}
+
 // DeleteProxyByID delte proxy with specified ID
 func (service *ProxyService) DeleteProxyByID(proxyID string) error {
 	return service.proxyRepo.DeleteProxy(proxyID)

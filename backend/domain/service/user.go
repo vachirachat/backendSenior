@@ -36,6 +36,12 @@ func (service *UserService) GetUserByID(userID string) (model.User, error) {
 	return user, err
 }
 
+// GetUsersByIDs return multiple user
+func (service *UserService) GetUsersByIDs(userIDs []string) ([]model.User, error) {
+	users, err := service.userRepository.GetUsersByIDs(userIDs)
+	return users, err
+}
+
 // GetUserByEmail return user with specified email
 func (service *UserService) GetUserByEmail(email string) (model.User, error) {
 	user, err := service.userRepository.GetUserByEmail(email)

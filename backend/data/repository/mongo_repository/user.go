@@ -40,11 +40,10 @@ func (userMongo UserRepositoryMongo) GetUserByID(userID string) (model.User, err
 	return user, err
 }
 
-func (userMongo UserRepositoryMongo) GetUsersByRoom(roomID string) ([]model.User, error) {
+// GetUsersByIDs query users by array of IDs
+func (userMongo UserRepositoryMongo) GetUsersByIDs(userID []string) ([]model.User, error) {
 	var users []model.User
-	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).Find(bson.M{
-		"room": bson.ObjectIdHex(roomID), // rooms contains roomID
-	}).All(&users)
+	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).Find(idInArr(userID)).All(&users)
 	return users, err
 }
 
@@ -53,6 +52,7 @@ func (userMongo UserRepositoryMongo) GetLastUser() (model.User, error) {
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).Find(nil).Sort("-created_time").One(&user)
 	return user, err
 }
+
 func (userMongo UserRepositoryMongo) AddUser(user model.User) error {
 	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).Insert(user)
 }

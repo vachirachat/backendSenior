@@ -5,12 +5,12 @@ import (
 )
 
 type OrganizeInfo struct {
-	Organize []Organize `json:"orgs"`
+	Orgs []Organize `json:"orgs"`
 }
 
 type Organize struct {
 	OrganizeID bson.ObjectId   `json:"orgId" bson:"_id"`
 	Name       string          `json:"name" bson:"name"`
-	ListMember []bson.ObjectId `json:"listMember" bson:"listMember"`
-	ListAdmin  []bson.ObjectId `json:"listAdmin" bson:"listAdmin"`
+	Members    []bson.ObjectId `json:"members" bson:"members"`
+	Admins     []bson.ObjectId `json:"admins" bson:"admins"`
 }

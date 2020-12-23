@@ -10,7 +10,7 @@ type UserRepository interface {
 	GetAllUserToken() ([]model.UserToken, error)
 
 	GetUserByID(userID string) (model.User, error)
-	GetUsersByRoom(roomID string) ([]model.User, error)
+	GetUsersByIDs(userIDs []string) ([]model.User, error)
 	AddUser(user model.User) error
 	EditUserName(userID string, user model.User) error
 	EditUserRole(model.UserSecret) error

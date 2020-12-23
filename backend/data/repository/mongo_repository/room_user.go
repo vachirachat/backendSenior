@@ -156,12 +156,3 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 
 	return nil
 }
-
-// used for {_id: {$in: ... }}
-func idInArr(ids []string) interface{} {
-	return bson.M{
-		"_id": bson.M{
-			"$in": utills.ToObjectIdArr(ids),
-		},
-	}
-}
