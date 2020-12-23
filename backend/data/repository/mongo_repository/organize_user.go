@@ -43,10 +43,10 @@ func (repo *OrganizeUserRepositoryMongo) AddAdminToOrganize(organizeID string, a
 	// Update database for add
 	err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
 		"$addToSet": bson.M{
-			"listAdmin": bson.M{
+			"admins": bson.M{
 				"$each": utills.ToObjectIdArr(adminIds), // add all from listUser to array
 			},
-			"listMember": bson.M{
+			"members": bson.M{
 				"$each": utills.ToObjectIdArr(adminIds), // add all from listUser to array and Add to MemberList
 			},
 		},
@@ -76,7 +76,7 @@ func (repo *OrganizeUserRepositoryMongo) AddMembersToOrganize(organizeID string,
 	// Update database
 	err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
 		"$addToSet": bson.M{
-			"listMember": bson.M{
+			"members": bson.M{
 				"$each": utills.ToObjectIdArr(employeeIds), // add all from listUser to array
 			},
 		},
@@ -117,7 +117,7 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeAdmin(organizeID string, 
 	// Update database
 	err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
 		"$pullAll": bson.M{
-			"listAdmin": utills.ToObjectIdArr(adminIds),
+			"admins": utills.ToObjectIdArr(adminIds),
 		},
 	})
 	if err != nil {
@@ -145,7 +145,7 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeMember(organizeID string,
 	// Update database
 	err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
 		"$pullAll": bson.M{
-			"listMember": utills.ToObjectIdArr(employeeIds),
+			"members": utills.ToObjectIdArr(employeeIds),
 		},
 	})
 	if err != nil {
