@@ -1,13 +1,15 @@
 package model
 
-import "github.com/globalsign/mgo/bson"
+import (
+	"github.com/globalsign/mgo/bson"
+)
 
 type UserInfo struct {
 	User []User `json:"users"`
 }
 
 type UserInfoSecrect struct {
-	UserLogin []UserLogin `json:"users"`
+	UserSecret []UserSecret `json:"users"`
 }
 
 type UserTokenInfo struct {
@@ -15,22 +17,23 @@ type UserTokenInfo struct {
 }
 
 type User struct {
-	UserID   bson.ObjectId   `json:"userID" bson:"_id,omitempty"`
-	Name     string          `json:"name" bson:"name"`
-	Email    string          `json:"email" bson:"email"`
-	Password string          `json:"password" bson:"password"`
-	Room     []bson.ObjectId `json:"room" bson:"room"`
-	UserType string          `json:"userType" bson:"userType"`
+	UserID   bson.ObjectId   `json:"userId,omitempty" bson:"_id,omitempty"`
+	Name     string          `json:"name,omitempty" bson:"name,omitempty"`
+	Email    string          `json:"email,omitempty" bson:"email,omitempty"`
+	Password string          `json:"-" bson:"password,omitempty"`
+	Room     []bson.ObjectId `json:"room,omitempty" bson:"room,omitempty"`
+	Organize []bson.ObjectId `json:"organize,omitempty" bson:"organize,omitempty"`
+	UserType string          `json:"userType,omitempty" bson:"userType,omitempty"`
 }
 
 type UserToken struct {
-	Email       string `json:"email" bson:"email"`
-	Token       string `json:"Token" bson:"Token"`
-	TimeExpired string `json:"TimeExpired" bson:"TimeExpired"`
+	UserID      bson.ObjectId `json:"userID" bson:"_id,omitempty"`
+	Token       string        `json:"token" bson:"token"`
+	TimeExpired string        `json:"timeexpired" bson:"timeexpired"`
 }
 
-type UserLogin struct {
+type UserSecret struct {
 	Email    string `json:"email" bson:"email"`
 	Password string `json:"password" bson:"password"`
-	isAdmin  bool   `json:"isadmin" bson:"isadmin"`
+	Role     string `json:"role" bson:"role"`
 }

@@ -4,7 +4,6 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"fmt"
-	"log"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -16,24 +15,17 @@ type MessageRepositoryMongo struct {
 
 var _ repository.MessageRepository = (*MessageRepositoryMongo)(nil)
 
-func queryFromTimeRange(timeRange *model.TimeRange) map[string]interface{} {
+func queryFromTimeRange(rng *model.TimeRange) map[string]interface{} {
 	filter := bson.M{}
-	tempFilter := bson.M{}
-	// comment: case nil &timeRange
-	if timeRange == nil {
+	if rng == nil {
 		return filter
 	}
-	timeRangeValue := *timeRange
-	// TODO :: TEST GET MESSAGE
-	// rangeTimeFrom, _ := time.Parse("UnixDate", timeRangeValue.To.String())
-	// rangeTimeTo, _ := time.Parse("UnixDate", timeRangeValue.From.String())
-	if !timeRangeValue.To.IsZero() {
-		tempFilter["$lte"] = timeRangeValue.To
+	if !rng.To.IsZero() {
+		filter["$lte"] = rng.To
 	}
-	if !timeRangeValue.From.IsZero() {
-		tempFilter["$gte"] = timeRangeValue.From
+	if !rng.From.IsZero() {
+		filter["$gte"] = rng.From
 	}
-	filter["timestamp"] = tempFilter
 	return filter
 }
 
@@ -47,11 +39,9 @@ func (messageMongo *MessageRepositoryMongo) GetAllMessages(timeRange *model.Time
 // GetMessagesByRoom return messages from specified room, with optional time filter
 func (messageMongo *MessageRepositoryMongo) GetMessagesByRoom(roomID string, timeRange *model.TimeRange) ([]model.Message, error) {
 	var messages []model.Message
-	// filter := queryFromTimeRange(timeRange)
-	filter := bson.M{}
+	filter := queryFromTimeRange(timeRange)
 	filter["roomId"] = bson.ObjectIdHex(roomID)
 	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Find(filter).All(&messages)
-	log.Println(messages)
 	return messages, err
 }
 
@@ -75,5 +65,6 @@ func (messageMongo *MessageRepositoryMongo) AddMessage(message model.Message) (s
 
 // DeleteMessageByID delete message by id
 func (messageMongo *MessageRepositoryMongo) DeleteMessageByID(messageID string) error {
-	return messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).RemoveId(bson.ObjectIdHex(messageID))
+	objectID := bson.ObjectIdHex(messageID)
+	return messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).RemoveId(objectID)
 }

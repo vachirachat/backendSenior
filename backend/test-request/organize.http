@@ -1,0 +1,66 @@
+@base = http://localhost:8080/api/v1/org
+@baseUser = http://localhost:8080/api/v1/user/user
+@orgA = 5fe1754626dcb947c967b199
+
+@userA = 5fe1751bd5d33ba2a28b0ee2
+@userB = 5fde114bc3cae674040aeec1
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjFkYWUxYTZiLTk5NWUtNGJmZS1hZDdlLWMyMGFiYjhlZTAxMSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwODc0MTI4Niwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlMTc1MWJkNWQzM2JhMmEyOGIwZWUyIn0.H3OOJr0-9eslqefKLgqrs8QW3oFzNIP_LkWuzw2y170
+
+### GET All Users
+GET {{baseUser}}
+
+
+### GET All org
+GET {{base}}
+Authorization: Bearer {{token}}
+
+### GET only My org
+GET {{base}}?me=true
+Authorization: Bearer {{token}}
+
+### CREATE Org
+POST {{base}}
+Content-Type: application/json
+
+{
+  "name": "BAR ROOM"
+}
+
+
+### GET Org
+GET {{base}}/{{orgA}}
+
+### Edit Org
+PUT {{base}}/{{orgA}}
+Content-Type: application/json
+
+{
+  "name": "BATH Org"
+}
+
+
+### GET Org Member
+GET {{base}}/{{orgA}}/member
+
+
+### Invite User to Org.
+POST {{base}}/{{orgA}}/member
+Content-Type: application/json
+
+{
+  "UserIDs": ["{{userA}}"]
+}
+
+
+### GET admin in Org.
+GET {{base}}/{{orgA}}/admin
+
+
+### Invite Admin to Org.
+POST {{base}}/{{orgA}}/admin
+Content-Type: application/json
+
+{
+  "UserIDs": ["{{userA}}"]
+}

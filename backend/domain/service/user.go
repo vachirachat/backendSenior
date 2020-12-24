@@ -2,24 +2,27 @@ package service
 
 import (
 	"backendSenior/domain/interface/repository"
+	"backendSenior/domain/service/auth"
 	"errors"
+	"log"
 
 	"backendSenior/domain/model"
 	"backendSenior/utills"
-	"log"
 
-	"github.com/segmentio/ksuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // UserService provide access to user related functions
 type UserService struct {
 	userRepository repository.UserRepository
+	jwtService     *auth.JWTService
 }
 
 // NewUserService return instance of user service
-func NewUserService(userRepo repository.UserRepository) *UserService {
+func NewUserService(userRepo repository.UserRepository, jwtService *auth.JWTService) *UserService {
 	return &UserService{
 		userRepository: userRepo,
+		jwtService:     jwtService,
 	}
 }
 
@@ -29,54 +32,22 @@ func (service *UserService) GetAllUsers() ([]model.User, error) {
 	return users, err
 }
 
-// for get user by id
-// func (api UserAPI) GetUserByID(context *gin.Context) {
-// 	userID := context.Param("user_id")
-// 	// user, err := service.userRepository.GetUserByID(userID)
-// 	if err != nil {
-// 		log.Println("error GetUserByID", err.Error())
-// 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-// 		return
-// 	}
-// 	context.JSON(http.StatusOK, user)
-// }
+func (service *UserService) GetUserByID(userID string) (model.User, error) {
+	user, err := service.userRepository.GetUserByID(userID)
+	return user, err
+}
+
+// GetUsersByIDs return multiple user
+func (service *UserService) GetUsersByIDs(userIDs []string) ([]model.User, error) {
+	users, err := service.userRepository.GetUsersByIDs(userIDs)
+	return users, err
+}
 
 // GetUserByEmail return user with specified email
 func (service *UserService) GetUserByEmail(email string) (model.User, error) {
 	user, err := service.userRepository.GetUserByEmail(email)
 	return user, err
 }
-
-func (service *UserService) GetUserRoomByUserID(userID string) ([]string, error) {
-	user, err := service.userRepository.GetUserRoomByUserID(userID)
-	return user, err
-}
-
-//for return roomidList of User
-// func (api UserAPI) GetUserRoomByUserID(context *gin.Context) {
-// 	var user model.User
-// 	err := context.ShouldBindJSON(&user)
-// 	userResult, err := service.userRepository.GetUserByID(user.UserID)
-// 	if err != nil {
-// 		log.Println("error getUserRoomByUserID", err.Error())
-// 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-// 		return
-// 	}
-// 	roomIDList := userResult.Room
-// 	log.Println(roomIDList)
-// 	var roomNameList []string
-// 	for _, s := range roomIDList {
-// 		room, err := service.userRepository.GetRoomWithRoomID(s)
-// 		if err != nil {
-// 			log.Println("error getUserRoomByUserID", err.Error())
-// 			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-// 			return
-// 		}
-// 		roomNameList = append(roomNameList, room.RoomName)
-// 	}
-
-// 	context.JSON(http.StatusOK, gin.H{"username": userResult.Name, "RoomIDList": userResult.Room, "RoomNameList": roomNameList})
-// }
 
 // AddUser create a user
 func (service *UserService) AddUser(user model.User) error {
@@ -85,15 +56,9 @@ func (service *UserService) AddUser(user model.User) error {
 	return err
 }
 
-// EditUserName this actually update the whole user object
-func (service *UserService) EditUserName(userID string, user model.User) error {
-	err := service.userRepository.EditUserName(userID, user)
-	return err
-}
-
 // UpdateUser update whole user
 func (service *UserService) UpdateUser(userID string, user model.User) error {
-	err := service.userRepository.EditUserName(userID, user)
+	err := service.userRepository.UpdateUser(userID, user)
 	return err
 }
 
@@ -110,8 +75,8 @@ func (service *UserService) UserTokenList() ([]model.UserToken, error) {
 }
 
 // GetUserTokenByID return all tokens of speicifed user
-func (service *UserService) GetUserTokenByID(userID string) (model.UserToken, error) {
-	token, err := service.userRepository.GetUserTokenById(userID)
+func (service *UserService) GetUserRole(userID string) (string, error) {
+	token, err := service.userRepository.GetUserRole(userID)
 	return token, err
 }
 
@@ -121,38 +86,41 @@ type messageLogin struct {
 	token  string
 }
 
-//Login find user with matching username, password, isAdmin, return token
-// TODO WTF return
-func (service *UserService) Login(credentials model.UserLogin) (string, error) {
-	user, err := service.userRepository.GetUserLogin(credentials)
-
-	//Fix Check token
-	var usertoken model.UserToken
-	usertoken, err = service.userRepository.GetUserTokenById(user.Email)
-	log.Println(usertoken)
-
-	// mean first_login or cookie is expired
-	// if err != nil {
-	// if isexpied ?? implement
-
-	// generate new token
-	log.Println("Pass IN if news token")
-	usertoken.Email = user.Email
-	usertoken.Token = ksuid.New().String()
-	err = service.userRepository.AddToken(usertoken)
-
-	// if generate error, error
+func (service *UserService) Login(email string, password string) (model.User, error) {
+	// var token model.TokenDetails
+	user, err := service.GetUserByEmail(email)
+	log.Println(user)
 	if err != nil {
-		log.Println("error AddUserTokenHandeler", err.Error())
-		return "", err
-		// }
+		return model.User{}, errors.New("User not exists")
 	}
-
-	return usertoken.Token, nil
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return model.User{}, err
+	}
+	return user, nil
 }
 
+// //Login find user with matching username, password, isAdmin, return token
+// func (service *UserService) EditUserRole(credentials model.UserSecret) error {
+// 	_, err := service.userRepository.GetUserSecret(credentials)
+// 	if err != nil {
+// 		return errors.New("User not exists")
+// 	}
+
+// 	exist, _ := utills.In_array(strings.ToLower(credentials.Role), []string{utills.ROLEADMIN, utills.ROLEUSER})
+// 	if !exist {
+// 		return errors.New("Invalid Role")
+// 	}
+// 	err = service.userRepository.EditUserRole(credentials)
+// 	if err != nil {
+// 		return errors.New("Cannot Update exists")
+// 	}
+
+// 	return nil
+// }
+
 // Signup API
-func (service *UserService) Signup(user model.User) error {
+func (service *UserService) Signup(user model.UserSecret) error {
 	_, err := service.userRepository.GetUserByEmail(user.Email)
 	if err == nil {
 		return errors.New("User already exists")
@@ -160,12 +128,7 @@ func (service *UserService) Signup(user model.User) error {
 
 	// Add User to DB
 	user.Password = utills.HashPassword(user.Password)
-	err = service.userRepository.AddUser(user)
-	if err != nil {
-		return err
-	}
-
-	err = service.userRepository.AddUserSecrect(model.UserLogin{
+	err = service.userRepository.AddUser(model.User{
 		Email:    user.Email,
 		Password: user.Password,
 	})
@@ -174,10 +137,4 @@ func (service *UserService) Signup(user model.User) error {
 	}
 
 	return nil
-}
-
-//GetAllUserSecret return secret of all user
-func (service *UserService) GetAllUserSecret() ([]model.UserLogin, error) {
-	users, err := service.userRepository.GetAllUserSecret()
-	return users, err
 }

@@ -1,6 +1,7 @@
 package route
 
 import (
+	authMw "backendSenior/controller/middleware/auth"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 
@@ -9,29 +10,38 @@ import (
 
 // RouterDeps declare dependency for router, it's used to create route handlers
 type RouterDeps struct {
-	MessageService *service.MessageService
-	RoomService    *service.RoomService
-	UserService    *service.UserService
-	AuthService    *auth.AuthService
-	ChatService    *service.ChatService
+	MessageService   *service.MessageService
+	RoomService      *service.RoomService
+	UserService      *service.UserService
+	ChatService      *service.ChatService
+	ProxyService     *service.ProxyService
+	JWTService       *auth.JWTService
+	ProxyAuth        *auth.ProxyAuth
+	OraganizeService *service.OrganizeService
 }
 
 // NewRouter create new router (gin server) with various handler
 func (deps *RouterDeps) NewRouter() *gin.Engine {
+	// create middleware first
+	authMiddleware := authMw.NewJWTMiddleware(deps.JWTService)
+	proxyMw := authMw.NewProxyMiddleware(deps.ProxyAuth)
 
-	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, deps.AuthService)
-	userRouteHandler := NewUserRouteHandler(deps.UserService)
-	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.AuthService)
-	chatRouteHandler := NewChatRouteHandler(deps.ChatService)
-
+	// create handler (some require middleware)
+	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, authMiddleware, deps.UserService, deps.ProxyService)
+	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.JWTService, authMiddleware)
+	messageRouteHandler := NewMessageRouteHandler(deps.MessageService)
+	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService)
+	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService)
+	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService)
 	r := gin.Default()
 
 	subgroup := r.Group("/api/v1")
 
 	roomRouteHandler.Mount(subgroup.Group("/room"))
-	userRouteHandler.Mount(subgroup) // this subroute isn't restful so I mount like this
+	userRouteHandler.Mount(subgroup.Group("/user"))
 	messageRouteHandler.Mount(subgroup.Group("/message"))
 	chatRouteHandler.Mount(subgroup.Group("/chat"))
-
+	proxyRouteHandler.Mount(subgroup.Group("/proxy"))
+	OrganizeRouteHandler.Mount(subgroup.Group("/org"))
 	return r
 }

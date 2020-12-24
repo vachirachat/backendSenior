@@ -12,22 +12,20 @@ type MessagesResponse struct {
 	Messages []Message `json:"messages"`
 }
 
-type RoomTest struct {
-	RoomID string `json:"roomid" bson:"roomid"`
-}
 type Message struct {
 	MessageID bson.ObjectId `json:"messageId" bson:"_id,omitempty"`
 	TimeStamp time.Time     `json:"timestamp" bson:"timestamp"`
-	RoomID    bson.ObjectId `json:"roomId" bson:"roomId"`
+	RoomID    bson.ObjectId `json:"roomId" bson:"roomId" form:"roomId"`
 	UserID    bson.ObjectId `json:"userId" bson:"userId"`
+	ClientUID string        `json:"uid" bson:"uid"`
 	Data      string        `json:"data" bson:"data"`
 	Type      string        `json:"type" bson:"type"`
 }
 
 // TimeRange is used for filtering message by time
 type TimeRange struct {
-	From time.Time `json:"from" bson:"from"`
-	To   time.Time `json:"to" bson:"to"`
+	From time.Time
+	To   time.Time
 }
 
 // Fill replace From with epoch zero and fill To with currentTime

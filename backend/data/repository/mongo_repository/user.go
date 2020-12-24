@@ -3,7 +3,6 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
-	"fmt"
 	"log"
 
 	"github.com/globalsign/mgo"
@@ -22,24 +21,14 @@ const (
 	collectionSecret = "UserSecret"
 )
 
-func toStringArrUser(objIdArr []bson.ObjectId) []string {
-	var result = make([]string, len(objIdArr))
-	n := len(objIdArr)
-	for i := 0; i < n; i++ {
-		result[i] = objIdArr[i].Hex()
-		fmt.Printf("obj %s hex %s\n", objIdArr[i], objIdArr[i].Hex())
-	}
-	return result
-}
-
 func (userMongo UserRepositoryMongo) GetAllUser() ([]model.User, error) {
 	var Users []model.User
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).Find(nil).All(&Users)
 	return Users, err
 }
 
-func (userMongo UserRepositoryMongo) GetAllUserSecret() ([]model.UserLogin, error) {
-	var Users []model.UserLogin
+func (userMongo UserRepositoryMongo) GetAllUserSecret() ([]model.UserSecret, error) {
+	var Users []model.UserSecret
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionSecret).Find(nil).All(&Users)
 	return Users, err
 }
@@ -50,19 +39,29 @@ func (userMongo UserRepositoryMongo) GetUserByID(userID string) (model.User, err
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(objectID).One(&user)
 	return user, err
 }
+
+// GetUsersByIDs query users by array of IDs
+func (userMongo UserRepositoryMongo) GetUsersByIDs(userID []string) ([]model.User, error) {
+	var users []model.User
+	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).Find(idInArr(userID)).All(&users)
+	return users, err
+}
+
 func (userMongo UserRepositoryMongo) GetLastUser() (model.User, error) {
 	var user model.User
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).Find(nil).Sort("-created_time").One(&user)
 	return user, err
 }
+
 func (userMongo UserRepositoryMongo) AddUser(user model.User) error {
 	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).Insert(user)
 }
 
-func (userMongo UserRepositoryMongo) EditUserName(userID string, user model.User) error {
+func (userMongo UserRepositoryMongo) UpdateUser(userID string, user model.User) error {
 	objectID := bson.ObjectIdHex(userID)
-	newName := bson.M{"$set": bson.M{"name": user.Name, "email": user.Email, "password": user.Password, "room": user.Room, "userType": user.UserType}}
-	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(objectID, newName)
+	// dont allow update these fields
+	user.UserID = ""
+	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(objectID, bson.M{"$set": user})
 }
 
 func (userMongo UserRepositoryMongo) DeleteUserByID(userID string) error {
@@ -75,23 +74,33 @@ func (userMongo UserRepositoryMongo) AddToken(UserToken model.UserToken) error {
 	return userMongo.ConnectionDB.DB(dbName).C(collectionToken).Insert(UserToken)
 }
 
-// Implemet more
-// func (userMongo UserRepositoryMongo) EditToken(UserToken model.UserToken) error {
-// 	newToken := bson.M{"$set": bson.M{"Token": UserToken.Token}}
-// 	return userMongo.ConnectionDB.DB(dbName).C(collectionToken).Update(bson.M{"Email": Email}, newToken)
-// }
+type UserSecret struct {
+	Email    string `json:"email" bson:"email"`
+	Password string `json:"password" bson:"password"`
+	Role     string `json:"role" bson:"role"`
+}
 
-func (userMongo UserRepositoryMongo) GetUserTokenById(Email string) (model.UserToken, error) {
+func (userMongo UserRepositoryMongo) EditUserRole(userSecret model.UserSecret) error {
+	mapSecret := bson.M{"email": userSecret.Email}
+	newName := bson.M{"$set": bson.M{"role": userSecret.Role}}
+	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).Update(mapSecret, newName)
+}
+
+func (userMongo UserRepositoryMongo) GetUserTokenById(userID string) (model.UserToken, error) {
 	var userToken model.UserToken
-	//objectID := bson.ObjectIdHex(userID)
-	err := userMongo.ConnectionDB.DB(dbName).C(collectionToken).Find(bson.M{"Email": Email}).One(&userToken)
+	err := userMongo.ConnectionDB.DB(dbName).C(collectionToken).FindId(bson.ObjectIdHex(userID)).One(&userToken)
 	return userToken, err
+}
+
+func (userMongo UserRepositoryMongo) GetUserRole(userID string) (string, error) {
+	var userRole model.UserSecret
+	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.ObjectIdHex(userID)).One(&userRole)
+	return userRole.Role, err
 }
 
 func (userMongo UserRepositoryMongo) GetUserIdByToken(token string) (model.UserToken, error) {
 	var userToken model.UserToken
-	//objectID := bson.ObjectIdHex(userID)
-	err := userMongo.ConnectionDB.DB(dbName).C(collectionToken).Find(bson.M{"Token": token}).One(&userToken)
+	err := userMongo.ConnectionDB.DB(dbName).C(collectionToken).Find(bson.M{"token": token}).One(&userToken)
 	return userToken, err
 }
 
@@ -101,16 +110,24 @@ func (userMongo UserRepositoryMongo) GetAllUserToken() ([]model.UserToken, error
 	return UsersToken, err
 }
 
-func (userMongo UserRepositoryMongo) GetUserLogin(userLogin model.UserLogin) (model.UserLogin, error) {
-	var user model.UserLogin
-	err := userMongo.ConnectionDB.DB(dbName).C(collectionSecret).Find(bson.M{"email": userLogin.Email}).One(&user)
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(userLogin.Password))
-	log.Println(user)
+func (userMongo UserRepositoryMongo) GetUserSecret(userCredential model.UserSecret) (model.User, error) {
+	var userCred model.UserSecret
+	var user model.User
+	err := userMongo.ConnectionDB.DB(dbName).C(collectionSecret).Find(bson.M{"email": userCredential.Email}).One(&userCred)
 	if err != nil {
-		return user, err
-	} else {
+		log.Println("User dose not exist")
 		return user, err
 	}
+	err = bcrypt.CompareHashAndPassword([]byte(userCred.Password), []byte(userCredential.Password))
+	if err != nil {
+		log.Println("Password dose not exist")
+		return user, err
+	}
+	err = userMongo.ConnectionDB.DB(dbName).C(collectionUser).Find(bson.M{"email": userCred.Email}).One(&user)
+	if err != nil {
+		return user, err
+	}
+	return user, err
 
 }
 
@@ -122,26 +139,12 @@ func (userMongo UserRepositoryMongo) GetUserByEmail(email string) (model.User, e
 }
 
 // user secrect
-func (userMongo UserRepositoryMongo) AddUserSecrect(user model.UserLogin) error {
+func (userMongo UserRepositoryMongo) AddUserSecrect(user model.UserSecret) error {
 	return userMongo.ConnectionDB.DB(dbName).C(collectionSecret).Insert(user)
 }
 
 func (userMongo UserRepositoryMongo) GetUserRoomByUserID(userID string) ([]string, error) {
 	var user model.User
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.ObjectIdHex(userID)).One(&user)
-	return toStringArrUser(user.Room), err
-}
-
-// oauth Add token
-func AddToken(UserToken model.UserToken) error {
-	var ConnectionDB *mgo.Session
-	return ConnectionDB.DB(dbName).C(collectionToken).Insert(UserToken)
-}
-
-func GetUserIdByToken(token string) (model.UserToken, error) {
-	var userToken model.UserToken
-	var ConnectionDB *mgo.Session
-	//objectID := bson.ObjectIdHex(userID)
-	err := ConnectionDB.DB(dbName).C(collectionToken).Find(bson.M{"Token": token}).One(&userToken)
-	return userToken, err
+	return model.ToStringArr(user.Room), err
 }
