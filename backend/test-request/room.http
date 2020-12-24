@@ -1,8 +1,8 @@
 @base = http://localhost:8080/api/v1/room
-@roomA = 5fde116026dcb940569b15bd
+@roomA = 5fe1758426dcb947c967b19a
 @roomB = 5fde116526dcb940569b15be
 
-@proxyA = 5fde119f26dcb940569b15bf
+@proxyA = 5fe37d3926dcb905d36f8ecf
 @proxyB = 5fde11a326dcb940569b15c0
 
 @userA = 5fde1148c3cae674040aeebd
@@ -50,11 +50,7 @@ POST {{base}}/{{roomA}}/member
 Content-Type: application/json
 
 {
-<<<<<<< HEAD
   "userIds": ["{{userB}}", "{{userA}}"]
-=======
-  "userIds": ["{{userA}}"]
->>>>>>> main
 }
 
 ### remove user
@@ -67,11 +63,8 @@ Content-Type: application/json
 
 ### get proxy
 GET {{base}}/{{roomA}}/proxy    
-<<<<<<< HEAD
 ### get proxy full
 GET {{base}}/{{roomA}}/proxy?full=true
-=======
->>>>>>> main
 
 ###
 POST {{base}}/{{roomA}}/proxy    

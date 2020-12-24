@@ -1,5 +1,5 @@
-@base = http://localhost:8080/api/v1/proxy
-@proxyId = 5fde119f26dcb940569b15bf
+@base = http://52.220.252.160:8080/api/v1/proxy
+@proxyId = 5fe37d3926dcb905d36f8ecf
 @proxyId2 = 5fde11a326dcb940569b15c0
 
 ###
@@ -11,7 +11,9 @@ POST {{base}}
 Content-Type: application/json
 
 {
-  "name": "Company B"
+  "name": "Company B",
+  "ip": "52.220.252.160",
+  "port": 8090
 }
 
 
