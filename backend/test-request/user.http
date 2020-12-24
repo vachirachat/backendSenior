@@ -7,8 +7,8 @@ POST {{base}}/signup
 Content-Type: application/json
 
 {
-  "email": "rod8711@gmail.com",
-  "password": "12345678"
+  "email": "test-5@gmail.com",
+  "password": "topza5353"
 }
 ### GET all users
 GET {{base}}/user
@@ -18,10 +18,9 @@ POST {{base}}/login
 Content-Type: application/json
 
 {
-  "email": "foo@gmail.com",
-  "password": "12345678"
+  "email": "test-5@gmail.com",
+  "password": "topza5353"
 }
-
 ### GET me
 GET {{base}}/me
 Authorization: Bearer {{token}}

@@ -4,6 +4,7 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/service/auth"
 	"errors"
+	"log"
 
 	"backendSenior/domain/model"
 	"backendSenior/utills"
@@ -88,6 +89,7 @@ type messageLogin struct {
 func (service *UserService) Login(email string, password string) (model.User, error) {
 	// var token model.TokenDetails
 	user, err := service.GetUserByEmail(email)
+	log.Println(user)
 	if err != nil {
 		return model.User{}, errors.New("User not exists")
 	}
@@ -118,7 +120,7 @@ func (service *UserService) Login(email string, password string) (model.User, er
 // }
 
 // Signup API
-func (service *UserService) Signup(user model.User) error {
+func (service *UserService) Signup(user model.UserSecret) error {
 	_, err := service.userRepository.GetUserByEmail(user.Email)
 	if err == nil {
 		return errors.New("User already exists")
@@ -126,7 +128,10 @@ func (service *UserService) Signup(user model.User) error {
 
 	// Add User to DB
 	user.Password = utills.HashPassword(user.Password)
-	err = service.userRepository.AddUser(user)
+	err = service.userRepository.AddUser(model.User{
+		Email:    user.Email,
+		Password: user.Password,
+	})
 	if err != nil {
 		return err
 	}
