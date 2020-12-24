@@ -10,8 +10,6 @@ import (
 
 func HashPassword(password string) string {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost) //salt 10
-	log.Println(password)
-	err = bcrypt.CompareHashAndPassword(bytes, []byte("topza5353"))
 	if err != nil {
 		log.Println("error HashPassword", err.Error())
 		return ""
