@@ -21,8 +21,8 @@ type User struct {
 	Name     string          `json:"name,omitempty" bson:"name,omitempty"`
 	Email    string          `json:"email,omitempty" bson:"email,omitempty"`
 	Password string          `json:"-" bson:"password,omitempty"`
-	Room     []bson.ObjectId `json:"room,omitempty" bson:"room,omitempty"`
-	Organize []bson.ObjectId `json:"organize,omitempty" bson:"organize,omitempty"`
+	Room     []bson.ObjectId `json:"room" bson:"room"`
+	Organize []bson.ObjectId `json:"organize" bson:"organize"`
 	UserType string          `json:"userType,omitempty" bson:"userType,omitempty"`
 }
 

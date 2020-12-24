@@ -131,6 +131,8 @@ func (service *UserService) Signup(user model.User) error {
 	err = service.userRepository.AddUser(model.User{
 		Email:    user.Email,
 		Password: user.Password,
+		Name:     user.Name,
+		UserType: user.UserType,
 	})
 	if err != nil {
 		return err

@@ -61,7 +61,7 @@ type client struct {
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
+	routerGroup.GET("/ws/:userID" /*, handler.authMiddleware.AuthRequired() */, func(context *gin.Context) {
 		// fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
@@ -74,7 +74,10 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			},
 		}
 
-		userID := context.GetString(middleware.UserIdField)
+		// userID := context.GetString(middleware.UserIdField)
+		userID := context.Param("userID")
+		log.Println("log.Println(userID)", userID)
+
 		// Proxy use no auth ?
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -95,7 +98,6 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			connID:     id,
 			userID:     userID,
 		}
-
 		go clnt.readPump()
 	})
 }
@@ -132,7 +134,14 @@ func (c *client) readPump() {
 			continue
 		}
 
+		log.Println("test print : line 98 proxy -chat_route")
+		temp := *c
+		log.Println("test temp point value client : ", temp.userID)
+		log.Println("test  point value client : ", c.userID)
+		log.Println("test  point value client : ", c.connID)
+
 		if ok, err := c.handlerRef.downstream.IsUserInRoom(c.userID, msg.RoomID.Hex()); err != nil {
+			log.Print("IN Proxy")
 			fmt.Println("userID", c.userID, "roomID", msg.RoomID.Hex())
 			fmt.Println("error checking room:", err.Error())
 			continue
