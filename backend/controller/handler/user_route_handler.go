@@ -225,6 +225,12 @@ func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
+	if user.Name == "" {
+		log.Println("error please enter name of user", err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
+		return
+	}
+	user.UserType = "user"
 	err = handler.userService.Signup(user)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
