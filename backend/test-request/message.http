@@ -2,11 +2,11 @@
 @baseProxy = http://localhost:8090/api/v1/message
 
 ### GET message from controller => encrypted
-GET {{base}}/?roomId=5fde116026dcb940569b15bd
+GET {{base}}/?roomId=5fe49f44584cb6bb7effef15
 
 
 ### GET message from proxy => decrypted
-GET {{baseProxy}}/?roomId=5fde116026dcb940569b15bd
+GET {{baseProxy}}/?roomId=5fe49f44584cb6bb7effef15
 
 ###
 GET {{base}}/5fde1d9e26dcb9712a4706e9

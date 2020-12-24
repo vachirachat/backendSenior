@@ -14,10 +14,20 @@ import (
 	"proxySenior/domain/service"
 	"proxySenior/utils"
 
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )
 
 func main() {
+	// Still Hardcode
+	connectionDB, err := mgo.Dial("mongodb://localhost:27017")
+	if err != nil {
+		log.Panic("Can no connect Database", err.Error())
+	}
+
+	// Init Repository
+	keystore := mongo_repository.NewKeyRepositoryMongo(connectionDB)
+
 	// Repo
 	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.CONTROLLER_ORIGIN)
 	pool := chatsocket.NewConnectionPool()
@@ -34,7 +44,6 @@ func main() {
 	}
 
 	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN, clientID, clientSecret)
-	keystore := &mongo_repository.KeyRepository{}
 
 	enc := service.NewEncryptionService(keystore)
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil, enc)

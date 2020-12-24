@@ -1,14 +1,16 @@
 @base = http://localhost:8080/api/v1/room
-@roomA = 5fde116026dcb940569b15bd
-@roomB = 5fde116526dcb940569b15be
+@roomA = 5fe4dc4b584cb64167b8cfdf
 
-@proxyA = 5fde119f26dcb940569b15bf
-@proxyB = 5fde11a326dcb940569b15c0
+@roomB = 5fe4dc4b584cb64167b8cfdf
 
-@userA = 5fde1148c3cae674040aeebd
-@userB = 5fde114bc3cae674040aeec1
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImM0ZDE1YzJiLWEzYWMtNGQyYS1hNjE4LTBhNjRmNDZlZThmMSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwODUzMTg4Miwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZkZTExNDhjM2NhZTY3NDA0MGFlZWJkIn0.xz3WEVwoVQNmOCgWWPlZZ787YK97g1kG_pNtGyWqhzk
+@proxyA = 5fe44e6a584cb6bb7effeee9
+@proxyB = 5fe44e6a584cb6bb7effeee9
+
+@userA = 5fe44db0b1a7c19fa1e60e36
+@userB = 5fe49f0db1a7c19fa1e61c54
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImY4OTgxNWYzLTA0ZjctNDAyNS1hYzgxLWY5NmNiODUwZDZmYiIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwODc5NzcxMCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlNDRkYjBiMWE3YzE5ZmExZTYwZTM2In0.1WCHAA1Cb2hv1yjITjsc9GjFste9ijbwQpssxWGq9FI
 
 ### GET ALL ROOMS
 GET {{base}}
@@ -23,13 +25,13 @@ POST {{base}}
 Content-Type: application/json
 
 {
-  "roomName": "BAR ROOM",
+  "roomName": "Last group",
   "roomType": "GROUP"
 }
 
 
 ### GET room by ID
-GET {{base}}/{{roomA}}
+GET {{base}}/{{roomB}}
 
 ### EDIT room
 POST {{base}}/{{roomA}}/name
@@ -50,11 +52,7 @@ POST {{base}}/{{roomA}}/member
 Content-Type: application/json
 
 {
-<<<<<<< HEAD
-  "userIds": ["{{userB}}", "{{userA}}"]
-=======
-  "userIds": ["{{userA}}"]
->>>>>>> main
+  "userIds": ["{{userB}}"]
 }
 
 ### remove user
@@ -67,22 +65,19 @@ Content-Type: application/json
 
 ### get proxy
 GET {{base}}/{{roomA}}/proxy    
-<<<<<<< HEAD
 ### get proxy full
 GET {{base}}/{{roomA}}/proxy?full=true
-=======
->>>>>>> main
 
-###
+### Add proxy -> Room
 POST {{base}}/{{roomA}}/proxy    
 Content-Type: application/json
 
 {
-  "proxyIds": ["{{proxyA}}", "{{proxyB}}"]
+  "proxyIds": ["{{proxyA}}"]
 }
 
 ###
-DELETE {{base}}/{{roomA}}/proxy    
+DELETE {{base}}/{{roomB}}/proxy    
 Content-Type: application/json
 
 {
@@ -96,4 +91,4 @@ Content-Type: application/json
   "roomName": "FOO BAR"
 }
 ###
-DELETE {{base}}/{{roomA}}     
+DELETE {{base}}/{{roomA}}

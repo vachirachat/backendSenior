@@ -1,6 +1,6 @@
 @base = http://localhost:8080/api/v1/proxy
-@proxyId = 5fde119f26dcb940569b15bf
-@proxyId2 = 5fde11a326dcb940569b15c0
+@proxyId = 5fe44e6a584cb6bb7effeee9
+@proxyId2 = 5fe44e6a584cb6bb7effeee9
 
 ###
 GET {{base}}
@@ -14,6 +14,12 @@ Content-Type: application/json
   "name": "Company B"
 }
 
+# {
+#   "proxyId": "5fe44e6a584cb6bb7effeee9",
+#   "proxySecret": "mSGBGk8uERmePOJo8Da00CQ1J1AId9Q9LcKPDvO3H/KfkHUxCUPAwd9s7qTZdhcc"
+# }
+
+# CLIENT_ID=5fe44e6a584cb6bb7effeee9 CLIENT_SECRET=mSGBGk8uERmePOJo8Da00CQ1J1AId9Q9LcKPDvO3H/KfkHUxCUPAwd9s7qTZdhcc PORT=:8090 go run main.go
 
 ### 
 POST {{base}}/{{proxyId}}/reset
