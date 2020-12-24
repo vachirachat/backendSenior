@@ -17,6 +17,7 @@ type Message struct {
 	TimeStamp time.Time     `json:"timestamp" bson:"timestamp"`
 	RoomID    bson.ObjectId `json:"roomId" bson:"roomId" form:"roomId"`
 	UserID    bson.ObjectId `json:"userId" bson:"userId"`
+	ClientUID string        `json:"uid" bson:"uid"`
 	Data      string        `json:"data" bson:"data"`
 	Type      string        `json:"type" bson:"type"`
 }

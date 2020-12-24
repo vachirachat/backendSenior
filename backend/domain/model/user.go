@@ -17,13 +17,13 @@ type UserTokenInfo struct {
 }
 
 type User struct {
-	UserID   bson.ObjectId   `json:"userId" bson:"_id,omitempty"`
-	Name     string          `json:"name" bson:"name"`
-	Email    string          `json:"email" bson:"email"`
-	Password string          `json:"-" bson:"password"`
-	Room     []bson.ObjectId `json:"room" bson:"room"`
-	Organize []bson.ObjectId `json:"organize" bson:"organize"`
-	UserType string          `json:"userType" bson:"userType"`
+	UserID   bson.ObjectId   `json:"userId,omitempty" bson:"_id,omitempty"`
+	Name     string          `json:"name,omitempty" bson:"name,omitempty"`
+	Email    string          `json:"email,omitempty" bson:"email,omitempty"`
+	Password string          `json:"-" bson:"password,omitempty"`
+	Room     []bson.ObjectId `json:"room,omitempty" bson:"room,omitempty"`
+	Organize []bson.ObjectId `json:"organize,omitempty" bson:"organize,omitempty"`
+	UserType string          `json:"userType,omitempty" bson:"userType,omitempty"`
 }
 
 type UserToken struct {

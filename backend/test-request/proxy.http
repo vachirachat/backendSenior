@@ -11,7 +11,9 @@ POST {{base}}
 Content-Type: application/json
 
 {
-  "name": "Company B"
+  "name": "Company B",
+  "ip": "52.220.252.160",
+  "port": 8090
 }
 
 # {

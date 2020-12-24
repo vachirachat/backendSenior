@@ -27,6 +27,15 @@ func (organizeMongo *OrganizeRepositoryMongo) GetAllOrganize() ([]model.Organize
 	return organizes, err
 }
 
+// GetOrganizeByUser return all organization user is in
+func (organizeMongo *OrganizeRepositoryMongo) GetOrganizeByUser(userID string) ([]model.Organize, error) {
+	var organizes []model.Organize
+	err := organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).Find(bson.M{
+		"members": bson.ObjectIdHex(userID),
+	}).All(&organizes)
+	return organizes, err
+}
+
 func (organizeMongo *OrganizeRepositoryMongo) CreateOrganize(organize model.Organize) (string, error) {
 	organize.OrganizeID = bson.NewObjectId()
 	cnt, err := organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(organize.OrganizeID).Count()
@@ -46,6 +55,13 @@ func (organizeMongo OrganizeRepositoryMongo) GetOrganizeById(organizeID string) 
 	var organize model.Organize
 	err := organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(organizeID)).One(&organize)
 	return organize, err
+}
+
+// GetOrganizesByIds query multiple organizations by array of IDs
+func (organizeMongo OrganizeRepositoryMongo) GetOrganizesByIDs(organizeIDs []string) ([]model.Organize, error) {
+	var orgs []model.Organize
+	err := organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).Find(idInArr(organizeIDs)).All(&orgs)
+	return orgs, err
 }
 
 func (organizeMongo OrganizeRepositoryMongo) UpdateOrganize(organizeID string, name string) error {

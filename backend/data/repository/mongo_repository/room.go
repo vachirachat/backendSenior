@@ -28,11 +28,9 @@ func (roomMongo RoomRepositoryMongo) GetRoomByID(roomID string) (model.Room, err
 	return room, err
 }
 
-func (roomMongo RoomRepositoryMongo) GetRoomsByUser(userID string) ([]model.Room, error) {
+func (roomMongo RoomRepositoryMongo) GetRoomsByIDs(roomIDs []string) ([]model.Room, error) {
 	var rooms []model.Room
-	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).Find(bson.M{
-		"users": bson.ObjectIdHex(userID), // can use this syntax to lookup item in array
-	}).All(&rooms)
+	err := roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).Find(idInArr(roomIDs)).All(&rooms)
 	return rooms, err
 }
 

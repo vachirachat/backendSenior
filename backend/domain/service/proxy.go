@@ -26,7 +26,7 @@ func NewProxyService(proxyRepo repository.ProxyRepository) *ProxyService {
 
 // NewProxy create new proxy with name (display name)
 // return ID, secret, error
-func (service *ProxyService) NewProxy(name string) (string, string, error) {
+func (service *ProxyService) NewProxy(proxy model.Proxy) (string, string, error) {
 	randByte := make([]byte, 48)
 	_, err := io.ReadFull(rand.Reader, randByte)
 	if err != nil {
@@ -38,11 +38,10 @@ func (service *ProxyService) NewProxy(name string) (string, string, error) {
 		return "", "", fmt.Errorf("hashing secret: %s", err.Error())
 	}
 
-	id, err := service.proxyRepo.AddProxy(model.Proxy{
-		Name:   name,
-		Secret: string(hashedSecret),
-		Rooms:  []bson.ObjectId{},
-	})
+	proxy.Secret = string(hashedSecret)
+	proxy.Rooms = []bson.ObjectId{}
+
+	id, err := service.proxyRepo.AddProxy(proxy)
 	if err != nil {
 		return "", "", fmt.Errorf("inserting proxy: %s", err.Error())
 	}
@@ -54,10 +53,12 @@ func (service *ProxyService) GetAll() ([]model.Proxy, error) {
 	return service.proxyRepo.GetAllProxies()
 }
 
-// EditProxyName change proxy name
-func (service *ProxyService) EditProxyName(proxyID string, name string) error {
+// UpdateProxy change proxy name or Ip or port
+func (service *ProxyService) UpdateProxy(proxyID string, update model.Proxy) error {
 	return service.proxyRepo.UpdateProxy(proxyID, model.Proxy{
-		Name: name,
+		Name: update.Name,
+		IP:   update.IP,
+		Port: update.Port,
 	})
 }
 
@@ -85,6 +86,11 @@ func (service *ProxyService) ResetProxySecret(proxyID string) (string, error) {
 // GetProxyByID return proxy with specified ID
 func (service *ProxyService) GetProxyByID(proxyID string) (model.Proxy, error) {
 	return service.proxyRepo.GetByID(proxyID)
+}
+
+// GetProxiesByIDs return proxy with specified ID
+func (service *ProxyService) GetProxiesByIDs(proxyIDs []string) ([]model.Proxy, error) {
+	return service.proxyRepo.GetByIDs(proxyIDs)
 }
 
 // DeleteProxyByID delte proxy with specified ID

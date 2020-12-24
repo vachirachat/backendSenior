@@ -32,7 +32,7 @@ func NewUserRouteHandler(userService *service.UserService, jwtService *auth.JWTS
 // Mount make handle handle request for specified routerGroup
 func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("user", handler.userListHandler)
-	routerGroup.PUT("user/updateuserprofile", handler.editUserNameHandler)
+	routerGroup.PUT("me", handler.authMiddleware.AuthRequired(), handler.updateMyProfileHandler)
 	routerGroup.DELETE("byid/:user_id", handler.deleteUserByIDHandler)
 	routerGroup.POST("getuserbyemail", handler.getUserByEmail)
 
@@ -144,26 +144,7 @@ func (handler *UserRouteHandler) addUserHandeler(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
 }
 
-// EditUserNameHandler api
-func (handler *UserRouteHandler) editUserNameHandler(context *gin.Context) {
-	var user model.User
-	// userID := context.Param("user_id")
-	err := context.ShouldBindJSON(&user)
-	if err != nil {
-		log.Println("error EditUserNametHandler", err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-		return
-	}
-	err = handler.userService.EditUserName(user.UserID.Hex(), user)
-	if err != nil {
-		log.Println("error EditUserNametHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	context.JSON(http.StatusOK, gin.H{"status": "success"})
-}
-
-func (handler *UserRouteHandler) updateUserHandler(context *gin.Context) {
+func (handler *UserRouteHandler) updateMyProfileHandler(context *gin.Context) {
 	var user model.User
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
@@ -171,8 +152,17 @@ func (handler *UserRouteHandler) updateUserHandler(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
-	log.Println(user.UserID)
-	err = handler.userService.UpdateUser(user.UserID.Hex(), user)
+
+	myID := context.GetString(authMw.UserIdField)
+	// Dont allow edit these field
+	user.Email = ""
+	user.Password = ""
+	user.UserType = ""
+	user.Room = nil
+	user.Organize = nil
+	// basically, currently, only name is editable
+
+	err = handler.userService.UpdateUser(myID, user)
 	if err != nil {
 		log.Println("error UpdateUserHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -216,7 +206,7 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 	}
 	user, err := handler.userService.Login(credentials.Email, credentials.Password)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		context.JSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
 		return
 	}
 	tokenDetails, err := handler.jwtService.CreateToken(model.UserDetail{
@@ -233,14 +223,28 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 
 // Signup API
 func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context) {
-	var user model.UserSecret
+	var user model.User
+	var userSecret model.UserSecret
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
-		log.Println("error AddUserSignUpHandeler ShouldBindJSON", err.Error())
+		log.Println("error AddUserSignUpHandeler user ShouldBindJSON", err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
-	err = handler.userService.Signup(user)
+	err = context.ShouldBindJSON(&userSecret)
+	if err != nil {
+		log.Println("error AddUserSignUpHandeler UserSecret ShouldBindJSON", err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
+		return
+	}
+
+	if user.Name == "" {
+		log.Println("error please enter name of user", err.Error())
+		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
+		return
+	}
+	user.UserType = "user"
+	err = handler.userService.Signup(userSecret)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
 			"status": err.Error(),

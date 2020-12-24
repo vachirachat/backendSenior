@@ -37,6 +37,12 @@ func (service *UserService) GetUserByID(userID string) (model.User, error) {
 	return user, err
 }
 
+// GetUsersByIDs return multiple user
+func (service *UserService) GetUsersByIDs(userIDs []string) ([]model.User, error) {
+	users, err := service.userRepository.GetUsersByIDs(userIDs)
+	return users, err
+}
+
 // GetUserByEmail return user with specified email
 func (service *UserService) GetUserByEmail(email string) (model.User, error) {
 	user, err := service.userRepository.GetUserByEmail(email)
@@ -50,15 +56,9 @@ func (service *UserService) AddUser(user model.User) error {
 	return err
 }
 
-// EditUserName this actually update the whole user object
-func (service *UserService) EditUserName(userID string, user model.User) error {
-	err := service.userRepository.EditUserName(userID, user)
-	return err
-}
-
 // UpdateUser update whole user
 func (service *UserService) UpdateUser(userID string, user model.User) error {
-	err := service.userRepository.EditUserName(userID, user)
+	err := service.userRepository.UpdateUser(userID, user)
 	return err
 }
 

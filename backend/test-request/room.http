@@ -52,7 +52,11 @@ POST {{base}}/{{roomA}}/member
 Content-Type: application/json
 
 {
+<<<<<<< HEAD
   "userIds": ["{{userB}}"]
+=======
+  "userIds": ["{{userB}}", "{{userA}}"]
+>>>>>>> 050d05da3fbc992998347e4622dfc7255029e728
 }
 
 ### remove user

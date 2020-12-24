@@ -33,3 +33,13 @@ Content-Type: application/json
 {
   "token": "{{token}}"
 }
+
+### EDIT me 
+PUT {{base}}/me
+Authorization: Bearer {{token}}
+
+{
+  "name": "User A1 Doge",
+  "userType": "iwanttobeadmin",
+  "email": "a1@a.com"
+}

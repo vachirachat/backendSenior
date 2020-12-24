@@ -34,6 +34,11 @@ func (service *OrganizeService) GetOrganizeById(organizeID string) (model.Organi
 	return service.organizeRepo.GetOrganizeById(organizeID)
 }
 
+// GetOrganizeByID return Organize with specified ID
+func (service *OrganizeService) GetOrganizationsByIDs(organizeIDs []string) ([]model.Organize, error) {
+	return service.organizeRepo.GetOrganizesByIDs(organizeIDs)
+}
+
 // DeleteOrganize delete Organize with specified ID
 func (service *OrganizeService) DeleteOrganizeByID(organizeID string) error {
 	return service.organizeRepo.DeleteOrganize(organizeID)
@@ -64,7 +69,17 @@ func (service *OrganizeService) DeleteMemberFromOrganize(organizeID string, empl
 	return service.organizeUserRepo.DeleleOrganizeMember(organizeID, employeeIds)
 }
 
-// Remove employeeIds Organize
-func (service *OrganizeService) GetMyOrganize(userId string) ([]string, error) {
+// GetUserOrganizeIDs return organization IDs of a user
+func (service *OrganizeService) GetUserOrganizeIDs(userId string) ([]string, error) {
 	return service.organizeUserRepo.GetUserOrganizeById(userId)
+}
+
+// GetUserOrganizations return all organization (object) of a user, it's shortcut for getting orgIDs from userID, then query by IDs
+func (service *OrganizeService) GetUserOrganizations(userId string) ([]model.Organize, error) {
+	orgIDs, err := service.GetUserOrganizeIDs(userId)
+	if err != nil {
+		return nil, err
+	}
+	orgs, err := service.organizeRepo.GetOrganizesByIDs(orgIDs)
+	return orgs, err
 }
