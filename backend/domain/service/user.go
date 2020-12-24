@@ -55,12 +55,6 @@ func (service *UserService) AddUser(user model.User) error {
 	return err
 }
 
-// EditUserName this actually update the whole user object
-func (service *UserService) EditUserName(userID string, user model.User) error {
-	err := service.userRepository.UpdateUser(userID, user)
-	return err
-}
-
 // UpdateUser update whole user
 func (service *UserService) UpdateUser(userID string, user model.User) error {
 	err := service.userRepository.UpdateUser(userID, user)

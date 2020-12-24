@@ -57,10 +57,11 @@ func (userMongo UserRepositoryMongo) AddUser(user model.User) error {
 	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).Insert(user)
 }
 
-func (userMongo UserRepositoryMongo) EditUserName(userID string, user model.User) error {
+func (userMongo UserRepositoryMongo) UpdateUser(userID string, user model.User) error {
 	objectID := bson.ObjectIdHex(userID)
-	newName := bson.M{"$set": bson.M{"name": user.Name, "email": user.Email, "password": user.Password, "room": user.Room, "userType": user.UserType}}
-	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(objectID, newName)
+	// dont allow update these fields
+	user.UserID = ""
+	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateId(objectID, bson.M{"$set": user})
 }
 
 func (userMongo UserRepositoryMongo) DeleteUserByID(userID string) error {

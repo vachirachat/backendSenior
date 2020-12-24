@@ -12,7 +12,7 @@ type UserRepository interface {
 	GetUserByID(userID string) (model.User, error)
 	GetUsersByIDs(userIDs []string) ([]model.User, error)
 	AddUser(user model.User) error
-	EditUserName(userID string, user model.User) error
+	UpdateUser(userID string, user model.User) error
 	EditUserRole(model.UserSecret) error
 	DeleteUserByID(userID string) error
 	GetUserByEmail(email string) (model.User, error)
