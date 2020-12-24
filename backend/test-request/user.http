@@ -22,6 +22,15 @@ Content-Type: application/json
   "password": "12345678"
 }
 
+### Logout
+POST {{base}}/logout
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjZhM2UyNmFjLTkzMWYtNDhlYS04YzM0LWMzYWMwODlhODE4OCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwODYwOTQ4Mywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZkZjdlNzAzM2I0MTEzNmQ1YmMwNjQ1In0.bveiYBuXOVTF649UD8CWtLy33mGWFNExhc0JLWq5-5s"
+}
+
+
 ### GET me
 GET {{base}}/me
 Authorization: Bearer {{token}}
@@ -32,4 +41,12 @@ Content-Type: application/json
 
 {
   "token": "{{token}}"
+}
+
+### For check refresh token
+POST {{base}}/token/refresh
+Content-Type: application/json
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDkzNDUwMzQsInJlZnJlc2hfdXVpZCI6IjhkNjMzMzYzLTMzZGEtNDdhNC1hNGIyLWRlM2FiYjQwNDMzZiIsInVzZXJfaWQiOiI1ZmRmN2U3MDMzYjQxMTM2ZDViYzA2NDUifQ.UrsCd6Q6qtGSnORhzjQVnbH0hDFzTGxFWUuIA4Xsk-Y"
 }

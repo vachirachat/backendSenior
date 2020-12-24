@@ -7,7 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
+
+	// "reflect"
+
+	// "strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -24,7 +27,7 @@ type JWTService struct {
 
 type AccessDetails struct {
 	AccessUuid string
-	UserId     uint64
+	UserId     string
 }
 
 // userValidToken := map[string]bool
@@ -64,7 +67,7 @@ func (service *JWTService) CreateToken(userDetail model.UserDetail) (*model.Toke
 	if err != nil {
 		return nil, err
 	}
-
+	service.userValidToken[userDetail.UserId] = true
 	// Claims Refresh token payload map
 	rtClaims := jwt.MapClaims{}
 	rtClaims["refresh_uuid"] = td.RefreshUuid
@@ -75,6 +78,7 @@ func (service *JWTService) CreateToken(userDetail model.UserDetail) (*model.Toke
 	if err != nil {
 		return nil, err
 	}
+	service.userValidToken[userDetail.UserId] = true
 	return td, nil
 }
 
@@ -124,7 +128,7 @@ func (service *JWTService) ExtractTokenMetadata(tokenIn string) (*AccessDetails,
 	claims := token
 
 	accessUuid := claims.AccessUuid
-	userId, err := strconv.ParseUint(fmt.Sprintf("%.f", claims.UserId), 10, 64)
+	userId := claims.UserId
 	if err != nil {
 		return nil, err
 	}
@@ -161,3 +165,22 @@ func mapClaimToModel(token model.JWTClaim) (model.JWTClaim, error) {
 
 	return tokenMap, err
 }
+
+
+
+// didnt use function
+// func (service *JWTService) CreateAuth(userId string) error {
+// 	token, err := service.VerifyToken(tokenIn)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	newToken, err := mapClaimToModel(token)
+
+// 	log.Println(newToken)
+
+// 	if newToken.Authorized == false /* && newToken.jwt.StandardClaims.Valid*/ {
+// 		return err
+// 	}
+// 	return nil
+// }
+
