@@ -223,7 +223,7 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 
 // Signup API
 func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context) {
-	var user model.UserSecret
+	var user model.User
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
 		log.Println("error AddUserSignUpHandeler ShouldBindJSON", err.Error())

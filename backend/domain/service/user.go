@@ -120,7 +120,7 @@ func (service *UserService) Login(email string, password string) (model.User, er
 // }
 
 // Signup API
-func (service *UserService) Signup(user model.UserSecret) error {
+func (service *UserService) Signup(user model.User) error {
 	_, err := service.userRepository.GetUserByEmail(user.Email)
 	if err == nil {
 		return errors.New("User already exists")
