@@ -204,8 +204,11 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 		return
 	}
-
 	user, err := handler.userService.Login(credentials.Email, credentials.Password)
+	if err != nil {
+		context.JSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
+		return
+	}
 	tokenDetails, err := handler.jwtService.CreateToken(model.UserDetail{
 		Role:   utills.ROLEUSER, // TODO: placeholder, implement role later
 		UserId: user.UserID.Hex(),
@@ -220,7 +223,7 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 
 // Signup API
 func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context) {
-	var user model.User
+	var user model.UserSecret
 	err := context.ShouldBindJSON(&user)
 	if err != nil {
 		log.Println("error AddUserSignUpHandeler ShouldBindJSON", err.Error())
