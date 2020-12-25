@@ -29,7 +29,12 @@ func (handler *MessageRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 func (handler *MessageRouteHandler) getMessagesHandler(context *gin.Context) {
 
-	roomID := context.Query("roomId")
+	roomID, ok := context.GetQuery("roomId")
+	if !ok {
+		fmt.Println("err message roomID ", ok)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return
+	}
 	if roomID == "" || !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad query"})
 		return

@@ -3,6 +3,7 @@ package service
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"log"
 )
 
 // MessageService i sservice for getting message from controller and decrypt it for user
@@ -25,9 +26,19 @@ func (service *MessageService) GetMessageForRoom(roomID string, timeRange *model
 		return nil, err
 	}
 
+	// Test
+	// loc, err := time.LoadLocation(utils.BACKKOKTIMEZONE)
+	// for i := range messages {
+	// 	time := messages[i].TimeStamp
+
+	// 	log.Println("\n :::> messages >>> ", time.In(loc), "\n")
+	// }
+	// Test
+
 	decrypted := make([]model.Message, len(messages))
 	for i := 0; i < len(messages); i++ {
 		m, err := service.encryption.Decrypt(messages[i])
+		log.Println("Message >>", m)
 		if err != nil {
 			decrypted = decrypted[:i]
 			return decrypted, err

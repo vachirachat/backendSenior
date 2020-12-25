@@ -28,8 +28,8 @@ func NewJWTService(tokenRepo repository.TokenRepository, accessSecret []byte, re
 }
 
 var (
-	ACCESSTOKENEXPIRES = 9999999 //Min // I think there should be no expire ?
-	REFRESHTOKENSECRET = 24 * 7  //Hours
+	ACCESSTOKENEXPIRES = 5      //Min // I think there should be no expire ?
+	REFRESHTOKENSECRET = 24 * 7 //Hours
 )
 
 // CreateToken create JWTToken from provied userDetail (userID + role)

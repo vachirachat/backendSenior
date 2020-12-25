@@ -11,10 +11,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 
 	"github.com/mergermarket/go-pkcs7"
 
 	"proxySenior/domain/interface/repository"
+	"proxySenior/utils"
 )
 
 // EncryptionService is service for encrpyting and decrypting message
@@ -103,29 +105,25 @@ func (enc *EncryptionService) Decrypt(message model.Message) (model.Message, err
 	// 	message.Data = string(decoded)
 	// }
 	keyRec, err := enc.keystore.GetKeyForMessage(message.RoomID.Hex(), message.TimeStamp)
-
 	//----- Refactor to Function Check key-date -----//
 
 	if err != nil {
 		return message, fmt.Errorf("getting key: %s", err.Error())
 	}
-	//----- Refactor to Function -----//
-
+	//----- TODO :: Refactor to Function -----//
 	//----- Refactor to Function ReMapTime -----//
-
-	//For Test Propose
+	loc, err := time.LoadLocation(utils.BACKKOKTIMEZONE)
+	key := keyRec.KeyRecodes[0].Key
 	for i := range keyRec.KeyRecodes {
-		log.Print(keyRec.KeyRecodes[i].Key)
-	}
-
-	key := keyRec.KeyRecodes[len(keyRec.KeyRecodes)-1].Key
-	for i := range keyRec.KeyRecodes {
-		if keyRec.KeyRecodes[i].ValidFrom.After(message.TimeStamp) && keyRec.KeyRecodes[i].ValidTo.Before(message.TimeStamp) {
-			key = keyRec.KeyRecodes[i].Key
+		keyMap := keyRec.KeyRecodes[i]
+		keyMap.ValidTo = keyMap.ValidTo.In(loc)
+		keyMap.ValidFrom = keyMap.ValidFrom.In(loc)
+		if keyMap.ValidTo.After(message.TimeStamp.In(loc)) && keyMap.ValidFrom.Before(message.TimeStamp.In(loc)) {
+			key = keyMap.Key
+			log.Print("Match key >>> ", key)
 			continue
 		}
 	}
-
 	//----- Refactor to Function ReMapTime -----//
 
 	// b64 := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))
