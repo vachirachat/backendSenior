@@ -4,6 +4,8 @@ import (
 	"backendSenior/domain/interface/repository"
 
 	"backendSenior/domain/model"
+
+	"github.com/globalsign/mgo/bson"
 )
 
 type RoomService struct {
@@ -52,6 +54,8 @@ func (service *RoomService) GetUserRooms(userID string) ([]model.Room, error) {
 // AddRoom insert room into database and return id of newly inserted room
 // The created room will always be empty (need to invite as separate request)
 func (service *RoomService) AddRoom(room model.Room) (string, error) {
+	room.ListUser = []bson.ObjectId{}
+	room.ListProxy = []bson.ObjectId{}
 	roomID, err := service.roomRepository.AddRoom(room)
 	return roomID, err
 }

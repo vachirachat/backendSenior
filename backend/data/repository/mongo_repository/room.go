@@ -36,8 +36,6 @@ func (roomMongo RoomRepositoryMongo) GetRoomsByIDs(roomIDs []string) ([]model.Ro
 
 func (roomMongo RoomRepositoryMongo) AddRoom(room model.Room) (string, error) {
 	room.RoomID = bson.NewObjectId()
-	room.ListUser = []bson.ObjectId{}
-	room.ListProxy = []bson.ObjectId{}
 	return room.RoomID.Hex(), roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).Insert(room)
 }
 
