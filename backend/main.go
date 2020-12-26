@@ -8,12 +8,31 @@ import (
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
+	"context"
 	"log"
 
+	firebase "firebase.google.com/go/v4"
 	"github.com/globalsign/mgo"
+	"google.golang.org/api/option"
 )
 
+var app *firebase.App
+
+func initFirebase() {
+	opt := option.WithCredentialsFile("../../account-secret-key.json")
+	config := &firebase.Config{ProjectID: "senior-project-mychat"}
+	var err error
+	app, err = firebase.NewApp(context.Background(), config, opt)
+	if err != nil {
+		log.Fatalf("[Firebase] error init firebase app %s\n", err)
+	} else {
+		log.Println("[Firebase] successfully connected to firebase app")
+	}
+}
+
 func main() {
+	initFirebase()
+
 	connectionDB, err := mgo.Dial(utills.MONGOENDPOINT)
 	if err != nil {
 		log.Panic("Can no connect Database", err.Error())
@@ -70,29 +89,4 @@ func main() {
 	router := routerDeps.NewRouter()
 
 	router.Run(utills.PORTWEBSERVER)
-
 }
-
-// func serveDefault(w http.ResponseWriter, r *http.Request) {
-// 	log.Println(r.URL)
-// 	if r.URL.Path != "/" {
-// 		http.Error(w, "Not found", http.StatusNotFound)
-// 		return
-// 	}
-// 	if r.Method != "GET" {
-// 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-// 		return
-// 	}
-// 	http.ServeFile(w, r, "index.html")
-// }
-
-// func main() {
-// 	hub := H
-// 	go hub.Run()
-// 	http.HandleFunc("/", serveDefault)
-// 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-// 		ServeWs(w, r)
-// 	})
-// 	//Listerning on port :8080...
-// 	log.Fatal(http.ListenAndServe(":8080", nil))
-// }
