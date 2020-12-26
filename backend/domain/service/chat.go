@@ -10,25 +10,29 @@ import (
 
 // ChatService manages sending message and connection pool
 type ChatService struct {
-	mapRoom repository.RoomUserRepository
-	send    repository.SendMessageRepository
-	mapConn repository.SocketConnectionRepository
-	msgRepo repository.MessageRepository
+	mapRoomProxy repository.RoomUserRepository
+	mapRoomUser  repository.RoomUserRepository
+	send         repository.SendMessageRepository
+	mapConn      repository.SocketConnectionRepository
+	msgRepo      repository.MessageRepository
+	notifService *NotificationService
 }
 
 // NewChatService create new instance of chat service
-func NewChatService(roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository, msgRepo repository.MessageRepository) *ChatService {
+func NewChatService(roomProxyRepo repository.RoomUserRepository, roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository, msgRepo repository.MessageRepository, notifService *NotificationService) *ChatService {
 	return &ChatService{
-		mapRoom: roomUserRepo,
-		send:    sender,
-		mapConn: userConnRepo,
-		msgRepo: msgRepo,
+		mapRoomProxy: roomProxyRepo,
+		mapRoomUser:  roomUserRepo,
+		send:         sender,
+		mapConn:      userConnRepo,
+		msgRepo:      msgRepo,
+		notifService: notifService,
 	}
 }
 
 // IsUserInRoom check whether user is in room
 func (chat *ChatService) IsUserInRoom(userID string, roomID string) (bool, error) {
-	rooms, err := chat.mapRoom.GetUserRooms(userID)
+	rooms, err := chat.mapRoomProxy.GetUserRooms(userID)
 
 	if err != nil {
 		return false, err
@@ -57,7 +61,7 @@ func (chat *ChatService) SendMessageToConnection(connID string, message interfac
 // TODO: this is currently broadcast to all
 func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{}) error {
 
-	userIDs, err := chat.mapRoom.GetRoomUsers(roomID)
+	userIDs, err := chat.mapRoomProxy.GetRoomUsers(roomID)
 	if err != nil {
 		return fmt.Errorf("getting room's users: %s", err)
 	}
@@ -103,6 +107,47 @@ func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{})
 
 	// end send message to all user
 	return nil
+}
+
+// TODO refactor into another service
+// SendNotificationToRoom send notification to all users in the room
+func (chat *ChatService) SendNotificationToRoom(roomID string, notification *model.Notification) error {
+	userIDs, err := chat.mapRoomUser.GetRoomUsers(roomID)
+	if err != nil {
+		return err
+	}
+
+	allFCMTokens := make([]model.FCMToken, 0)
+	resultChan := make(chan []model.FCMToken, 1)
+
+	for _, uid := range userIDs {
+		go func(userID string) {
+			// TODO handle error
+			tokens, err := chat.notifService.GetUserTokens(userID)
+			if err != nil {
+				fmt.Printf("[send notif / get user tokens] for %s : error %s\n", userID, err.Error())
+			}
+			resultChan <- tokens
+		}(uid)
+	}
+
+	for i := 0; i < len(userIDs); i++ {
+		allFCMTokens = append(allFCMTokens, (<-resultChan)...)
+	}
+
+	// TODO handle later
+	if len(allFCMTokens) > 500 {
+		return fmt.Errorf("too many device to send")
+	}
+
+	fcmTokens := make([]string, len(allFCMTokens))
+	for i, tok := range allFCMTokens {
+		fcmTokens[i] = tok.Token
+	}
+
+	success, err := chat.notifService.SendNotifications(fcmTokens, notification)
+	fmt.Printf("[notification] successfully sent %d of %d notifications\n", success, len(fcmTokens))
+	return err
 }
 
 // OnConnect maange adding new connection, then return new ID to be used as reference when disconnect

@@ -18,8 +18,8 @@ POST {{base}}/login
 Content-Type: application/json
 
 {
-  "email": "top-1@gmail.com",
-  "password": "topza5353"
+  "email": "rod8711@gmail.com",
+  "password": ""
 }
 
 ### GET me

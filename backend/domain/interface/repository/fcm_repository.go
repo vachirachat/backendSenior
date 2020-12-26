@@ -17,7 +17,7 @@ type FCMUserRepository interface {
 	// Get all token owned by user
 	GetUserTokens(userID string) (tokenIDs []string, err error)
 	// Get owner of token
-	GetTokenOwner(token string) (tokenIDs []string, err error)
+	GetTokenOwner(token string) (tokenID string, err error)
 	// Associate token to user
 	AddUserToken(userID string, tokenID string) (err error)
 	// Disassociate token from user

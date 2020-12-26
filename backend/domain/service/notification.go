@@ -3,44 +3,60 @@ package service
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"context"
 	"errors"
+	"fmt"
 	"time"
 
+	"firebase.google.com/go/v4/messaging"
 	"github.com/globalsign/mgo/bson"
 )
 
 type NotificationService struct {
 	fcmRepo     repository.FCMTokenRepository
-	fmcUserRepo repository.FCMUserRepository
+	fcmUserRepo repository.FCMUserRepository
+	fcmClient   *messaging.Client
 }
 
-var err_not_found = errors.New("not found")
+func NewNotificationService(fcmRepo repository.FCMTokenRepository, fcmUserRepo repository.FCMUserRepository, fcmClient *messaging.Client) *NotificationService {
+	return &NotificationService{
+		fcmRepo:     fcmRepo,
+		fcmUserRepo: fcmUserRepo,
+		fcmClient:   fcmClient,
+	}
+}
 
 // RegisterDevice register user device (specified by token) for receiving notificiation for that user
-func (service *NotificationService) RegisterDevice(userID string, newToken string) error {
-	_, err := service.fcmRepo.GetTokenByID(newToken)
+func (service *NotificationService) RegisterDevice(userID string, deviceToken string) error {
+	_, err := service.fcmRepo.GetTokenByID(deviceToken)
 	// found token
 	if err == nil {
 		return errors.New("token already registered")
 	}
 
 	// some other error
-	if err != nil && err != err_not_found {
+	if err != nil && err.Error() != "not found" {
 		return err
 	}
 
 	err = service.fcmRepo.AddToken(model.FCMToken{
-		Token:       newToken,
+		Token:       deviceToken,
 		UserID:      bson.ObjectIdHex(userID),
 		LastUpdated: time.Now(),
 	})
+
+	if err != nil {
+		return err
+	}
+
+	err = service.fcmUserRepo.AddUserToken(userID, deviceToken)
 
 	return err
 }
 
 // RefreshDevice refresh last update timestamp of a token, to prevent it from expiring
-func (service *NotificationService) RefreshDevice(token string) error {
-	err := service.fcmRepo.UpdateToken(token, model.FCMToken{
+func (service *NotificationService) RefreshDevice(deviceToken string) error {
+	err := service.fcmRepo.UpdateToken(deviceToken, model.FCMToken{
 		LastUpdated: time.Now(),
 	})
 
@@ -48,28 +64,77 @@ func (service *NotificationService) RefreshDevice(token string) error {
 }
 
 // DeleteDevice unregister device from receiving notification
-func (service *NotificationService) DeleteDevice(token string) error {
-	err := service.fcmRepo.DeleteToken(token)
+func (service *NotificationService) DeleteDevice(deviceToken string) error {
+	existToken, err := service.fcmRepo.GetTokenByID(deviceToken)
+	if err != nil {
+		return err
+	}
+
+	err = service.fcmRepo.DeleteToken(deviceToken)
+
+	if err != nil {
+		return err
+	}
+
+	err = service.fcmUserRepo.DeleteUserToken(existToken.UserID.Hex(), deviceToken)
+
 	return err
 }
 
-// TODO: current time to expire is ... ?
-
-// GetUserDevices return array of tokens of user devices, excluding expired one
-func (service *NotificationService) GetUserDevices(userID string) ([]string, error) {
-	tokenIDs, err := service.fmcUserRepo.GetUserTokens(userID)
+// GetUserDevices return array of tokens of user devices
+func (service *NotificationService) GetUserTokens(userID string) ([]model.FCMToken, error) {
+	tokenIDs, err := service.fcmUserRepo.GetUserTokens(userID)
 	if err != nil {
 		return nil, err
 	}
 
 	tokens, err := service.fcmRepo.GetTokensByIDs(tokenIDs)
-	nonExpiredTokens := make([]string, 0)
+	return tokens, err
+	// nonExpiredTokens := make([]string, 0)
 
-	now := time.Now()
-	for _, tok := range tokens {
-		if now.Sub(tok.LastUpdated) <= 24*time.Hour {
-			nonExpiredTokens = append(nonExpiredTokens, tok.Token)
-		}
+	// now := time.Now()
+	// for _, tok := range tokens {
+	// 	if now.Sub(tok.LastUpdated) <= 24*time.Hour {
+	// 		nonExpiredTokens = append(nonExpiredTokens, tok.Token)
+	// 	}
+	// }
+	// return nonExpiredTokens, nil
+}
+
+type SendError struct {
+	BatchResponse *messaging.BatchResponse
+}
+
+func (err *SendError) Error() string {
+	return fmt.Sprintf("error sending %d/%d messages", err.BatchResponse.FailureCount, err.BatchResponse.FailureCount+err.BatchResponse.SuccessCount)
+}
+
+// SendNotifications sends notification to all of devices
+// It returns number of success repsonse and error if any of them send unsuccessfully
+func (service *NotificationService) SendNotifications(deviceTokens []string, notification *model.Notification) (int, error) {
+	resp, err := service.fcmClient.SendMulticast(context.Background(), &messaging.MulticastMessage{
+		Tokens: deviceTokens,
+		Data:   notification.Data,
+		Notification: &messaging.Notification{
+			Title:    notification.Title,
+			Body:     notification.Body,
+			ImageURL: notification.ImageURL,
+		},
+		Android: &messaging.AndroidConfig{
+			Priority: "high",
+		},
+	})
+
+	if resp == nil {
+		return 0, err
 	}
-	return nonExpiredTokens, nil
+
+	if resp.FailureCount == 0 {
+		return resp.SuccessCount, nil
+	}
+
+	return resp.SuccessCount, &SendError{
+		BatchResponse: resp,
+	}
+
 }

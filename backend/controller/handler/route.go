@@ -10,14 +10,15 @@ import (
 
 // RouterDeps declare dependency for router, it's used to create route handlers
 type RouterDeps struct {
-	MessageService   *service.MessageService
-	RoomService      *service.RoomService
-	UserService      *service.UserService
-	ChatService      *service.ChatService
-	ProxyService     *service.ProxyService
-	JWTService       *auth.JWTService
-	ProxyAuth        *auth.ProxyAuth
-	OraganizeService *service.OrganizeService
+	MessageService      *service.MessageService
+	RoomService         *service.RoomService
+	UserService         *service.UserService
+	ChatService         *service.ChatService
+	ProxyService        *service.ProxyService
+	JWTService          *auth.JWTService
+	ProxyAuth           *auth.ProxyAuth
+	OraganizeService    *service.OrganizeService
+	NotificationService *service.NotificationService
 }
 
 // NewRouter create new router (gin server) with various handler
@@ -33,6 +34,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService)
 	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService)
 	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService)
+	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
 	r := gin.Default()
 
 	subgroup := r.Group("/api/v1")
@@ -43,5 +45,6 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	chatRouteHandler.Mount(subgroup.Group("/chat"))
 	proxyRouteHandler.Mount(subgroup.Group("/proxy"))
 	OrganizeRouteHandler.Mount(subgroup.Group("/org"))
+	fcmTokenRouteHandler.Mount(subgroup.Group("/fcm"))
 	return r
 }

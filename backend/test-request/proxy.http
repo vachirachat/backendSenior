@@ -1,5 +1,5 @@
-@base = http://52.220.252.160:8080/api/v1/proxy
-@proxyId = 5fe37d3926dcb905d36f8ecf
+@base = http://localhost:8080/api/v1/proxy
+@proxyId = 5fe709e926dcb950b6d0b6ef
 @proxyId2 = 5fde11a326dcb940569b15c0
 
 ###

@@ -13,6 +13,7 @@ const (
 	collectionRoom     = "rooms"
 	collectionProxy    = "proxies"
 	collectionOrganize = "organize"
+	collectionFCMToken = "fcmTokens"
 )
 
 // return filter of {_id: {$in: ... }}, query that match multiple ID

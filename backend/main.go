@@ -28,6 +28,24 @@ func initFirebase() {
 	} else {
 		log.Println("[Firebase] successfully connected to firebase app")
 	}
+
+	// clnt, err := app.Messaging(context.Background())
+	// if err != nil {
+	// 	log.Fatalln("error getting messaiging instance", err)
+	// }
+
+	// clnt.SendMulticast(context.Background(), &messaging.MulticastMessage{
+	// 	Tokens: []string{"ckYOMA85QDC97cW4vqCVUn:APA91bFzE_i6_ZjVsMT78cLTeIPmWBiaiMuk8kOaVULuyKp_dJ1EhYk8_GJJEhBZnDUmvtU-DYXcEXLTnUwUj1uuR2yPZSSwb07AOeC3DtRnWkx5SDTNIVWTxNdX6xPpsQ1oqVUxieQZ"},
+	// 	Data: map[string]string{
+	// 		"foo": "bar",
+	// 		"baz": "quax",
+	// 	},
+	// 	Notification: &messaging.Notification{
+	// 		Title:    "This is test notification",
+	// 		Body:     "Test from Golang",
+	// 		ImageURL: "https://pkg.go.dev/static/img/go-logo-blue.svg",
+	// 	},
+	// })
 }
 
 func main() {
@@ -61,6 +79,14 @@ func main() {
 	roomUserRepo := mongo_repository.NewCachedRoomUserRepository(connectionDB)
 	roomProxyRepo := mongo_repository.NewCachedRoomProxyRepository(connectionDB)
 
+	fcmTokenRepo := mongo_repository.NewFCMTokenRepository(connectionDB)
+	fcmUserRepo := mongo_repository.NewFCMUserRepository(connectionDB)
+
+	clnt, err := app.Messaging(context.Background())
+	if err != nil {
+		log.Fatalln("Error getting messaging instance", err)
+	}
+
 	// Init service
 
 	// TODO: implement token repo, no hardcode secret
@@ -70,20 +96,24 @@ func main() {
 	userSvc := service.NewUserService(userRepo, jwtSvc)
 	roomSvc := service.NewRoomService(roomRepo, roomUserRepo, roomProxyRepo)
 	organizeSvc := service.NewOrganizeService(organizeRepo, organizeUserRepo)
+	notifSvc := service.NewNotificationService(fcmTokenRepo, fcmUserRepo, clnt)
 	// we use room proxy repo to map!
-	chatSvc := service.NewChatService(roomProxyRepo, chatPool, chatPool, messageRepo)
+
+	chatSvc := service.NewChatService(roomProxyRepo, roomUserRepo, chatPool, chatPool, messageRepo, notifSvc)
+
 	proxySvc := service.NewProxyService(proxyRepo)
 	proxyAuthSvc := auth.NewProxyAuth(proxyRepo)
 
 	routerDeps := route.RouterDeps{
-		RoomService:      roomSvc,
-		MessageService:   msgSvc,
-		UserService:      userSvc,
-		JWTService:       jwtSvc,
-		ChatService:      chatSvc,
-		ProxyService:     proxySvc,
-		ProxyAuth:        proxyAuthSvc,
-		OraganizeService: organizeSvc,
+		RoomService:         roomSvc,
+		MessageService:      msgSvc,
+		UserService:         userSvc,
+		JWTService:          jwtSvc,
+		ChatService:         chatSvc,
+		ProxyService:        proxySvc,
+		ProxyAuth:           proxyAuthSvc,
+		OraganizeService:    organizeSvc,
+		NotificationService: notifSvc,
 	}
 
 	router := routerDeps.NewRouter()

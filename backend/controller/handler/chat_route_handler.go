@@ -162,10 +162,14 @@ func (c *client) readPump() {
 		}
 		msg.MessageID = bson.ObjectIdHex(messageID)
 
-		// TODO: this is broadbast to ALL proxy for now
 		err = c.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
 		if err != nil {
 			fmt.Printf("Error bcasting message: %s\n", err.Error())
 		}
+
+		c.chatService.SendNotificationToRoom(msg.RoomID.Hex(), &model.Notification{
+			Title: "New Message in room " + msg.RoomID.Hex(),
+			Body:  fmt.Sprintf("[%s]: %s", msg.UserID.Hex(), msg.Data),
+		})
 	}
 }

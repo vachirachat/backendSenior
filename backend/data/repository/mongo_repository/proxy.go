@@ -20,7 +20,7 @@ func NewProxyRepositoryMongo(conn *mgo.Session) *ProxyRepositoryMongo {
 
 var _ repository.ProxyRepository = (*ProxyRepositoryMongo)(nil)
 
-func orEmpty(slice []model.Proxy) []model.Proxy {
+func orEmptyProxy(slice []model.Proxy) []model.Proxy {
 	if slice == nil {
 		return make([]model.Proxy, 0)
 	}
@@ -47,7 +47,7 @@ func (repo *ProxyRepositoryMongo) GetAllProxies() ([]model.Proxy, error) {
 	if err != nil {
 		return nil, err
 	}
-	return orEmpty(proxies), nil
+	return orEmptyProxy(proxies), nil
 }
 func (repo *ProxyRepositoryMongo) DeleteProxy(proxyID string) error {
 	err := repo.conn.DB(dbName).C(collectionProxy).RemoveId(bson.ObjectIdHex(proxyID))
