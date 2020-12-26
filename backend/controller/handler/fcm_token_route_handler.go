@@ -38,6 +38,26 @@ func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context) {
 		return
 	}
 
+	tok, err := handler.notifService.GetTokenByID(body.Token)
+
+	// found
+	if tok.Token != "" {
+		if tok.UserID.Hex() != userID {
+			c.JSON(http.StatusForbidden, gin.H{"status": "token already used by another user"})
+			return
+		}
+
+		err = handler.notifService.RefreshDevice(tok.Token)
+		if err != nil {
+			fmt.Println("[register device] refresh error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"status": "refreshed"})
+		return
+	}
+
+	// not found
 	err = handler.notifService.RegisterDevice(userID, body.Token)
 	if err != nil {
 		fmt.Println("[register device] error", err)
@@ -46,6 +66,7 @@ func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
+
 }
 
 func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context) {
