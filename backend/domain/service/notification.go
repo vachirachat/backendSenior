@@ -101,6 +101,12 @@ func (service *NotificationService) GetUserTokens(userID string) ([]model.FCMTok
 	// return nonExpiredTokens, nil
 }
 
+// GetTokenByID return token by ID
+func (service *NotificationService) GetTokenByID(token string) (model.FCMToken, error) {
+	foundToken, err := service.fcmRepo.GetTokenByID(token)
+	return foundToken, err
+}
+
 type SendError struct {
 	BatchResponse *messaging.BatchResponse
 }

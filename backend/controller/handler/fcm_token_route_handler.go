@@ -2,6 +2,7 @@ package route
 
 import (
 	"backendSenior/controller/middleware/auth"
+	"backendSenior/domain/model"
 	"backendSenior/domain/service"
 	"fmt"
 	"net/http"
@@ -24,6 +25,8 @@ func NewFCMRouteHandler(notif *service.NotificationService, authMw *auth.JWTMidd
 func (handler *FCMRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/", handler.authMw.AuthRequired(), handler.handleRegsiterDevice)
 	routerGroup.DELETE("/", handler.authMw.AuthRequired(), handler.handleUnregsiterDevice)
+	routerGroup.POST("/check-status", handler.authMw.AuthRequired(), handler.checkTokenStatus)
+	routerGroup.POST("/test-notification", handler.authMw.AuthRequired(), handler.sendTestNotification)
 }
 
 func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context) {
@@ -109,4 +112,73 @@ func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+// return status; <not found>, <owned>, <owned by other>
+func (handler *FCMRouteHandler) checkTokenStatus(c *gin.Context) {
+	var body model.FCMToken
+
+	err := c.BindJSON(&body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
+	}
+
+	userID := c.GetString(auth.UserIdField)
+
+	token, err := handler.notifService.GetTokenByID(body.Token)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			c.JSON(http.StatusOK, gin.H{"status": "not found"})
+			return
+		}
+		fmt.Println("[check token status] error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	}
+
+	if token.UserID.Hex() == userID {
+		c.JSON(http.StatusOK, gin.H{"status": "owned"})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"status": "owned by other"})
+	}
+}
+
+func (handler *FCMRouteHandler) sendTestNotification(c *gin.Context) {
+	var body model.FCMToken
+
+	err := c.BindJSON(&body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
+	}
+
+	tok, err := handler.notifService.GetTokenByID(body.Token)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "something went wrong, ensure that token exists",
+		})
+		return
+	}
+
+	userID := c.GetString(auth.UserIdField)
+
+	if tok.UserID.Hex() != userID {
+		c.JSON(http.StatusForbidden, gin.H{"status": "not your own token"})
+		return
+	}
+
+	sent, err := handler.notifService.SendNotifications([]string{body.Token}, &model.Notification{
+		Title: "Test notification",
+		Body:  "If you received this notification it means you are configured correctly",
+	})
+
+	if sent != 1 || err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": "error, token might be invalid or it's problem on our side",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "send test notification"})
 }
