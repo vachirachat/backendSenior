@@ -24,6 +24,9 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 
 	chatRouteHandler := NewChatRouteHandler(deps.UpstreamService, deps.DownstreamService, authMiddleware)
 	messageRouteHandler := NewMessageRouteHandler(deps.MessageService)
+	pingRouteHandler := NewPingRouteHandler()
+
+	pingRouteHandler.Mount(r.Group("/ping"))
 
 	subgroup := r.Group("/api/v1")
 
