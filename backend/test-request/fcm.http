@@ -1,9 +1,11 @@
 @base = http://localhost:8080/api/v1/fcm
+
 @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjU5YzJlZmY1LTA4MDItNDJjMS05MWIzLTQ3MTQxMTc5MTIwNSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwODk3NTY3Mywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlNDUxNTQ5NDdlYzA0NDNiNmVkMTkzIn0.AI7-uqeTyVMH0q8x_-pFk6HkSZT3D2Pfh5a3yamPB0w
-@fcm = ckYOMA85QDC97cW4vqCVUn:APA91bFzE_i6_ZjVsMT78cLTeIPmWBiaiMuk8kOaVULuyKp_dJ1EhYk8_GJJEhBZnDUmvtU-DYXcEXLTnUwUj1uuR2yPZSSwb07AOeC3DtRnWkx5SDTNIVWTxNdX6xPpsQ1oqVUxieQZ 
+// see console log when running App
+@fcm = 
 ###
 POST {{base}}
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjU5YzJlZmY1LTA4MDItNDJjMS05MWIzLTQ3MTQxMTc5MTIwNSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwODk3NTY3Mywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlNDUxNTQ5NDdlYzA0NDNiNmVkMTkzIn0.AI7-uqeTyVMH0q8x_-pFk6HkSZT3D2Pfh5a3yamPB0w
+Authorization: Bearer {{token}}
 
 {
   "token": "{{fcm}}"
