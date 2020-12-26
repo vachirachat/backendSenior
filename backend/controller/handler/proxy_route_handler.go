@@ -27,8 +27,9 @@ func NewProxyRouteHandler(proxyService *service.ProxyService) *ProxyRouteHandler
 func (handler *ProxyRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("/", handler.getAllProxies)
 	routerGroup.POST("/", handler.createProxy)
-	routerGroup.POST("/:id/reset", handler.resetSecret)
 	routerGroup.POST("/:id/", handler.updateProxy)
+	routerGroup.GET("/:id/", handler.getProxyByID)
+	routerGroup.POST("/:id/reset", handler.resetSecret)
 }
 
 func (handler *ProxyRouteHandler) getAllProxies(context *gin.Context) {
@@ -39,6 +40,22 @@ func (handler *ProxyRouteHandler) getAllProxies(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, proxies)
+}
+
+func (handler *ProxyRouteHandler) getProxyByID(context *gin.Context) {
+	proxyID := context.Param("id")
+	if !bson.IsObjectIdHex(proxyID) {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
+		return
+	}
+
+	proxy, err := handler.proxyService.GetProxyByID(proxyID)
+	if err != nil {
+		fmt.Println("error get proxy by id", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	}
+
+	context.JSON(http.StatusOK, proxy)
 }
 
 // createProxy: new proxy with specified name, return ID and secret
