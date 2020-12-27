@@ -27,7 +27,7 @@ func NewNotificationService(fcmRepo repository.FCMTokenRepository, fcmUserRepo r
 }
 
 // RegisterDevice register user device (specified by token) for receiving notificiation for that user
-func (service *NotificationService) RegisterDevice(userID string, deviceToken string) error {
+func (service *NotificationService) RegisterDevice(userID string, deviceToken string, deviceName string) error {
 	_, err := service.fcmRepo.GetTokenByID(deviceToken)
 	// found token
 	if err == nil {
@@ -43,6 +43,7 @@ func (service *NotificationService) RegisterDevice(userID string, deviceToken st
 		Token:       deviceToken,
 		UserID:      bson.ObjectIdHex(userID),
 		LastUpdated: time.Now(),
+		DeviceName:  deviceName,
 	})
 
 	if err != nil {

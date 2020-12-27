@@ -24,6 +24,7 @@ func NewFCMRouteHandler(notif *service.NotificationService, authMw *auth.JWTMidd
 
 func (handler *FCMRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/", handler.authMw.AuthRequired(), handler.handleRegsiterDevice)
+	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.handleGetUserDevices)
 	routerGroup.DELETE("/", handler.authMw.AuthRequired(), handler.handleUnregsiterDevice)
 	routerGroup.POST("/check-status", handler.authMw.AuthRequired(), handler.checkTokenStatus)
 	routerGroup.POST("/test-notification", handler.authMw.AuthRequired(), handler.sendTestNotification)
@@ -32,9 +33,7 @@ func (handler *FCMRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context) {
 	userID := c.GetString(auth.UserIdField)
 
-	var body struct {
-		Token string `json:"token"`
-	}
+	var body model.FCMToken
 	err := c.ShouldBindJSON(&body)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
@@ -61,7 +60,7 @@ func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context) {
 	}
 
 	// not found
-	err = handler.notifService.RegisterDevice(userID, body.Token)
+	err = handler.notifService.RegisterDevice(userID, body.Token, body.DeviceName)
 	if err != nil {
 		fmt.Println("[register device] error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
@@ -69,7 +68,25 @@ func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
 
+func (handler *FCMRouteHandler) handleGetUserDevices(c *gin.Context) {
+	userID := c.GetString(auth.UserIdField)
+
+	tokens, err := handler.notifService.GetUserTokens(userID)
+
+	if err != nil {
+		if err.Error() == "not found" {
+			c.JSON(http.StatusOK, []model.FCMToken{})
+			return
+		} else {
+			fmt.Println("[get user device] error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"tokens": tokens})
 }
 
 func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context) {
