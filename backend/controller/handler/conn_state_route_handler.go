@@ -106,7 +106,6 @@ func (h *ConnStateRouteHandler) handleWs(c *gin.Context) {
 			case <-clnt.closeChan:
 				fmt.Println("clnt", fcmToken[:10], "disconnected", time.Now())
 				h.notifService.SetOnlineStatus(fcmToken, false)
-				h.notifService.SetLastSeenTime(fcmToken, time.Now())
 				return
 			}
 		}
