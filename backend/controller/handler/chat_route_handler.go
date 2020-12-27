@@ -168,8 +168,14 @@ func (c *client) readPump() {
 		}
 
 		c.chatService.SendNotificationToRoom(msg.RoomID.Hex(), &model.Notification{
-			Title: "New Message in room " + msg.RoomID.Hex(),
-			Body:  fmt.Sprintf("[%s]: %s", msg.UserID.Hex(), msg.Data),
+			// Title: "New Message in room " + msg.RoomID.Hex(),
+			// Body:  fmt.Sprintf("[%s]: %s", msg.UserID.Hex(), msg.Data),
+			Data: map[string]string{
+				"roomId":    msg.RoomID.Hex(),
+				"msgId":     msg.MessageID.Hex(),
+				"userId":    msg.UserID.Hex(),
+				"timestamp": msg.TimeStamp.Format("2006-01-02T15:04:05Z"),
+			},
 		})
 	}
 }
