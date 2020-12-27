@@ -186,12 +186,7 @@ func (handler *FCMRouteHandler) handlePing(c *gin.Context) {
 		return
 	}
 
-	err = handler.notifService.SetLastSeenTime(body.Token, time.Now())
-	if err != nil {
-		fmt.Println("[notification ping] update last seen", err)
-		c.JSON(http.StatusForbidden, gin.H{"status": "something went wrong"})
-		return
-	}
+	handler.notifService.SetLastSeenTime(body.Token, time.Now())
 	c.JSON(http.StatusOK, gin.H{})
 }
 

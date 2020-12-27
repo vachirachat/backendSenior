@@ -134,10 +134,16 @@ func (chat *ChatService) SendNotificationToRoom(roomID string, notification *mod
 
 	for i := 0; i < len(userIDs); i++ {
 		for _, tok := range <-resultChan {
-			if lastSeen, err := chat.notifService.GetLastSeenTime(tok.Token); err == nil && time.Now().Sub(lastSeen) > thres {
+			online := chat.notifService.GetOnlineStatus(tok.Token)
+			if online {
+				fmt.Print("ignore device", tok.Token[:10], "since it's online")
+				continue
+			}
+			lastSeen := chat.notifService.GetLastSeenTime(tok.Token)
+			if lastSeen.IsZero() || time.Now().Sub(lastSeen) > thres {
 				allFCMTokens = append(allFCMTokens, tok.Token)
 			} else {
-				fmt.Print("ignore token", tok.Token, "since it's seen less", thres, "ago")
+				fmt.Print("ignore device", tok.Token[:10], "since it's seen less than", thres, "ago")
 			}
 		}
 	}

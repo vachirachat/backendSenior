@@ -17,6 +17,7 @@ type NotificationService struct {
 	fcmUserRepo repository.FCMUserRepository
 	fcmClient   *messaging.Client
 	lastSeen    map[string]time.Time
+	isOnline    map[string]bool
 }
 
 func NewNotificationService(fcmRepo repository.FCMTokenRepository, fcmUserRepo repository.FCMUserRepository, fcmClient *messaging.Client) *NotificationService {
@@ -25,6 +26,7 @@ func NewNotificationService(fcmRepo repository.FCMTokenRepository, fcmUserRepo r
 		fcmUserRepo: fcmUserRepo,
 		fcmClient:   fcmClient,
 		lastSeen:    make(map[string]time.Time),
+		isOnline:    make(map[string]bool),
 	}
 }
 
@@ -105,17 +107,26 @@ func (service *NotificationService) GetUserTokens(userID string) ([]model.FCMTok
 }
 
 // SetLastSeenTime sets last seen time of device (token)
-func (service *NotificationService) SetLastSeenTime(token string, time time.Time) error {
+func (service *NotificationService) SetLastSeenTime(token string, time time.Time) {
 	service.lastSeen[token] = time
-	return nil
 }
 
-// GetLastSeenTime retrun last seen time of device
-func (service *NotificationService) GetLastSeenTime(token string) (time.Time, error) {
-	return service.lastSeen[token], nil
+// SetOnlineStatus sets last seen time of device (token)
+func (service *NotificationService) SetOnlineStatus(token string, status bool) {
+	service.isOnline[token] = status
 }
 
-// GetTokenByID return token by ID
+// GetLastSeenTime returns last seen time of device
+func (service *NotificationService) GetLastSeenTime(token string) time.Time {
+	return service.lastSeen[token]
+}
+
+// GetOnlineStatus returns last seen time of device
+func (service *NotificationService) GetOnlineStatus(token string) bool {
+	return service.isOnline[token]
+}
+
+// GetTokenByID returns token by ID
 func (service *NotificationService) GetTokenByID(token string) (model.FCMToken, error) {
 	foundToken, err := service.fcmRepo.GetTokenByID(token)
 	return foundToken, err

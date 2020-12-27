@@ -35,6 +35,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService)
 	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService)
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
+	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
 	r := gin.Default()
 
 	subgroup := r.Group("/api/v1")
@@ -46,5 +47,6 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	proxyRouteHandler.Mount(subgroup.Group("/proxy"))
 	OrganizeRouteHandler.Mount(subgroup.Group("/org"))
 	fcmTokenRouteHandler.Mount(subgroup.Group("/fcm"))
+	connStateRouteHandler.Mount(subgroup.Group("/conn"))
 	return r
 }
