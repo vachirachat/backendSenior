@@ -6,6 +6,7 @@ import (
 	"backendSenior/domain/service"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,6 +27,7 @@ func (handler *FCMRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/", handler.authMw.AuthRequired(), handler.handleRegsiterDevice)
 	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.handleGetUserDevices)
 	routerGroup.DELETE("/", handler.authMw.AuthRequired(), handler.handleUnregsiterDevice)
+	routerGroup.POST("/ping", handler.authMw.AuthRequired(), handler.handlePing)
 	routerGroup.POST("/check-status", handler.authMw.AuthRequired(), handler.checkTokenStatus)
 	routerGroup.POST("/test-notification", handler.authMw.AuthRequired(), handler.sendTestNotification)
 }
@@ -159,6 +161,38 @@ func (handler *FCMRouteHandler) checkTokenStatus(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, gin.H{"status": "owned by other"})
 	}
+}
+
+func (handler *FCMRouteHandler) handlePing(c *gin.Context) {
+
+	var body struct {
+		Token string `json:"token"`
+	}
+
+	err := c.BindJSON(&body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "bad token"})
+		return
+	}
+
+	userID := c.GetString(auth.UserIdField)
+	tok, err := handler.notifService.GetTokenByID(body.Token)
+	if err != nil {
+		fmt.Println("[notification ping] error", err)
+		c.JSON(http.StatusForbidden, gin.H{"status": "something went wrong"})
+		return
+	} else if tok.UserID.Hex() != userID {
+		c.JSON(http.StatusForbidden, gin.H{"status": "not you token"})
+		return
+	}
+
+	err = handler.notifService.SetLastSeenTime(body.Token, time.Now())
+	if err != nil {
+		fmt.Println("[notification ping] update last seen", err)
+		c.JSON(http.StatusForbidden, gin.H{"status": "something went wrong"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{})
 }
 
 func (handler *FCMRouteHandler) sendTestNotification(c *gin.Context) {

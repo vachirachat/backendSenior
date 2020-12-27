@@ -176,6 +176,6 @@ func (c *client) readPump() {
 				"userId":    msg.UserID.Hex(),
 				"timestamp": msg.TimeStamp.Format("2006-01-02T15:04:05Z"),
 			},
-		})
+		}, 1*time.Minute)
 	}
 }

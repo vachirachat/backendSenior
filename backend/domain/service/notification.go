@@ -16,6 +16,7 @@ type NotificationService struct {
 	fcmRepo     repository.FCMTokenRepository
 	fcmUserRepo repository.FCMUserRepository
 	fcmClient   *messaging.Client
+	lastSeen    map[string]time.Time
 }
 
 func NewNotificationService(fcmRepo repository.FCMTokenRepository, fcmUserRepo repository.FCMUserRepository, fcmClient *messaging.Client) *NotificationService {
@@ -23,6 +24,7 @@ func NewNotificationService(fcmRepo repository.FCMTokenRepository, fcmUserRepo r
 		fcmRepo:     fcmRepo,
 		fcmUserRepo: fcmUserRepo,
 		fcmClient:   fcmClient,
+		lastSeen:    make(map[string]time.Time),
 	}
 }
 
@@ -100,6 +102,17 @@ func (service *NotificationService) GetUserTokens(userID string) ([]model.FCMTok
 	// 	}
 	// }
 	// return nonExpiredTokens, nil
+}
+
+// SetLastSeenTime sets last seen time of device (token)
+func (service *NotificationService) SetLastSeenTime(token string, time time.Time) error {
+	service.lastSeen[token] = time
+	return nil
+}
+
+// GetLastSeenTime retrun last seen time of device
+func (service *NotificationService) GetLastSeenTime(token string) (time.Time, error) {
+	return service.lastSeen[token], nil
 }
 
 // GetTokenByID return token by ID

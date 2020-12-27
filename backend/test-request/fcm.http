@@ -1,8 +1,9 @@
 @base = http://localhost:8080/api/v1/fcm
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjQ4OWE0ZGFiLWU5Y2MtNGVhZC04N2QwLTllYjU2NDdjNTlkYSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwOTAxMjk1OCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlNDZjMDJjZWQzZTM2MTA5OWNjYzhjIn0.oxlcKJYNzHMuP3NrbOZUPFZKShXka4-ZtA9UqIhd4fk
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjY0MWEzZDhiLWQ5NzYtNDI1YS05OWE5LTVmYzNlOTkyZjg2NyIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwOTA1MDQ4Miwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlNDUxNTQ5NDdlYzA0NDNiNmVkMTkzIn0.EQy7IDsMls0zvsJSMorZGnczrGK3Qk9LZEAmwTBEbOw
 // see console log when running App
 @fcm = ckYOMA85QDC97cW4vqCVUn:APA91bHxF35AuZNCjhMFwcdBlBC0qgPviEXMy1-7QkAeEq6w3lQeQBvH8XB_z8BqTsjGVk2LV3jMbcHfZdPl2PpMAgxc3FX34fxuRvOYqs_FpwHwnvQoAclvMJNlymgw7ldrAWXUwCZd
+
 
 
 ### GET MY TOKENS
@@ -38,6 +39,15 @@ Authorization: Bearer {{token}}
 
 ### CHECK STATUS
 POST {{base}}/test-notification
+Authorization: Bearer {{token}}
+
+{
+  "token": "{{fcm}}"
+}
+
+
+### CHECK STATUS
+POST {{base}}/ping
 Authorization: Bearer {{token}}
 
 {

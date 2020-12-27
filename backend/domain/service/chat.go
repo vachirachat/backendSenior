@@ -6,6 +6,7 @@ import (
 	"backendSenior/domain/model/chatsocket"
 	"fmt"
 	"sync"
+	"time"
 )
 
 // ChatService manages sending message and connection pool
@@ -109,15 +110,15 @@ func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{})
 	return nil
 }
 
+// SendNotificationToRoom send notification to all users in the room whose last seen time is more than `thres`
 // TODO refactor into another service
-// SendNotificationToRoom send notification to all users in the room
-func (chat *ChatService) SendNotificationToRoom(roomID string, notification *model.Notification) error {
+func (chat *ChatService) SendNotificationToRoom(roomID string, notification *model.Notification, thres time.Duration) error {
 	userIDs, err := chat.mapRoomUser.GetRoomUsers(roomID)
 	if err != nil {
 		return err
 	}
 
-	allFCMTokens := make([]model.FCMToken, 0)
+	allFCMTokens := make([]string, 0, len(userIDs)) // just pre allocate
 	resultChan := make(chan []model.FCMToken, 1)
 
 	for _, uid := range userIDs {
@@ -132,7 +133,13 @@ func (chat *ChatService) SendNotificationToRoom(roomID string, notification *mod
 	}
 
 	for i := 0; i < len(userIDs); i++ {
-		allFCMTokens = append(allFCMTokens, (<-resultChan)...)
+		for _, tok := range <-resultChan {
+			if lastSeen, err := chat.notifService.GetLastSeenTime(tok.Token); err == nil && time.Now().Sub(lastSeen) > thres {
+				allFCMTokens = append(allFCMTokens, tok.Token)
+			} else {
+				fmt.Print("ignore token", tok.Token, "since it's seen less", thres, "ago")
+			}
+		}
 	}
 
 	// TODO handle later
@@ -140,13 +147,8 @@ func (chat *ChatService) SendNotificationToRoom(roomID string, notification *mod
 		return fmt.Errorf("too many device to send")
 	}
 
-	fcmTokens := make([]string, len(allFCMTokens))
-	for i, tok := range allFCMTokens {
-		fcmTokens[i] = tok.Token
-	}
-
-	success, err := chat.notifService.SendNotifications(fcmTokens, notification)
-	fmt.Printf("[notification] successfully sent %d of %d notifications\n", success, len(fcmTokens))
+	success, err := chat.notifService.SendNotifications(allFCMTokens, notification)
+	fmt.Printf("[notification] successfully sent %d of %d notifications\n", success, len(allFCMTokens))
 	return err
 }
 
