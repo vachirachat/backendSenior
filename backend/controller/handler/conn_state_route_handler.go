@@ -85,6 +85,7 @@ func (h *ConnStateRouteHandler) handleWs(c *gin.Context) {
 	}
 	fmt.Println("clnt", fcmToken[:10], "connected", time.Now())
 	h.notifService.SetOnlineStatus(fcmToken, true)
+	h.notifService.SetLastSeenTime(fcmToken, time.Now())
 
 	clnt := &simpleClient{
 		conn:               wsConn,
