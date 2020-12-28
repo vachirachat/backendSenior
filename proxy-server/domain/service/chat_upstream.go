@@ -37,7 +37,7 @@ func (service *ChatUpstreamService) SendMessage(message model.Message) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("[upstream] --> %+v\n", encryptedMessage)
+	fmt.Printf("[upstream] --> %+v\n", data)
 	err = service.upstream.SendMessage(data)
 	return err
 }

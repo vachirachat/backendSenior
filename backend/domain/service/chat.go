@@ -110,9 +110,10 @@ func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{})
 	return nil
 }
 
-// SendNotificationToRoom send notification to all users in the room whose last seen time is more than `thres`
+// SendNotificationToRoomExceptUser send notification to all users in the room whose last seen time is more than `thres`
+// It exclude userID (sender) from receiving message
 // TODO refactor into another service
-func (chat *ChatService) SendNotificationToRoom(roomID string, notification *model.Notification, thres time.Duration) error {
+func (chat *ChatService) SendNotificationToRoomExceptUser(roomID string, userID string, notification *model.Notification, thres time.Duration) error {
 	userIDs, err := chat.mapRoomUser.GetRoomUsers(roomID)
 	if err != nil {
 		return err
@@ -121,7 +122,13 @@ func (chat *ChatService) SendNotificationToRoom(roomID string, notification *mod
 	allFCMTokens := make([]string, 0, len(userIDs)) // just pre allocate
 	resultChan := make(chan []model.FCMToken, 1)
 
+	cnt := 0
 	for _, uid := range userIDs {
+		if uid == userID {
+			fmt.Println("excluded user", uid, "as it's sender")
+			continue
+		}
+		cnt += 1
 		go func(userID string) {
 			// TODO handle error
 			tokens, err := chat.notifService.GetUserTokens(userID)
@@ -132,7 +139,7 @@ func (chat *ChatService) SendNotificationToRoom(roomID string, notification *mod
 		}(uid)
 	}
 
-	for i := 0; i < len(userIDs); i++ {
+	for i := 0; i < cnt; i++ {
 		for _, tok := range <-resultChan {
 			online := chat.notifService.GetOnlineStatus(tok.Token)
 			if online {

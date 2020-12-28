@@ -136,10 +136,10 @@ func (c *client) readPump() {
 			continue
 		}
 
+		fmt.Printf("[%s] <-- %s\n", c.connID, inMessage)
 		switch rawMessage.Type {
 		case message_types.Chat:
 			// handle message here
-			fmt.Printf("[%s] <-- %s\n", c.connID, inMessage)
 			var msg model.Message
 			err = json.Unmarshal(rawMessage.Payload, &msg)
 

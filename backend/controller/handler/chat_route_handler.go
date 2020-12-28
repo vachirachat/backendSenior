@@ -198,7 +198,7 @@ func (c *client) readPump() {
 				fmt.Printf("Error bcasting message: %s\n", err.Error())
 			}
 
-			c.chatService.SendNotificationToRoom(msg.RoomID.Hex(), &model.Notification{
+			c.chatService.SendNotificationToRoomExceptUser(msg.RoomID.Hex(), msg.UserID.Hex(), &model.Notification{
 				// Title: "New Message in room " + msg.RoomID.Hex(),
 				// Body:  fmt.Sprintf("[%s]: %s", msg.UserID.Hex(), msg.Data),
 				Data: map[string]string{
@@ -207,7 +207,7 @@ func (c *client) readPump() {
 					"userId":    msg.UserID.Hex(),
 					"timestamp": msg.TimeStamp.Format("2006-01-02T15:04:05Z"),
 				},
-			}, 1*time.Minute)
+			}, 1*time.Second)
 
 		default:
 			fmt.Printf("INFO: unrecognized message\n==\n%s\n==\n", message)
