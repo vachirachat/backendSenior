@@ -2,6 +2,8 @@ package service
 
 import (
 	"backendSenior/domain/model"
+	"backendSenior/domain/model/chatsocket"
+	"backendSenior/domain/model/chatsocket/message_types"
 	"encoding/json"
 	"fmt"
 	"proxySenior/domain/interface/repository"
@@ -28,7 +30,10 @@ func (service *ChatUpstreamService) SendMessage(message model.Message) error {
 		fmt.Printf("send error: can't encrypt: %s\n", err.Error())
 		return err
 	}
-	data, err := json.Marshal(encryptedMessage)
+	data, err := json.Marshal(chatsocket.Message{
+		Type:    message_types.Chat,
+		Payload: encryptedMessage,
+	})
 	if err != nil {
 		return err
 	}

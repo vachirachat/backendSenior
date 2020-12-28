@@ -4,6 +4,8 @@ import (
 	"backendSenior/controller/middleware/auth"
 	"backendSenior/domain/model"
 	"backendSenior/domain/model/chatsocket"
+	"backendSenior/domain/model/chatsocket/exception"
+	"backendSenior/domain/model/chatsocket/message_types"
 	"backendSenior/domain/service"
 	"bytes"
 	"encoding/json"
@@ -85,7 +87,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			return
 		}
 
-		var conn = &chatsocket.SocketConnection{
+		var conn = &chatsocket.Connection{
 			Conn:   wsConn,
 			UserID: clientID,
 		}
@@ -129,53 +131,88 @@ func (c *client) readPump() {
 
 		// handle message here
 		fmt.Printf("[%s] <-- %s\n", c.connID, message)
-		var msg model.Message
-		err = json.Unmarshal(message, &msg)
-		if err != nil {
-			c.chatService.SendMessageToConnection(c.connID, bson.M{"status": "bad JSON: " + err.Error()})
-			continue
-		}
 
-		if ok, err := c.chatService.IsUserInRoom(c.proxyID, msg.RoomID.Hex()); err != nil {
-			c.chatService.SendMessageToConnection(c.connID, bson.M{
-				"status": "error checking room: " + err.Error(),
-			})
-			continue
-		} else if !ok {
-			c.chatService.SendMessageToConnection(c.connID, bson.M{
-				"status": "unauthorized to send to this room",
+		var rawMessage chatsocket.RawMessage
+		err = json.Unmarshal(message, &rawMessage)
+		if err != nil {
+			c.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
+				Type: message_types.Error,
+				Payload: exception.Event{
+					Reason: "Bad socket message structure",
+				},
 			})
 			continue
 		}
 
-		// Saving messag
-		msg.TimeStamp = time.Now()
-		if msg.UserID == "" {
-			fmt.Println("Bad Message, No User ID (proxy must fill it)")
-			continue
+		switch rawMessage.Type {
+		case message_types.Chat:
+			var msg model.Message
+			err = json.Unmarshal(rawMessage.Payload, &msg)
+			if err != nil {
+				c.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
+					Type: message_types.Error,
+					Payload: exception.Event{
+						Reason: "bad message payload format",
+						Data:   err.Error(),
+					},
+				})
+				continue
+			}
+			if ok, err := c.chatService.IsUserInRoom(c.proxyID, msg.RoomID.Hex()); err != nil {
+				c.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
+					Type: message_types.Error,
+					Payload: exception.Event{
+						Reason: "unable to check room",
+						Data:   err.Error(),
+					},
+				})
+				continue
+			} else if !ok {
+				c.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
+					Type: message_types.Error,
+					Payload: exception.Event{
+						Reason: "unauthorized to send message to the room",
+					},
+				})
+				continue
+			}
+			// Saving messag
+			msg.TimeStamp = time.Now()
+			if msg.UserID == "" {
+				fmt.Println("Bad Message, No User ID (proxy must fill it)")
+				continue
+			}
+
+			messageID, err := c.chatService.SaveMessage(msg)
+			if err != nil {
+				fmt.Printf("error saving message %s\n", err.Error())
+				continue
+			}
+			msg.MessageID = bson.ObjectIdHex(messageID)
+
+			err = c.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), chatsocket.Message{
+				Type:    message_types.Chat,
+				Payload: msg,
+			})
+			if err != nil {
+				fmt.Printf("Error bcasting message: %s\n", err.Error())
+			}
+
+			c.chatService.SendNotificationToRoom(msg.RoomID.Hex(), &model.Notification{
+				// Title: "New Message in room " + msg.RoomID.Hex(),
+				// Body:  fmt.Sprintf("[%s]: %s", msg.UserID.Hex(), msg.Data),
+				Data: map[string]string{
+					"roomId":    msg.RoomID.Hex(),
+					"msgId":     msg.MessageID.Hex(),
+					"userId":    msg.UserID.Hex(),
+					"timestamp": msg.TimeStamp.Format("2006-01-02T15:04:05Z"),
+				},
+			}, 1*time.Minute)
+
+		default:
+			fmt.Printf("INFO: unrecognized message\n==\n%s\n==\n", message)
+
 		}
 
-		messageID, err := c.chatService.SaveMessage(msg)
-		if err != nil {
-			fmt.Printf("error saving message %s\n", err.Error())
-			continue
-		}
-		msg.MessageID = bson.ObjectIdHex(messageID)
-
-		err = c.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
-		if err != nil {
-			fmt.Printf("Error bcasting message: %s\n", err.Error())
-		}
-
-		c.chatService.SendNotificationToRoom(msg.RoomID.Hex(), &model.Notification{
-			// Title: "New Message in room " + msg.RoomID.Hex(),
-			// Body:  fmt.Sprintf("[%s]: %s", msg.UserID.Hex(), msg.Data),
-			Data: map[string]string{
-				"roomId":    msg.RoomID.Hex(),
-				"msgId":     msg.MessageID.Hex(),
-				"userId":    msg.UserID.Hex(),
-				"timestamp": msg.TimeStamp.Format("2006-01-02T15:04:05Z"),
-			},
-		}, 1*time.Minute)
 	}
 }

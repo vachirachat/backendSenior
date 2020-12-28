@@ -159,7 +159,7 @@ func (chat *ChatService) SendNotificationToRoom(roomID string, notification *mod
 }
 
 // OnConnect maange adding new connection, then return new ID to be used as reference when disconnect
-func (chat *ChatService) OnConnect(conn *chatsocket.SocketConnection) (connID string, err error) {
+func (chat *ChatService) OnConnect(conn *chatsocket.Connection) (connID string, err error) {
 	connID, err = chat.mapConn.AddConnection(conn)
 	fmt.Printf("[chat] user %s connected id = %s\n", conn.UserID, connID)
 	return

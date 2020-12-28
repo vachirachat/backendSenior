@@ -3,6 +3,8 @@ package route
 import (
 	"backendSenior/domain/model"
 	"backendSenior/domain/model/chatsocket"
+	"backendSenior/domain/model/chatsocket/exception"
+	"backendSenior/domain/model/chatsocket/message_types"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -82,7 +84,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			return
 		}
 
-		var conn = &chatsocket.SocketConnection{
+		var conn = &chatsocket.Connection{
 			Conn:   wsConn,
 			UserID: userID,
 		}
@@ -113,7 +115,7 @@ func (c *client) readPump() {
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, inMessage, err := c.conn.ReadMessage()
 		// fmt.Printf("[chat] <-- %s\n", message)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -121,36 +123,77 @@ func (c *client) readPump() {
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-
-		// handle message here
-		fmt.Printf("[%s] <-- %s\n", c.connID, message)
-		var msg model.Message
-		err = json.Unmarshal(message, &msg)
+		inMessage = bytes.TrimSpace(bytes.Replace(inMessage, newline, space, -1))
+		var rawMessage chatsocket.RawMessage
+		err = json.Unmarshal(inMessage, &rawMessage)
 		if err != nil {
-			fmt.Println("error marshalling message:", err.Error())
-			continue
-		}
-
-		if ok, err := c.handlerRef.downstream.IsUserInRoom(c.userID, msg.RoomID.Hex()); err != nil {
-			fmt.Println("userID", c.userID, "roomID", msg.RoomID.Hex())
-			fmt.Println("error checking room:", err.Error())
-			continue
-		} else if !ok {
-			c.handlerRef.downstream.SendMessageToConnection(c.connID, bson.M{
-				"error": "unauthorized to send to this room",
+			c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{
+				Type: message_types.Error,
+				Payload: exception.Event{
+					Reason: "Bad socket message structure",
+				},
 			})
 			continue
 		}
 
-		// Saving messag
-		msg.TimeStamp = time.Now()
-		msg.UserID = bson.ObjectIdHex(c.userID)
+		switch rawMessage.Type {
+		case message_types.Chat:
+			// handle message here
+			fmt.Printf("[%s] <-- %s\n", c.connID, inMessage)
+			var msg model.Message
+			err = json.Unmarshal(rawMessage.Payload, &msg)
 
-		err = c.handlerRef.upstream.SendMessage(msg)
-		if err != nil {
-			fmt.Println("Error sending to upstream:", err)
-			continue
+			if err != nil {
+				fmt.Println("bad message payload format")
+				c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{
+					Type: message_types.Error,
+					Payload: exception.Event{
+						Reason: "bad message payload format",
+						Data:   err.Error(),
+					},
+				})
+				continue
+			}
+
+			if ok, err := c.handlerRef.downstream.IsUserInRoom(c.userID, msg.RoomID.Hex()); err != nil {
+				fmt.Println("unable to check room")
+				c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{
+					Type: message_types.Error,
+					Payload: exception.Event{
+						Reason: "unable to check room",
+						Data:   err.Error(),
+					},
+				})
+				continue
+			} else if !ok {
+				fmt.Println("unauthorized", c.userID, "not in room", msg.RoomID.Hex())
+				c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{
+					Type: message_types.Error,
+					Payload: exception.Event{
+						Reason: "unauthorized to send message to the room",
+					},
+				})
+				continue
+			}
+
+			// Saving messag
+			msg.TimeStamp = time.Now()
+			msg.UserID = bson.ObjectIdHex(c.userID)
+
+			err = c.handlerRef.upstream.SendMessage(msg)
+			if err != nil {
+				fmt.Println("error sending")
+				c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{
+					Type: message_types.Error,
+					Payload: exception.Event{
+						Reason: "error sending message to controller",
+						Data:   err.Error(),
+					},
+				})
+				continue
+			}
+		default:
+			fmt.Printf("INFO: unrecognized message\n==\n%s\n==\n", inMessage)
 		}
 	}
 }

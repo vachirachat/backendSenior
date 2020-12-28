@@ -10,6 +10,6 @@ type SendMessageRepository interface {
 // SocketConnectionRepository used by "Message Mux" to determine where to forward message
 type SocketConnectionRepository interface {
 	GetConnectionByUser(userID string) ([]string, error)
-	AddConnection(conn *chatsocket.SocketConnection) (string, error) // return generated id of connection
+	AddConnection(conn *chatsocket.Connection) (string, error) // return generated id of connection
 	RemoveConnection(connID string) error
 }

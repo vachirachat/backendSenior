@@ -32,9 +32,9 @@ var (
 
 // ConnectionPool manages websocket connections and allow sending message
 type ConnectionPool struct {
-	connections       []*chatsocket.SocketConnection
-	connectionsByUser map[string][]*chatsocket.SocketConnection
-	connectionByID    map[string]*chatsocket.SocketConnection
+	connections       []*chatsocket.Connection
+	connectionsByUser map[string][]*chatsocket.Connection
+	connectionByID    map[string]*chatsocket.Connection
 	// is used for "write pump"
 	sendChannel map[string]chan ([]byte)
 }
@@ -42,9 +42,9 @@ type ConnectionPool struct {
 // NewConnectionPool create new connection pool, ready to use
 func NewConnectionPool() *ConnectionPool {
 	return &ConnectionPool{
-		connections:       make([]*chatsocket.SocketConnection, 0),
-		connectionsByUser: make(map[string][]*chatsocket.SocketConnection),
-		connectionByID:    make(map[string]*chatsocket.SocketConnection),
+		connections:       make([]*chatsocket.Connection, 0),
+		connectionsByUser: make(map[string][]*chatsocket.Connection),
+		connectionByID:    make(map[string]*chatsocket.Connection),
 		sendChannel:       make(map[string]chan []byte),
 	}
 }
@@ -63,7 +63,7 @@ func (pool *ConnectionPool) GetConnectionByUser(userID string) ([]string, error)
 }
 
 // AddConnection resgiter new connection
-func (pool *ConnectionPool) AddConnection(conn *chatsocket.SocketConnection) (string, error) {
+func (pool *ConnectionPool) AddConnection(conn *chatsocket.Connection) (string, error) {
 	conn.ConnID = bson.NewObjectId().Hex()
 	// random until it unique
 	for {
@@ -85,7 +85,7 @@ func (pool *ConnectionPool) AddConnection(conn *chatsocket.SocketConnection) (st
 // RemoveConnection remove connection with specified ID from all maps
 func (pool *ConnectionPool) RemoveConnection(connID string) error {
 	var hasRemoved bool
-	var removedConn *chatsocket.SocketConnection
+	var removedConn *chatsocket.Connection
 	pool.connections, removedConn, hasRemoved = removeConn(connID, pool.connections)
 	if !hasRemoved {
 		return errors.New("Not Found")
@@ -118,7 +118,7 @@ func (pool *ConnectionPool) SendMessage(connID string, data interface{}) error {
 	return nil
 }
 
-func removeConn(connID string, connArr []*chatsocket.SocketConnection) ([]*chatsocket.SocketConnection, *chatsocket.SocketConnection, bool) {
+func removeConn(connID string, connArr []*chatsocket.Connection) ([]*chatsocket.Connection, *chatsocket.Connection, bool) {
 	n := len(connArr)
 	found := false
 	for i := 0; i < n; i++ {
@@ -131,7 +131,7 @@ func removeConn(connID string, connArr []*chatsocket.SocketConnection) ([]*chats
 		connArr = connArr[:n-1]
 		return connArr, res, true
 	}
-	return connArr, &chatsocket.SocketConnection{}, false
+	return connArr, &chatsocket.Connection{}, false
 }
 
 func writePump(conn *websocket.Conn, sendChan <-chan []byte) {

@@ -3,6 +3,8 @@ package main
 import (
 	"backendSenior/data/repository/chatsocket"
 	"backendSenior/domain/model"
+	chatmodel "backendSenior/domain/model/chatsocket"
+	"backendSenior/domain/model/chatsocket/message_types"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -56,18 +58,32 @@ func main() {
 		for {
 			data := <-pipe
 			fmt.Printf("[upstream] <-- %s\n", data)
-			var msg model.Message
-			err := json.Unmarshal(data, &msg)
+			var rawMessage chatmodel.RawMessage
+			err := json.Unmarshal(data, &rawMessage)
 			if err != nil {
-				fmt.Println("Error unmarshal:", err)
+				fmt.Println("error parsing message from upstream", err)
+				fmt.Printf("the message was [%s]\n", data)
 				continue
 			}
-			fmt.Println("The message is", msg)
 
-			err = downstreamService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
-			if err != nil {
-				fmt.Println("Error BCasting", err)
+			if rawMessage.Type == message_types.Chat {
+				var msg model.Message
+				err := json.Unmarshal(rawMessage.Payload, &msg)
+				if err != nil {
+					fmt.Println("error parsing message *payload* from upstream", err)
+					fmt.Printf("the message was [%s]\n", data)
+					continue
+				}
+				fmt.Println("The message is", msg)
+
+				err = downstreamService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
+				if err != nil {
+					fmt.Println("Error BCasting", err)
+				}
+			} else {
+				fmt.Printf("INFO: unrecognized message\n==\n%s\n==\n", data)
 			}
+
 		}
 	}()
 
