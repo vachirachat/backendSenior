@@ -13,6 +13,7 @@ type RoomInfo struct {
 type Room struct {
 	RoomID           bson.ObjectId   `json:"roomId" bson:"_id,omitempty,omitempty"`
 	RoomName         string          `json:"roomName" bson:"roomName,omitempty"`
+	OrgID            bson.ObjectId   `json:"orgId" bson:"orgId,omitempty"`
 	CreatedTimeStamp time.Time       `json:"-" bson:"createdAt,omitempty"`
 	RoomType         string          `json:"roomType" bson:"roomType,omitempty"`
 	ListUser         []bson.ObjectId `json:"users" bson:"users,omitempty"`
@@ -25,6 +26,7 @@ type Room struct {
 type RoomUpdateMongo struct {
 	RoomID           interface{} `bson:"_id,omitempty,omitempty"`
 	RoomName         interface{} `bson:"roomName,omitempty"`
+	OrgID            interface{} `bson:"orgId,omitempty"`
 	CreatedTimeStamp interface{} `bson:"createdAt,omitempty"`
 	RoomType         interface{} `bson:"roomType,omitempty"`
 	ListUser         interface{} `bson:"users,omitempty"`

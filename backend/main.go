@@ -71,6 +71,7 @@ func main() {
 
 	organizeRepo := mongo_repository.NewOrganizeRepositoryMongo(connectionDB)
 	organizeUserRepo := mongo_repository.NewOrganizeUserRepositoryMongo(connectionDB)
+	orgRoomRepo := mongo_repository.NewOrgRoomRepository(connectionDB)
 
 	proxyRepo := mongo_repository.NewProxyRepositoryMongo(connectionDB)
 
@@ -95,7 +96,7 @@ func main() {
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo, jwtSvc)
 	roomSvc := service.NewRoomService(roomRepo, roomUserRepo, roomProxyRepo)
-	organizeSvc := service.NewOrganizeService(organizeRepo, organizeUserRepo)
+	organizeSvc := service.NewOrganizeService(organizeRepo, organizeUserRepo, orgRoomRepo)
 	notifSvc := service.NewNotificationService(fcmTokenRepo, fcmUserRepo, clnt)
 	// we use room proxy repo to map!
 

@@ -13,6 +13,7 @@ type Organize struct {
 	Name       string          `json:"name" bson:"name,omitempty"`
 	Members    []bson.ObjectId `json:"members" bson:"members,omitempty"`
 	Admins     []bson.ObjectId `json:"admins" bson:"admins,omitempty"`
+	Rooms      []bson.ObjectId `json:"rooms" bson:"rooms,omitempty"`
 }
 
 // OrganizationUpdateMongo has same fields as organization, but has types of interface{}.
@@ -23,4 +24,5 @@ type OrganizationUpdateMongo struct {
 	Name       interface{} `bson:"name,omitempty"`
 	Members    interface{} `bson:"members,omitempty"`
 	Admins     interface{} `bson:"admins,omitempty"`
+	Rooms      interface{} `bson:"rooms,omitempty"`
 }

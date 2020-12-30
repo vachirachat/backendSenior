@@ -1,11 +1,11 @@
 @base = http://localhost:8080/api/v1/org
 @baseUser = http://localhost:8080/api/v1/user/user
-@orgA = 5fe1754626dcb947c967b199
+@orgA = 5feca30a26dcb9d00149e92d
 
-@userA = 5fe1751bd5d33ba2a28b0ee2
-@userB = 5fde114bc3cae674040aeec1
+@userA = 5feca3bc321e54199150566b
+@userB = 5feca3cb321e541991505670
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjFkYWUxYTZiLTk5NWUtNGJmZS1hZDdlLWMyMGFiYjhlZTAxMSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwODc0MTI4Niwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlMTc1MWJkNWQzM2JhMmEyOGIwZWUyIn0.H3OOJr0-9eslqefKLgqrs8QW3oFzNIP_LkWuzw2y170
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImY2N2VhYjJhLTBhYmUtNGViZC1hZWRhLTIyZDA2NTAxNWE2YyIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwOTM0MzY3OCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlY2EyNWUzMjFlNTQxOTkxNTA1NjAxIn0.kf0qG1ab9eHU3uJ2Kb2DFklPD9Km0VBYBLJas1wcC6s
 
 ### GET All Users
 GET {{baseUser}}
@@ -22,9 +22,10 @@ Authorization: Bearer {{token}}
 ### CREATE Org
 POST {{base}}
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-  "name": "BAR ROOM"
+  "name": "TEST ORG3"
 }
 
 
@@ -52,6 +53,14 @@ Content-Type: application/json
   "UserIDs": ["{{userA}}"]
 }
 
+### Remove User to Org.
+DELETE  {{base}}/{{orgA}}/member
+Content-Type: application/json
+
+{
+  "UserIDs": ["{{userA}}"]
+}
+
 
 ### GET admin in Org.
 GET {{base}}/{{orgA}}/admin
@@ -64,3 +73,9 @@ Content-Type: application/json
 {
   "UserIDs": ["{{userA}}"]
 }
+
+
+
+### GET rooms in organization
+GET {{base}}/{{orgA}}/room
+

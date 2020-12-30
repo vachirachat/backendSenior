@@ -9,13 +9,15 @@ import (
 type OrganizeService struct {
 	organizeRepo     repository.OrganizeRepository
 	organizeUserRepo repository.OrganizeUserRepository
+	orgRoomRepo      repository.OrgRoomRepository
 }
 
 // NewOrganizeService create nenw instance of `OrganizeService`
-func NewOrganizeService(organizeRepo repository.OrganizeRepository, organizeUserRepo repository.OrganizeUserRepository) *OrganizeService {
+func NewOrganizeService(organizeRepo repository.OrganizeRepository, organizeUserRepo repository.OrganizeUserRepository, orgRoomRepo repository.OrgRoomRepository) *OrganizeService {
 	return &OrganizeService{
 		organizeRepo:     organizeRepo,
 		organizeUserRepo: organizeUserRepo,
+		orgRoomRepo:      orgRoomRepo,
 	}
 }
 
@@ -82,4 +84,16 @@ func (service *OrganizeService) GetUserOrganizations(userId string) ([]model.Org
 	}
 	orgs, err := service.organizeRepo.GetOrganizesByIDs(orgIDs)
 	return orgs, err
+}
+
+// AddRoomsToOrg add rooms to the organizations
+func (service *OrganizeService) AddRoomsToOrg(orgID string, roomIDs []string) error {
+	err := service.orgRoomRepo.AddRoomsToOrg(orgID, roomIDs)
+	return err
+}
+
+// GetOrgRoomIDs return roomIDs of org
+func (service *OrganizeService) GetOrgRoomIDs(orgID string) ([]string, error) {
+	roomIDs, err := service.orgRoomRepo.GetOrgRooms(orgID)
+	return roomIDs, err
 }

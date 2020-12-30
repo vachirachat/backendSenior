@@ -1,14 +1,14 @@
 @base = http://localhost:8080/api/v1/user
 
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjQ0ZTQwZDVkLTgzMzQtNGU5OS04MmIwLTFlYzRjNzY2OGRmZCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwODc4NjgxNiwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlMTc1MWJkNWQzM2JhMmEyOGIwZWUyIn0.xG0DgHJQKUcb6Ilxehl7GesFACSO3cIhIlADbX6p2Qo
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImY2N2VhYjJhLTBhYmUtNGViZC1hZWRhLTIyZDA2NTAxNWE2YyIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIwOTM0MzY3OCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlY2EyNWUzMjFlNTQxOTkxNTA1NjAxIn0.kf0qG1ab9eHU3uJ2Kb2DFklPD9Km0VBYBLJas1wcC6s
 ### create user
 POST {{base}}/signup
 Content-Type: application/json
 
 {
-  "email": "top-1@gmail.com",
-  "password": "topza5353"
+  "email": "rod8713@gmail.com",
+  "password": "12345678"
 }
 ### GET all users
 GET {{base}}/user
@@ -19,7 +19,7 @@ Content-Type: application/json
 
 {
   "email": "rod8711@gmail.com",
-  "password": ""
+  "password": "12345678"
 }
 
 ### GET me

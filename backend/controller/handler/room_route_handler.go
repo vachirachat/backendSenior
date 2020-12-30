@@ -7,6 +7,7 @@ import (
 	"backendSenior/domain/model/chatsocket/room"
 	"backendSenior/domain/service"
 	"backendSenior/utills"
+	"errors"
 	"fmt"
 
 	"backendSenior/domain/model"
@@ -23,17 +24,19 @@ type RoomRouteHandler struct {
 	userService  *service.UserService  // for get room members route
 	proxyService *service.ProxyService // for get room proxies route
 	authMw       *auth.JWTMiddleware
-	chatService  *service.ChatService // for broadcast event when join/leave room
+	chatService  *service.ChatService     // for broadcast event when join/leave room
+	orgService   *service.OrganizeService // for add room to org
 }
 
 // NewRoomHandler create new handler for room
-func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware, userService *service.UserService, proxyService *service.ProxyService, chatService *service.ChatService) *RoomRouteHandler {
+func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware, userService *service.UserService, proxyService *service.ProxyService, chatService *service.ChatService, orgService *service.OrganizeService) *RoomRouteHandler {
 	return &RoomRouteHandler{
 		roomService:  roomService,
 		userService:  userService,
 		authMw:       authMw,
 		proxyService: proxyService,
 		chatService:  chatService,
+		orgService:   orgService,
 	}
 }
 
@@ -47,7 +50,7 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/:id/proxy", handler.addProxiesToRoom)
 	routerGroup.DELETE("/:id/proxy", handler.removeProxiesFromRoom)
 
-	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addRoomHandler)
+	routerGroup.POST("/", handler.authMw.AuthRequired(), handler.addRoomHandler)
 	routerGroup.POST("/:id/name" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editRoomNameHandler)
 	routerGroup.DELETE("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteRoomByIDHandler)
 	// routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
@@ -99,14 +102,34 @@ func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context) {
 // create an empty room, then the creator of the room is automatically invited to the room
 func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 	var room model.Room
-	err := context.ShouldBindJSON(&room)
-	if err != nil {
+	var roomID string
+	err := context.BindJSON(&room)
+	isOK := false
+
+	defer func() {
+		if !isOK && roomID != "" {
+			handler.roomService.DeleteRoomByID(roomID)
+		}
+	}()
+
+	if err != nil || room.OrgID.Hex() == "" {
+		if err == nil {
+			err = errors.New("org ID is required")
+		}
 		log.Println("error AddRoomHandeler", err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
 
-	roomID, err := handler.roomService.AddRoom(room)
+	// check org existence
+	_, err = handler.orgService.GetOrganizeById(room.OrgID.Hex())
+	if err != nil {
+		log.Println("error AddRoomHandeler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error, room might not exist"})
+		return
+	}
+
+	roomID, err = handler.roomService.AddRoom(room)
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -122,6 +145,15 @@ func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 		return
 	}
 
+	// Add room to org
+	err = handler.orgService.AddRoomsToOrg(room.OrgID.Hex(), []string{roomID})
+	if err != nil {
+		log.Println("error AddRoomHandeler; invite room to org", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+
+	isOK = true
 	context.JSON(http.StatusCreated, gin.H{"status": "success", "roomId": roomID})
 }
 

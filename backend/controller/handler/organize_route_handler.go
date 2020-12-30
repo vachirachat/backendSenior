@@ -154,6 +154,16 @@ func (handler *OrganizeRouteHandler) getOrganizeByIDHandler(context *gin.Context
 // create an empty org, then the creator of the org is automatically invited to the org
 func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context) {
 	var Organize model.Organize
+
+	var orgID string
+	isOK := false
+
+	defer func() {
+		if !isOK && orgID != "" {
+			handler.organizeService.DeleteOrganizeByID(orgID)
+		}
+	}()
+
 	err := context.ShouldBindJSON(&Organize)
 	if err != nil {
 		log.Println("error AddOrganizeHandeler", err.Error())
@@ -161,7 +171,7 @@ func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context) {
 		return
 	}
 
-	orgID, err := handler.organizeService.AddOrganize(Organize)
+	orgID, err = handler.organizeService.AddOrganize(Organize)
 	if err != nil {
 		log.Println("error AddOrganizeHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -173,9 +183,6 @@ func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context) {
 	if err != nil {
 		log.Println("error AddOrganizeHandeler; invite self to room", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-
-		go handler.organizeService.DeleteOrganizeByID(orgID)
-
 		return
 	}
 

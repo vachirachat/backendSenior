@@ -9,6 +9,7 @@ import (
 	"backendSenior/domain/model"
 	"backendSenior/utills"
 
+	"github.com/globalsign/mgo/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -131,6 +132,9 @@ func (service *UserService) Signup(user model.UserSecret) error {
 	err = service.userRepository.AddUser(model.User{
 		Email:    user.Email,
 		Password: user.Password,
+		UserType: "user",
+		Room:     []bson.ObjectId{},
+		Organize: []bson.ObjectId{},
 	})
 	if err != nil {
 		return err
