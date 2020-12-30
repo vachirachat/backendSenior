@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 
 	"github.com/mergermarket/go-pkcs7"
 
@@ -32,12 +33,28 @@ func NewEncryptionService(keystore repository.Keystore) *EncryptionService {
 
 // Encrypt takes a message, then return message with data encrypted
 func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, error) {
+	log.Println("\n Encrypted log.Println(keyRec.KeyRecodes --> \n")
 	keyRec, err := enc.keystore.GetKeyForMessage(message.RoomID.Hex(), message.TimeStamp)
+
 	if err != nil {
-		return message, fmt.Errorf("getting key: %s", err.Error())
+		keyRec, err = enc.keystore.AddNewKey(message.RoomID.Hex(), keyRec.KeyRecodes)
+		if err != nil {
+			return message, fmt.Errorf("Fail to Add Key: %s", err.Error())
+		}
+	} else {
+		keyRec, err = enc.keystore.UpdateNewKey(message.RoomID.Hex(), keyRec.KeyRecodes, message.TimeStamp)
+		if err != nil {
+			return message, fmt.Errorf("Fail to Update Key: %s", err.Error())
+		}
 	}
 
-	key := keyRec.Key
+	//For Test Propose
+	for i := range keyRec.KeyRecodes {
+		log.Print(keyRec.KeyRecodes[i].Key)
+	}
+
+	key := keyRec.KeyRecodes[len(keyRec.KeyRecodes)-1].Key
+
 	plainText := []byte(message.Data)
 	plainText, err = pkcs7.Pad(plainText, aes.BlockSize)
 	if err != nil {
@@ -76,6 +93,7 @@ func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, err
 
 // Decrypt takes a message, then return message with data decrypted with appropiate key
 func (enc *EncryptionService) Decrypt(message model.Message) (model.Message, error) {
+	log.Println("\n Decrypted log.Println(keyRec.KeyRecodes --> \n")
 	// fmt.Printf("[Decode] original message text is [%s]\n", message.Data)
 	// decoder := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))
 	// decoded, err := ioutil.ReadAll(decoder)
@@ -85,11 +103,30 @@ func (enc *EncryptionService) Decrypt(message model.Message) (model.Message, err
 	// 	message.Data = string(decoded)
 	// }
 	keyRec, err := enc.keystore.GetKeyForMessage(message.RoomID.Hex(), message.TimeStamp)
+
+	//----- Refactor to Function Check key-date -----//
+
 	if err != nil {
 		return message, fmt.Errorf("getting key: %s", err.Error())
 	}
+	//----- Refactor to Function -----//
 
-	key := keyRec.Key
+	//----- Refactor to Function ReMapTime -----//
+
+	//For Test Propose
+	for i := range keyRec.KeyRecodes {
+		log.Print(keyRec.KeyRecodes[i].Key)
+	}
+
+	key := keyRec.KeyRecodes[len(keyRec.KeyRecodes)-1].Key
+	for i := range keyRec.KeyRecodes {
+		if keyRec.KeyRecodes[i].ValidFrom.After(message.TimeStamp) && keyRec.KeyRecodes[i].ValidTo.Before(message.TimeStamp) {
+			key = keyRec.KeyRecodes[i].Key
+			continue
+		}
+	}
+
+	//----- Refactor to Function ReMapTime -----//
 
 	// b64 := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))
 	cipherText, err := base64.StdEncoding.DecodeString(message.Data)

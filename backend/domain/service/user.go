@@ -9,6 +9,7 @@ import (
 	"backendSenior/domain/model"
 	"backendSenior/utills"
 
+	"github.com/globalsign/mgo/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -120,18 +121,18 @@ func (service *UserService) Login(email string, password string) (model.User, er
 // }
 
 // Signup API
-func (service *UserService) Signup(user model.UserSecret) error {
+func (service *UserService) Signup(user model.User) error {
 	_, err := service.userRepository.GetUserByEmail(user.Email)
 	if err == nil {
 		return errors.New("User already exists")
 	}
 
+	user.Room = []bson.ObjectId{}
+	user.Organize = []bson.ObjectId{}
+
 	// Add User to DB
 	user.Password = utills.HashPassword(user.Password)
-	err = service.userRepository.AddUser(model.User{
-		Email:    user.Email,
-		Password: user.Password,
-	})
+	err = service.userRepository.AddUser(user)
 	if err != nil {
 		return err
 	}

@@ -15,3 +15,5 @@ var (
 	MONGO_CONN_STRING = "mongodb://localhost:27017"
 	LISTEN_ADDRESS    = defaultEnv("PORT", ":8090")
 )
+
+const BACKKOKTIMEZONE = "Asia/Bangkok"
