@@ -2,6 +2,9 @@ package route
 
 import (
 	"backendSenior/controller/middleware/auth"
+	"backendSenior/domain/model/chatsocket"
+	"backendSenior/domain/model/chatsocket/message_types"
+	"backendSenior/domain/model/chatsocket/room"
 	"backendSenior/domain/service"
 	"backendSenior/utills"
 	"fmt"
@@ -17,18 +20,20 @@ import (
 
 type RoomRouteHandler struct {
 	roomService  *service.RoomService
-	userService  *service.UserService
-	proxyService *service.ProxyService
+	userService  *service.UserService  // for get room members route
+	proxyService *service.ProxyService // for get room proxies route
 	authMw       *auth.JWTMiddleware
+	chatService  *service.ChatService // for broadcast event when join/leave room
 }
 
 // NewRoomHandler create new handler for room
-func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware, userService *service.UserService, proxyService *service.ProxyService) *RoomRouteHandler {
+func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware, userService *service.UserService, proxyService *service.ProxyService, chatService *service.ChatService) *RoomRouteHandler {
 	return &RoomRouteHandler{
 		roomService:  roomService,
 		userService:  userService,
 		authMw:       authMw,
 		proxyService: proxyService,
+		chatService:  chatService,
 	}
 }
 
@@ -173,12 +178,29 @@ func (handler *RoomRouteHandler) addMemberToRoom(context *gin.Context) {
 		return
 	}
 
-	err = handler.roomService.AddMembersToRoom(roomID, utills.ToStringArr(body.UserIDs))
+	userIDs := utills.ToStringArr(body.UserIDs)
+
+	err = handler.roomService.AddMembersToRoom(roomID, userIDs)
 	if err != nil {
 		log.Println("error AddMemberToRoom", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
+
+	// send event to proxy
+	err = handler.chatService.BroadcastMessageToRoom(roomID, chatsocket.Message{
+		Type: message_types.Room,
+		Payload: room.MemberEvent{
+			Type:    room.Join,
+			RoomID:  roomID,
+			Members: userIDs,
+		},
+	})
+	// this just print warning, the request is successful anyway
+	if err != nil {
+		fmt.Println("error bcast event to proxy", err)
+	}
+
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
@@ -200,13 +222,30 @@ func (handler *RoomRouteHandler) deleteMemberFromRoom(context *gin.Context) {
 		return
 	}
 
-	err = handler.roomService.DeleteMemberFromRoom(roomID, utills.ToStringArr(body.UserIDs))
+	userIDs := utills.ToStringArr(body.UserIDs)
+
+	err = handler.roomService.DeleteMemberFromRoom(roomID, userIDs)
 
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
+
+	// send event to proxy
+	err = handler.chatService.BroadcastMessageToRoom(roomID, chatsocket.Message{
+		Type: message_types.Room,
+		Payload: room.MemberEvent{
+			Type:    room.Leave,
+			RoomID:  roomID,
+			Members: userIDs,
+		},
+	})
+	// this just print warning, the request is successful anyway
+	if err != nil {
+		fmt.Println("error bcast event to proxy", err)
+	}
+
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
