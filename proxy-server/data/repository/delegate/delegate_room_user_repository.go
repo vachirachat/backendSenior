@@ -77,6 +77,8 @@ func (repo *DelegateRoomUserRepository) GetUserRooms(userID string) (roomIDs []s
 
 		repo.userToRooms[userID] = utills.ToStringArr(resOk.Room)
 		repo.lastFetchUsertoRooms[userID] = time.Now()
+
+		return repo.userToRooms[userID], nil
 	}
 	return rooms, nil
 }
@@ -84,8 +86,8 @@ func (repo *DelegateRoomUserRepository) GetUserRooms(userID string) (roomIDs []s
 // GetRoomUsers get room's users from backend API
 func (repo *DelegateRoomUserRepository) GetRoomUsers(roomID string) (userIDs []string, err error) {
 	repo.lock.RLock()
-	fetchTime := repo.lastFetchUsertoRooms[roomID]
-	users := repo.userToRooms[roomID]
+	fetchTime := repo.lastFetchRoomToUsers[roomID]
+	users := repo.roomToUsers[roomID]
 	repo.lock.RUnlock()
 
 	if time.Now().Sub(fetchTime) > repo.ttl {
@@ -120,6 +122,8 @@ func (repo *DelegateRoomUserRepository) GetRoomUsers(roomID string) (userIDs []s
 
 		repo.roomToUsers[roomID] = resOk.Members
 		repo.lastFetchRoomToUsers[roomID] = time.Now()
+
+		return repo.roomToUsers[roomID], nil
 	}
 	return users, nil
 }

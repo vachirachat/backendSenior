@@ -2,13 +2,9 @@ package main
 
 import (
 	"backendSenior/data/repository/chatsocket"
-	"backendSenior/domain/model"
-	chatmodel "backendSenior/domain/model/chatsocket"
-	"backendSenior/domain/model/chatsocket/message_types"
-	"encoding/json"
-	"fmt"
 	"log"
 	"os"
+	"proxySenior/controller/chat"
 	"proxySenior/controller/route"
 	"proxySenior/data/repository/delegate"
 	"proxySenior/data/repository/mongo_repository"
@@ -44,6 +40,7 @@ func main() {
 	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)
 	messageService := service.NewMessageService(msgRepo, enc)
 
+	// create router from service
 	router := (&route.RouterDeps{
 		UpstreamService:   upstreamService,
 		DownstreamService: downstreamService,
@@ -51,41 +48,9 @@ func main() {
 		MessageService:    messageService,
 	}).NewRouter()
 
-	pipe := make(chan []byte, 100)
-	upstreamService.RegsiterHandler(pipe)
-
-	go func() {
-		for {
-			data := <-pipe
-			fmt.Printf("[upstream] <-- %s\n", data)
-			var rawMessage chatmodel.RawMessage
-			err := json.Unmarshal(data, &rawMessage)
-			if err != nil {
-				fmt.Println("error parsing message from upstream", err)
-				fmt.Printf("the message was [%s]\n", data)
-				continue
-			}
-
-			if rawMessage.Type == message_types.Chat {
-				var msg model.Message
-				err := json.Unmarshal(rawMessage.Payload, &msg)
-				if err != nil {
-					fmt.Println("error parsing message *payload* from upstream", err)
-					fmt.Printf("the message was [%s]\n", data)
-					continue
-				}
-				fmt.Println("The message is", msg)
-
-				err = downstreamService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
-				if err != nil {
-					fmt.Println("Error BCasting", err)
-				}
-			} else {
-				fmt.Printf("INFO: unrecognized message\n==\n%s\n==\n", data)
-			}
-
-		}
-	}()
+	// websocket messasge handler
+	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo)
+	go messageHandler.Start()
 
 	router.Run(utils.LISTEN_ADDRESS)
 
