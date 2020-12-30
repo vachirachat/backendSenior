@@ -96,6 +96,7 @@ func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context) {
 	context.JSON(http.StatusOK, room)
 }
 
+// create an empty room, then the creator of the room is automatically invited to the room
 func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 	var room model.Room
 	err := context.ShouldBindJSON(&room)
@@ -111,6 +112,16 @@ func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
+
+	// Invite self to rooms
+	userID := context.GetString(auth.UserIdField)
+	err = handler.roomService.AddMembersToRoom(roomID, []string{userID})
+	if err != nil {
+		log.Println("error AddRoomHandeler; invite self to room", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+
 	context.JSON(http.StatusCreated, gin.H{"status": "success", "roomId": roomID})
 }
 

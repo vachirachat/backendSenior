@@ -148,6 +148,7 @@ func (handler *OrganizeRouteHandler) getOrganizeByIDHandler(context *gin.Context
 	context.JSON(http.StatusOK, Organize)
 }
 
+// create an empty org, then the creator of the org is automatically invited to the org
 func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context) {
 	var Organize model.Organize
 	err := context.ShouldBindJSON(&Organize)
@@ -163,6 +164,15 @@ func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
+
+	userID := context.GetString(auth.UserIdField)
+	err = handler.organizeService.AddMemberToOrganize(OrganizeID, []string{userID})
+	if err != nil {
+		log.Println("error AddOrganizeHandeler; invite self to room", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+
 	context.JSON(http.StatusCreated, gin.H{"status": "success", "orgId": OrganizeID})
 }
 
