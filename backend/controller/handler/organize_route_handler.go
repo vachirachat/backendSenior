@@ -166,7 +166,7 @@ func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context) {
 	}
 
 	userID := context.GetString(auth.UserIdField)
-	err = handler.organizeService.AddMemberToOrganize(OrganizeID, []string{userID})
+	err = handler.organizeService.AddAdminToOrganize(OrganizeID, []string{userID})
 	if err != nil {
 		log.Println("error AddOrganizeHandeler; invite self to room", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
