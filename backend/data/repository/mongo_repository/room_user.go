@@ -116,7 +116,7 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 	}
 	for _, userID := range userIDs {
 		ops = append(ops, txn.Op{
-			C:  collectionProxy,
+			C:  collectionUser,
 			Id: bson.ObjectIdHex(userID),
 			Update: bson.M{
 				"$addToSet": model.UserUpdateMongo{
