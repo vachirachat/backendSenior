@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
@@ -18,6 +19,8 @@ type NotificationService struct {
 	fcmClient   *messaging.Client
 	lastSeen    map[string]time.Time
 	isOnline    map[string]bool
+	seenLock    sync.RWMutex
+	onlineLock  sync.RWMutex
 }
 
 func NewNotificationService(fcmRepo repository.FCMTokenRepository, fcmUserRepo repository.FCMUserRepository, fcmClient *messaging.Client) *NotificationService {
@@ -27,6 +30,8 @@ func NewNotificationService(fcmRepo repository.FCMTokenRepository, fcmUserRepo r
 		fcmClient:   fcmClient,
 		lastSeen:    make(map[string]time.Time),
 		isOnline:    make(map[string]bool),
+		seenLock:    sync.RWMutex{},
+		onlineLock:  sync.RWMutex{},
 	}
 }
 
@@ -86,7 +91,7 @@ func (service *NotificationService) DeleteDevice(deviceToken string) error {
 	return err
 }
 
-// GetUserDevices return array of tokens of user devices
+// GetUserTokens return array of tokens of user devices
 func (service *NotificationService) GetUserTokens(userID string) ([]model.FCMToken, error) {
 	tokenIDs, err := service.fcmUserRepo.GetUserTokens(userID)
 	if err != nil {
@@ -95,34 +100,34 @@ func (service *NotificationService) GetUserTokens(userID string) ([]model.FCMTok
 
 	tokens, err := service.fcmRepo.GetTokensByIDs(tokenIDs)
 	return tokens, err
-	// nonExpiredTokens := make([]string, 0)
-
-	// now := time.Now()
-	// for _, tok := range tokens {
-	// 	if now.Sub(tok.LastUpdated) <= 24*time.Hour {
-	// 		nonExpiredTokens = append(nonExpiredTokens, tok.Token)
-	// 	}
-	// }
-	// return nonExpiredTokens, nil
 }
 
 // SetLastSeenTime sets last seen time of device (token)
 func (service *NotificationService) SetLastSeenTime(token string, time time.Time) {
+	service.seenLock.Lock()
+	defer service.seenLock.Unlock()
+
 	service.lastSeen[token] = time
 }
 
 // SetOnlineStatus sets last seen time of device (token)
 func (service *NotificationService) SetOnlineStatus(token string, status bool) {
+	service.onlineLock.Lock()
+	defer service.onlineLock.Unlock()
 	service.isOnline[token] = status
 }
 
 // GetLastSeenTime returns last seen time of device
 func (service *NotificationService) GetLastSeenTime(token string) time.Time {
+	service.seenLock.RLock()
+	defer service.seenLock.RUnlock()
 	return service.lastSeen[token]
 }
 
 // GetOnlineStatus returns last seen time of device
 func (service *NotificationService) GetOnlineStatus(token string) bool {
+	service.onlineLock.RLock()
+	defer service.onlineLock.RUnlock()
 	return service.isOnline[token]
 }
 

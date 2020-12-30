@@ -6,6 +6,7 @@ import (
 	"backendSenior/utills"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -16,6 +17,7 @@ type CachedRoomProxyRepository struct {
 	connection    *mgo.Session
 	proxyToRooms  map[string][]string
 	roomToProxies map[string][]string
+	lock          sync.RWMutex
 }
 
 // NewCachedRoomProxyRepository create new room user repository from mongo connection, cache isn't initialized
@@ -25,22 +27,28 @@ func NewCachedRoomProxyRepository(conn *mgo.Session) *CachedRoomProxyRepository 
 		connection:    conn,
 		proxyToRooms:  make(map[string][]string),
 		roomToProxies: make(map[string][]string),
+		lock:          sync.RWMutex{},
 	}
 }
 
 var _ repository.RoomUserRepository = (*CachedRoomUserRepository)(nil)
 
-// TODO: prevent race condition
-
 // GetUserRooms get
 func (repo *CachedRoomProxyRepository) GetUserRooms(proxyID string) (roomIDs []string, err error) {
+	repo.lock.RLock()
 	rooms, exists := repo.proxyToRooms[proxyID]
+	repo.lock.RUnlock()
+
 	if !exists {
 		var proxy model.Proxy
 		err := repo.connection.DB(dbName).C(collectionProxy).FindId(bson.ObjectIdHex(proxyID)).One(&proxy)
 		if err != nil {
 			return nil, err
 		}
+
+		repo.lock.Lock()
+		defer repo.lock.Unlock()
+
 		repo.proxyToRooms[proxyID] = utills.ToStringArr(proxy.Rooms)
 		return repo.proxyToRooms[proxyID], nil
 	}
@@ -49,16 +57,24 @@ func (repo *CachedRoomProxyRepository) GetUserRooms(proxyID string) (roomIDs []s
 
 // GetRoomUsers get proxyIds for specified room
 func (repo *CachedRoomProxyRepository) GetRoomUsers(roomID string) (proxyIDs []string, err error) {
+	repo.lock.RLock()
 	proxies, exist := repo.roomToProxies[roomID]
+	repo.lock.RUnlock()
+
 	if !exist {
 		var room model.Room
 		err := repo.connection.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&room)
 		if err != nil {
 			return nil, err
 		}
+
+		repo.lock.Lock()
+		defer repo.lock.Unlock()
+
 		repo.roomToProxies[roomID] = utills.ToStringArr(room.ListProxy)
 		return repo.roomToProxies[roomID], nil
 	}
+
 	return proxies, nil
 }
 
@@ -101,6 +117,10 @@ func (repo *CachedRoomProxyRepository) AddUsersToRoom(roomID string, proxyIDs []
 		// TODO it should revert
 		return err
 	}
+
+	repo.lock.Lock()
+	repo.lock.Unlock()
+
 	// Invalidate cache
 	for _, pid := range proxyIDs {
 		delete(repo.proxyToRooms, pid)
@@ -147,6 +167,10 @@ func (repo *CachedRoomProxyRepository) RemoveUsersFromRoom(roomID string, proxyI
 		// TODO it should revert
 		return err
 	}
+
+	repo.lock.Lock()
+	repo.lock.Unlock()
+
 	// Invalidate cache
 	for _, pid := range proxyIDs {
 		delete(repo.proxyToRooms, pid)

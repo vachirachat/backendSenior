@@ -6,6 +6,7 @@ import (
 	"backendSenior/utills"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -16,6 +17,7 @@ type CachedRoomUserRepository struct {
 	connection  *mgo.Session
 	userToRooms map[string][]string
 	roomToUsers map[string][]string
+	lock        sync.RWMutex
 }
 
 // NewCachedRoomUserRepository create new room user repository from mongo connection, cache isn't initialized
@@ -25,22 +27,29 @@ func NewCachedRoomUserRepository(conn *mgo.Session) *CachedRoomUserRepository {
 		connection:  conn,
 		userToRooms: make(map[string][]string),
 		roomToUsers: make(map[string][]string),
+		lock:        sync.RWMutex{},
 	}
 }
 
 var _ repository.RoomUserRepository = (*CachedRoomUserRepository)(nil)
 
-// TODO: prevent race condition
-
 // GetUserRooms get RoomIDs of specified UserID
 func (repo *CachedRoomUserRepository) GetUserRooms(userID string) (roomIDs []string, err error) {
+	repo.lock.RLock()
 	rooms, exists := repo.userToRooms[userID]
+	repo.lock.RUnlock()
+
 	if !exists {
+
 		var user model.User
 		err := repo.connection.DB(dbName).C(collectionUser).FindId(bson.ObjectIdHex(userID)).One(&user)
 		if err != nil {
 			return nil, err
 		}
+
+		repo.lock.Lock()
+		defer repo.lock.Unlock()
+
 		repo.userToRooms[userID] = utills.ToStringArr(user.Room)
 		return repo.userToRooms[userID], nil
 	}
@@ -49,16 +58,24 @@ func (repo *CachedRoomUserRepository) GetUserRooms(userID string) (roomIDs []str
 
 // GetRoomUsers get UserIDs of specified RoomID
 func (repo *CachedRoomUserRepository) GetRoomUsers(roomID string) (userIDs []string, err error) {
+	repo.lock.RLock()
 	users, exist := repo.roomToUsers[roomID]
+	repo.lock.RUnlock()
+
 	if !exist {
 		var room model.Room
 		err := repo.connection.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&room)
 		if err != nil {
 			return nil, err
 		}
+
+		repo.lock.Lock()
+		defer repo.lock.Unlock()
+
 		repo.roomToUsers[roomID] = utills.ToStringArr(room.ListUser)
 		return repo.roomToUsers[roomID], nil
 	}
+
 	return users, nil
 }
 
@@ -101,6 +118,10 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 		// TODO it should revert
 		return err
 	}
+
+	repo.lock.Lock()
+	repo.lock.Unlock()
+
 	// Invalidate cache
 	for _, uid := range userIDs {
 		delete(repo.userToRooms, uid)
@@ -147,6 +168,10 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 		// TODO it should revert
 		return err
 	}
+
+	repo.lock.Lock()
+	defer repo.lock.Unlock()
+
 	// Invalidate cache
 	for _, uid := range userIDs {
 		delete(repo.userToRooms, uid)

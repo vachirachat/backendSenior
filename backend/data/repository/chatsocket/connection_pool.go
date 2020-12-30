@@ -5,6 +5,7 @@ import (
 	"backendSenior/domain/model/chatsocket"
 	"encoding/json"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -37,27 +38,18 @@ type ConnectionPool struct {
 	connectionByID    map[string]*chatsocket.Connection
 	// is used for "write pump"
 	sendChannel map[string]chan ([]byte)
-	// synchronize map
-	readCmdChan chan readCmd
-	addCmdChan  chan addCmd
-	delCmdChan  chan deleteCmd
+	lock        sync.RWMutex
 }
 
 // NewConnectionPool create new connection pool, ready to use
 func NewConnectionPool() *ConnectionPool {
-	pool := &ConnectionPool{
+	return &ConnectionPool{
 		connections:       make([]*chatsocket.Connection, 0),
 		connectionsByUser: make(map[string][]*chatsocket.Connection),
 		connectionByID:    make(map[string]*chatsocket.Connection),
 		sendChannel:       make(map[string]chan []byte),
-		readCmdChan:       make(chan readCmd, 10),
-		addCmdChan:        make(chan addCmd, 10),
-		delCmdChan:        make(chan deleteCmd, 10),
+		lock:              sync.RWMutex{},
 	}
-
-	go pool.worker()
-
-	return pool
 }
 
 var _ repository.SocketConnectionRepository = (*ConnectionPool)(nil)
@@ -65,22 +57,22 @@ var _ repository.SendMessageRepository = (*ConnectionPool)(nil)
 
 // GetConnectionByUser returns connection ID of all connection of a user
 func (pool *ConnectionPool) GetConnectionByUser(userID string) ([]string, error) {
-	ret := make(chan []*chatsocket.Connection, 1)
-	err := make(chan error, 1)
+	pool.lock.RLock()
+	conns := pool.connectionsByUser[userID]
+	pool.lock.RUnlock()
 
-	pool.readCmdChan <- readCmd{userID, ret, err}
-
-	userConns := <-ret
-	result := make([]string, len(userConns))
-	for i, conn := range userConns {
+	result := make([]string, len(conns))
+	for i, conn := range conns {
 		result[i] = conn.ConnID
 	}
-
-	return result, <-err
+	return result, nil
 }
 
 // AddConnection resgiter new connection
 func (pool *ConnectionPool) AddConnection(conn *chatsocket.Connection) (string, error) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
 	conn.ConnID = bson.NewObjectId().Hex()
 	// random until it unique
 	for {
@@ -91,36 +83,45 @@ func (pool *ConnectionPool) AddConnection(conn *chatsocket.Connection) (string, 
 		}
 	}
 
-	err := make(chan error, 1)
-	pool.addCmdChan <- addCmd{conn, err}
+	pool.connections = append(pool.connections, conn)
+	pool.connectionsByUser[conn.UserID] = append(pool.connectionsByUser[conn.UserID], conn)
+	pool.connectionByID[conn.ConnID] = conn
+	pool.sendChannel[conn.ConnID] = make(chan []byte, 10)
+	go writePump(conn.Conn, pool.sendChannel[conn.ConnID])
 
-	return conn.ConnID, <-err
+	return conn.ConnID, nil
 }
 
 // RemoveConnection remove connection with specified ID from all maps
 func (pool *ConnectionPool) RemoveConnection(connID string) error {
-	err := make(chan error)
-	pool.delCmdChan <- deleteCmd{connID, err}
-	return <-err
+	var hasRemoved bool
+	var removedConn *chatsocket.Connection
+
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	pool.connections, removedConn, hasRemoved = removeConn(connID, pool.connections)
+	if !hasRemoved {
+		return errors.New("Not Found")
+	}
+	pool.connectionsByUser[removedConn.UserID], _, _ = removeConn(connID, pool.connectionsByUser[removedConn.UserID])
+	delete(pool.connectionByID, connID)
+	close(pool.sendChannel[connID])
+	delete(pool.sendChannel, connID)
+
+	return nil
 }
 
 // SendMessage send message to specifed socket, if it's []byte then call write message, otherwise call writeJSON
 func (pool *ConnectionPool) SendMessage(connID string, data interface{}) error {
+	pool.lock.RLock()
 	_, exist := pool.connectionByID[connID]
+	sendChan := pool.sendChannel[connID] // might be nil
+	pool.lock.RUnlock()
+
 	if !exist {
 		return errors.New("Connection with that ID not found")
 	}
-
-	messageBytes, err := toBytes(data)
-	if err != nil {
-		return err
-	}
-
-	pool.sendChannel[connID] <- messageBytes
-	return nil
-}
-
-func toBytes(data interface{}) ([]byte, error) {
 	var messageBytes []byte
 	var err error
 	switch data.(type) {
@@ -129,10 +130,11 @@ func toBytes(data interface{}) ([]byte, error) {
 	default:
 		messageBytes, err = json.Marshal(data)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return messageBytes, nil
+	sendChan <- messageBytes
+	return nil
 }
 
 func removeConn(connID string, connArr []*chatsocket.Connection) ([]*chatsocket.Connection, *chatsocket.Connection, bool) {
