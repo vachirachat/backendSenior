@@ -188,6 +188,7 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeMember(orgID string, memb
 			Update: bson.M{
 				"$pullAll": model.OrganizationUpdateMongo{
 					Members: utills.ToObjectIdArr(memberIDs),
+					Admins:  utills.ToObjectIdArr(memberIDs),
 				},
 			},
 		},
