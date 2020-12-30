@@ -10,11 +10,13 @@ import (
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/globalsign/mgo/txn"
 )
 
 // CachedRoomUserRepository	is repository for room/user relation, with cached GET
 type CachedRoomUserRepository struct {
 	connection  *mgo.Session
+	txnRunner   *txn.Runner
 	userToRooms map[string][]string
 	roomToUsers map[string][]string
 	lock        sync.RWMutex
@@ -23,8 +25,10 @@ type CachedRoomUserRepository struct {
 // NewCachedRoomUserRepository create new room user repository from mongo connection, cache isn't initialized
 // Note that consistency isn't geauranteed (there might be race condition)
 func NewCachedRoomUserRepository(conn *mgo.Session) *CachedRoomUserRepository {
+	runner := txn.NewRunner(conn.DB(dbName).C(collectionTXNRoomUser))
 	return &CachedRoomUserRepository{
 		connection:  conn,
+		txnRunner:   runner,
 		userToRooms: make(map[string][]string),
 		roomToUsers: make(map[string][]string),
 		lock:        sync.RWMutex{},
@@ -97,25 +101,33 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 		return errors.New("Invalid Room ID")
 	}
 
-	// Update database
-	err = repo.connection.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), bson.M{
-		"$addToSet": bson.M{
-			"users": bson.M{
-				"$each": utills.ToObjectIdArr(userIDs),
+	ops := []txn.Op{
+		{
+			C:  collectionRoom,
+			Id: bson.ObjectIdHex(roomID),
+			Update: bson.M{
+				"$addToSet": bson.M{
+					"users": bson.M{
+						"$each": utills.ToObjectIdArr(userIDs),
+					},
+				},
 			},
 		},
-	})
-	if err != nil {
-		return err
+	}
+	for _, userID := range userIDs {
+		ops = append(ops, txn.Op{
+			C:  collectionProxy,
+			Id: bson.ObjectIdHex(userID),
+			Update: bson.M{
+				"$addToSet": bson.M{
+					"room": bson.ObjectIdHex(roomID),
+				},
+			},
+		})
 	}
 
-	_, err = repo.connection.DB(dbName).C(collectionUser).UpdateAll(idInArr(userIDs), bson.M{
-		"$addToSet": bson.M{
-			"room": bson.ObjectIdHex(roomID),
-		},
-	})
+	err = repo.txnRunner.Run(ops, "", nil)
 	if err != nil {
-		// TODO it should revert
 		return err
 	}
 
@@ -149,23 +161,31 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 		return errors.New("Invalid Room ID")
 	}
 
-	// Update database
-	err = repo.connection.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), bson.M{
-		"$pullAll": bson.M{
-			"users": utills.ToObjectIdArr(userIDs),
+	ops := []txn.Op{
+		{
+			C:  collectionRoom,
+			Id: bson.ObjectIdHex(roomID),
+			Update: bson.M{
+				"$pullAll": bson.M{
+					"users": utills.ToObjectIdArr(userIDs),
+				},
+			},
 		},
-	})
-	if err != nil {
-		return err
+	}
+	for _, userID := range userIDs {
+		ops = append(ops, txn.Op{
+			C:  collectionProxy,
+			Id: bson.ObjectIdHex(userID),
+			Update: bson.M{
+				"$pull": bson.M{
+					"room": bson.ObjectIdHex(roomID),
+				},
+			},
+		})
 	}
 
-	_, err = repo.connection.DB(dbName).C(collectionUser).UpdateAll(idInArr(userIDs), bson.M{
-		"$pull": bson.M{
-			"room": bson.ObjectIdHex(roomID),
-		},
-	})
+	err = repo.txnRunner.Run(ops, "", nil)
 	if err != nil {
-		// TODO it should revert
 		return err
 	}
 

@@ -6,19 +6,22 @@ import (
 	"backendSenior/utills"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/globalsign/mgo/txn"
 )
 
 type OrganizeUserRepositoryMongo struct {
 	ConnectionDB *mgo.Session
+	txnRunner    *txn.Runner
 }
 
 func NewOrganizeUserRepositoryMongo(conn *mgo.Session) *OrganizeUserRepositoryMongo {
+	runner := txn.NewRunner(conn.DB(dbName).C(collectionTXNRoomUser))
 	return &OrganizeUserRepositoryMongo{
 		ConnectionDB: conn,
+		txnRunner:    runner,
 	}
 }
 
@@ -40,86 +43,111 @@ func (repo *OrganizeUserRepositoryMongo) AddAdminToOrganize(organizeID string, a
 		return errors.New("Invalid organizeID")
 	}
 
-	// Update database for add
-	err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
-		"$addToSet": bson.M{
-			"admins": bson.M{
-				"$each": utills.ToObjectIdArr(adminIds), // add all from listUser to array
-			},
-			"members": bson.M{
-				"$each": utills.ToObjectIdArr(adminIds), // add all from listUser to array and Add to MemberList
+	// Note: as per doc, every tranasction that update field that's managed by mgo/txn
+	// must be update via mgo/txn.
+	ops := []txn.Op{
+		{
+			C:  collectionOrganize,
+			Id: bson.ObjectIdHex(organizeID),
+			Update: bson.M{
+				"$addToSet": bson.M{
+					"admins": bson.M{
+						"$each": utills.ToObjectIdArr(adminIds),
+					},
+					"members": bson.M{
+						"$each": utills.ToObjectIdArr(adminIds),
+					},
+				},
 			},
 		},
-	})
+	}
+
+	err = repo.txnRunner.Run(ops, "", nil)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (repo *OrganizeUserRepositoryMongo) AddMembersToOrganize(organizeID string, employeeIds []string) error {
+func (repo *OrganizeUserRepositoryMongo) AddMembersToOrganize(orgID string, memberIDs []string) error {
 	// Preconfition check
-	n, err := repo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(employeeIds)}).Count()
+	n, err := repo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(memberIDs)}).Count()
 
 	if err != nil {
 		return err
 	}
-	if n != len(employeeIds) {
-		return fmt.Errorf("Invalid organizeID, some of them not exists %d/%d", n, len(employeeIds))
+	if n != len(memberIDs) {
+		return fmt.Errorf("Invalid organizeID, some of them not exists %d/%d", n, len(memberIDs))
 	}
 
-	n, err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(organizeID)).Count()
+	n, err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(orgID)).Count()
 	if n != 1 {
 		return errors.New("Invalid organize ID")
 	}
 
-	// Update database
-	err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
-		"$addToSet": bson.M{
-			"members": bson.M{
-				"$each": utills.ToObjectIdArr(employeeIds), // add all from listUser to array
+	ops := []txn.Op{
+		{
+			C:  collectionRoom,
+			Id: bson.ObjectIdHex(orgID),
+			Update: bson.M{
+				"$addToSet": bson.M{
+					"members": bson.M{
+						"$each": utills.ToObjectIdArr(memberIDs),
+					},
+				},
 			},
 		},
-	})
+	}
+	for _, memberID := range memberIDs {
+		ops = append(ops, txn.Op{
+			C:  collectionUser,
+			Id: bson.ObjectIdHex(memberID),
+			Update: bson.M{
+				"$addToSet": bson.M{
+					"organize": bson.ObjectIdHex(orgID),
+				},
+			},
+		})
+	}
+
+	err = repo.txnRunner.Run(ops, "", nil)
 	if err != nil {
-		log.Println("AddMembersToOrganize : UpdateId Org. fail ", err)
 		return err
 	}
 
-	_, err = repo.ConnectionDB.DB(dbName).C(collectionUser).UpdateAll(bson.M{"_id": bson.M{"$in": utills.ToObjectIdArr(employeeIds)}}, bson.M{
-		"$addToSet": bson.M{
-			"organize": bson.ObjectIdHex(organizeID),
-		},
-	})
-	if err != nil {
-		// TODO it should revert
-		log.Println("AddMembersToOrganize : UpdateId Users fail ", err)
-		return err
-	}
 	return nil
 }
 
-func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeAdmin(organizeID string, adminIds []string) error {
+func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeAdmin(orgID string, adminIDs []string) error {
 	// Precondition check
-	n, err := repo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(adminIds)}).Count()
+	n, err := repo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(adminIDs)}).Count()
 	if err != nil {
 		return err
 	}
-	if n != len(adminIds) {
+	if n != len(adminIDs) {
 		return errors.New("Invalid adminIds, some of them not exists")
 	}
 
-	n, err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(organizeID)).Count()
+	n, err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(orgID)).Count()
 	if n != 1 {
 		return errors.New("Invalid Organize ID")
 	}
 
-	// Update database
-	err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
-		"$pullAll": bson.M{
-			"admins": utills.ToObjectIdArr(adminIds),
+	// Note: as per doc, every tranasction that update field that's managed by mgo/txn
+	// must be update via mgo/txn.
+	ops := []txn.Op{
+		{
+			C:  collectionOrganize,
+			Id: bson.ObjectIdHex(orgID),
+			Update: bson.M{
+				"$pullAll": bson.M{
+					"admins": utills.ToObjectIdArr(adminIDs),
+				},
+			},
 		},
-	})
+	}
+
+	err = repo.txnRunner.Run(ops, "", nil)
 	if err != nil {
 		return err
 	}
@@ -127,38 +155,46 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeAdmin(organizeID string, 
 	return nil
 }
 
-func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeMember(organizeID string, employeeIds []string) error {
+func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeMember(orgID string, memberIDs []string) error {
 	// Precondition check
-	n, err := repo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(employeeIds)}).Count()
+	n, err := repo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(memberIDs)}).Count()
 	if err != nil {
 		return err
 	}
-	if n != len(employeeIds) {
+	if n != len(memberIDs) {
 		return errors.New("Invalid employeeIds, some of them not exists")
 	}
 
-	n, err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(organizeID)).Count()
+	n, err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(orgID)).Count()
 	if n != 1 {
 		return errors.New("Invalid Organize ID")
 	}
 
-	// Update database
-	err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
-		"$pullAll": bson.M{
-			"members": utills.ToObjectIdArr(employeeIds),
+	ops := []txn.Op{
+		{
+			C:  collectionOrganize,
+			Id: bson.ObjectIdHex(orgID),
+			Update: bson.M{
+				"$pullAll": bson.M{
+					"members": utills.ToObjectIdArr(memberIDs),
+				},
+			},
 		},
-	})
-	if err != nil {
-		return err
+	}
+	for _, memberID := range memberIDs {
+		ops = append(ops, txn.Op{
+			C:  collectionUser,
+			Id: bson.ObjectIdHex(memberID),
+			Update: bson.M{
+				"$pull": bson.M{
+					"organize": bson.ObjectIdHex(orgID),
+				},
+			},
+		})
 	}
 
-	_, err = repo.ConnectionDB.DB(dbName).C(collectionUser).UpdateAll(bson.M{"_id": bson.M{"$in": utills.ToObjectIdArr(employeeIds)}}, bson.M{
-		"$pull": bson.M{
-			"organize": bson.ObjectIdHex(organizeID),
-		},
-	})
+	err = repo.txnRunner.Run(ops, bson.NewObjectId(), nil)
 	if err != nil {
-		// TODO it should revert
 		return err
 	}
 
