@@ -95,10 +95,10 @@ func readPump(conn *websocket.Conn, closeChan chan struct{}, receivers []chan []
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, []byte{'\n'}, []byte{' '}, -1))
 		for _, recv := range receivers {
-			// TODO this might be bad ?
-			go func() {
-				recv <- message
-			}()
+			select {
+			case recv <- message:
+			default:
+			}
 		}
 	}
 }
