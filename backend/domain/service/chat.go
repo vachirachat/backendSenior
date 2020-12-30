@@ -59,7 +59,6 @@ func (chat *ChatService) SendMessageToConnection(connID string, message interfac
 
 // BroadcastMessageToRoom send message to socket of all users in the room
 // []byte will be sent as is, but other value will be marshalled
-// TODO: this is currently broadcast to all
 func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{}) error {
 
 	userIDs, err := chat.mapRoomProxy.GetRoomUsers(roomID)

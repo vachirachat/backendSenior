@@ -91,5 +91,5 @@ func (repo *DelegateMessageRepository) AddMessage(message model.Message) (string
 	panic("not available")
 }
 func (repo *DelegateMessageRepository) DeleteMessageByID(userID string) error {
-	panic("TODO")
+	panic("not available")
 }

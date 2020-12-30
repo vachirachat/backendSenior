@@ -19,7 +19,6 @@ type ChatDownstreamService struct {
 }
 
 // NewChatDownstreamService create new instance of chat service
-// TODO: this is cheating, since it used same repository as backend
 func NewChatDownstreamService(roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository, msgRepo repository.MessageRepository, encryption *EncryptionService) *ChatDownstreamService {
 	return &ChatDownstreamService{
 		mapRoom:    roomUserRepo,
