@@ -55,8 +55,8 @@ func (repo *FCMUserRepository) GetTokenOwner(token string) (string, error) {
 // Note that it DOES NOT create user token
 func (repo *FCMUserRepository) AddUserToken(userID string, tokenID string) error {
 	err := repo.conn.DB(dbName).C(collectionUser).UpdateId(bson.ObjectIdHex(userID), bson.M{
-		"$addToSet": bson.M{
-			"fcmTokens": tokenID,
+		"$addToSet": model.UserUpdateMongo{
+			FCMTokens: tokenID,
 		},
 	})
 	return err
@@ -66,8 +66,8 @@ func (repo *FCMUserRepository) AddUserToken(userID string, tokenID string) error
 // Note that it DOES NOT delete user token
 func (repo *FCMUserRepository) DeleteUserToken(userID string, tokenID string) error {
 	err := repo.conn.DB(dbName).C(collectionUser).UpdateId(bson.ObjectIdHex(userID), bson.M{
-		"$pull": bson.M{
-			"fcmTokens": tokenID,
+		"$pull": model.UserUpdateMongo{
+			FCMTokens: tokenID,
 		},
 	})
 	return err

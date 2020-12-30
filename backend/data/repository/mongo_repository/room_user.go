@@ -106,8 +106,8 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 			C:  collectionRoom,
 			Id: bson.ObjectIdHex(roomID),
 			Update: bson.M{
-				"$addToSet": bson.M{
-					"users": bson.M{
+				"$addToSet": model.RoomUpdateMongo{
+					ListUser: bson.M{
 						"$each": utills.ToObjectIdArr(userIDs),
 					},
 				},
@@ -119,8 +119,8 @@ func (repo *CachedRoomUserRepository) AddUsersToRoom(roomID string, userIDs []st
 			C:  collectionProxy,
 			Id: bson.ObjectIdHex(userID),
 			Update: bson.M{
-				"$addToSet": bson.M{
-					"room": bson.ObjectIdHex(roomID),
+				"$addToSet": model.UserUpdateMongo{
+					Room: bson.ObjectIdHex(roomID),
 				},
 			},
 		})
@@ -166,19 +166,19 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 			C:  collectionRoom,
 			Id: bson.ObjectIdHex(roomID),
 			Update: bson.M{
-				"$pullAll": bson.M{
-					"users": utills.ToObjectIdArr(userIDs),
+				"$pullAll": model.RoomUpdateMongo{
+					ListUser: utills.ToObjectIdArr(userIDs),
 				},
 			},
 		},
 	}
 	for _, userID := range userIDs {
 		ops = append(ops, txn.Op{
-			C:  collectionProxy,
+			C:  collectionUser,
 			Id: bson.ObjectIdHex(userID),
 			Update: bson.M{
-				"$pull": bson.M{
-					"room": bson.ObjectIdHex(roomID),
+				"$pull": model.UserUpdateMongo{
+					Room: bson.ObjectIdHex(roomID),
 				},
 			},
 		})

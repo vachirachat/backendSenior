@@ -27,6 +27,20 @@ type User struct {
 	FCMTokens []string        `json:"fcmTokens,omitempty" bson:"fcmTokens,omitempty"`
 }
 
+// UserUpdateMongo has same fields as user, but has types of interface{}.
+// It's used instead of raw bson.M in update operations to ensure that when field name change in user model
+// is always reflected
+type UserUpdateMongo struct {
+	UserID    interface{} `bson:"_id,omitempty"`
+	Name      interface{} `bson:"name,omitempty"`
+	Email     interface{} `bson:"email,omitempty"`
+	Password  interface{} `bson:"password,omitempty"`
+	Room      interface{} `bson:"room,omitempty"`
+	Organize  interface{} `bson:"organize,omitempty"`
+	UserType  interface{} `bson:"userType,omitempty"`
+	FCMTokens interface{} `bson:"fcmTokens,omitempty"`
+}
+
 type UserToken struct {
 	UserID      bson.ObjectId `json:"userID" bson:"_id,omitempty"`
 	Token       string        `json:"token" bson:"token"`

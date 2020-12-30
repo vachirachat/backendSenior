@@ -105,8 +105,8 @@ func (repo *CachedRoomProxyRepository) AddUsersToRoom(roomID string, proxyIDs []
 			C:  collectionRoom,
 			Id: bson.ObjectIdHex(roomID),
 			Update: bson.M{
-				"$addToSet": bson.M{
-					"proxies": bson.M{
+				"$addToSet": model.RoomUpdateMongo{
+					ListProxy: bson.M{
 						"$each": utills.ToObjectIdArr(proxyIDs),
 					},
 				},
@@ -118,8 +118,8 @@ func (repo *CachedRoomProxyRepository) AddUsersToRoom(roomID string, proxyIDs []
 			C:  collectionProxy,
 			Id: bson.ObjectIdHex(proxyID),
 			Update: bson.M{
-				"$addToSet": bson.M{
-					"rooms": bson.ObjectIdHex(roomID),
+				"$addToSet": model.ProxyUpdateMongo{
+					Rooms: bson.ObjectIdHex(roomID),
 				},
 			},
 		})
@@ -165,8 +165,8 @@ func (repo *CachedRoomProxyRepository) RemoveUsersFromRoom(roomID string, proxyI
 			C:  collectionRoom,
 			Id: bson.ObjectIdHex(roomID),
 			Update: bson.M{
-				"$pullAll": bson.M{
-					"proxies": utills.ToObjectIdArr(proxyIDs),
+				"$pullAll": model.RoomUpdateMongo{
+					ListProxy: utills.ToObjectIdArr(proxyIDs),
 				},
 			},
 		},
@@ -176,8 +176,8 @@ func (repo *CachedRoomProxyRepository) RemoveUsersFromRoom(roomID string, proxyI
 			C:  collectionProxy,
 			Id: bson.ObjectIdHex(proxyID),
 			Update: bson.M{
-				"$pull": bson.M{
-					"rooms": bson.ObjectIdHex(roomID),
+				"$pull": model.ProxyUpdateMongo{
+					Rooms: bson.ObjectIdHex(roomID),
 				},
 			},
 		})

@@ -73,8 +73,8 @@ func (repo *ProxyRepositoryMongo) GetByIDs(proxyIDs []string) ([]model.Proxy, er
 
 func (repo *ProxyRepositoryMongo) GetByRoom(roomID string) ([]model.Proxy, error) {
 	var proxies []model.Proxy
-	err := repo.conn.DB(dbName).C(collectionProxy).Find(bson.M{
-		"rooms": bson.ObjectIdHex(roomID),
+	err := repo.conn.DB(dbName).C(collectionProxy).Find(model.ProxyUpdateMongo{
+		Rooms: bson.ObjectIdHex(roomID),
 	}).All(&proxies)
 	return proxies, err
 }

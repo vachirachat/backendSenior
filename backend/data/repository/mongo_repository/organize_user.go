@@ -50,11 +50,11 @@ func (repo *OrganizeUserRepositoryMongo) AddAdminToOrganize(organizeID string, a
 			C:  collectionOrganize,
 			Id: bson.ObjectIdHex(organizeID),
 			Update: bson.M{
-				"$addToSet": bson.M{
-					"admins": bson.M{
+				"$addToSet": model.OrganizationUpdateMongo{
+					Admins: bson.M{
 						"$each": utills.ToObjectIdArr(adminIds),
 					},
-					"members": bson.M{
+					Members: bson.M{
 						"$each": utills.ToObjectIdArr(adminIds),
 					},
 				},
@@ -87,11 +87,11 @@ func (repo *OrganizeUserRepositoryMongo) AddMembersToOrganize(orgID string, memb
 
 	ops := []txn.Op{
 		{
-			C:  collectionRoom,
+			C:  collectionOrganize,
 			Id: bson.ObjectIdHex(orgID),
 			Update: bson.M{
-				"$addToSet": bson.M{
-					"members": bson.M{
+				"$addToSet": model.OrganizationUpdateMongo{
+					Members: bson.M{
 						"$each": utills.ToObjectIdArr(memberIDs),
 					},
 				},
@@ -103,8 +103,8 @@ func (repo *OrganizeUserRepositoryMongo) AddMembersToOrganize(orgID string, memb
 			C:  collectionUser,
 			Id: bson.ObjectIdHex(memberID),
 			Update: bson.M{
-				"$addToSet": bson.M{
-					"organize": bson.ObjectIdHex(orgID),
+				"$addToSet": model.UserUpdateMongo{
+					Organize: bson.ObjectIdHex(orgID),
 				},
 			},
 		})
@@ -140,8 +140,8 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeAdmin(orgID string, admin
 			C:  collectionOrganize,
 			Id: bson.ObjectIdHex(orgID),
 			Update: bson.M{
-				"$pullAll": bson.M{
-					"admins": utills.ToObjectIdArr(adminIDs),
+				"$pullAll": model.OrganizationUpdateMongo{
+					Admins: utills.ToObjectIdArr(adminIDs),
 				},
 			},
 		},
@@ -175,8 +175,8 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeMember(orgID string, memb
 			C:  collectionOrganize,
 			Id: bson.ObjectIdHex(orgID),
 			Update: bson.M{
-				"$pullAll": bson.M{
-					"members": utills.ToObjectIdArr(memberIDs),
+				"$pullAll": model.OrganizationUpdateMongo{
+					Members: utills.ToObjectIdArr(memberIDs),
 				},
 			},
 		},
@@ -186,8 +186,8 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeMember(orgID string, memb
 			C:  collectionUser,
 			Id: bson.ObjectIdHex(memberID),
 			Update: bson.M{
-				"$pull": bson.M{
-					"organize": bson.ObjectIdHex(orgID),
+				"$pull": model.UserUpdateMongo{
+					Organize: bson.ObjectIdHex(orgID),
 				},
 			},
 		})
