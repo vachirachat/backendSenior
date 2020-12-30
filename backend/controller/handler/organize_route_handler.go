@@ -17,15 +17,17 @@ import (
 type OrganizeRouteHandler struct {
 	organizeService *service.OrganizeService
 	userService     *service.UserService
+	roomService     *service.RoomService
 	authMw          *auth.JWTMiddleware
 }
 
 // NewOrganizeRouteHandler create handler for Organize route
-func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authMw *auth.JWTMiddleware, userService *service.UserService) *OrganizeRouteHandler {
+func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authMw *auth.JWTMiddleware, userService *service.UserService, roomService *service.RoomService) *OrganizeRouteHandler {
 	return &OrganizeRouteHandler{
 		organizeService: organizeService,
 		authMw:          authMw,
 		userService:     userService,
+		roomService:     roomService,
 	}
 }
 
@@ -33,7 +35,7 @@ func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authMw *a
 func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	routerGroup.GET("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getOrganizeByIDHandler)
-	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addOrganizeHandler)
+	routerGroup.POST("/", handler.authMw.AuthRequired(), handler.addOrganizeHandler)
 	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.getOrganizations)
 	routerGroup.PUT("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editOrganizeNameHandler)
 	routerGroup.DELETE("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteOrganizeByIDHandler)
@@ -46,6 +48,7 @@ func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/:id/admin", handler.addAdminsToOrganize)
 	routerGroup.DELETE("/:id/admin", handler.deleteAdminsFromOrganize)
 
+	routerGroup.GET("/:id/room", handler.getOrgRooms)
 }
 
 // return array of User that is admin of the organization
@@ -158,7 +161,7 @@ func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context) {
 		return
 	}
 
-	OrganizeID, err := handler.organizeService.AddOrganize(Organize)
+	orgID, err := handler.organizeService.AddOrganize(Organize)
 	if err != nil {
 		log.Println("error AddOrganizeHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -166,14 +169,17 @@ func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context) {
 	}
 
 	userID := context.GetString(auth.UserIdField)
-	err = handler.organizeService.AddAdminToOrganize(OrganizeID, []string{userID})
+	err = handler.organizeService.AddAdminToOrganize(orgID, []string{userID})
 	if err != nil {
 		log.Println("error AddOrganizeHandeler; invite self to room", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+
+		go handler.organizeService.DeleteOrganizeByID(orgID)
+
 		return
 	}
 
-	context.JSON(http.StatusCreated, gin.H{"status": "success", "orgId": OrganizeID})
+	context.JSON(http.StatusCreated, gin.H{"status": "success", "orgId": orgID})
 }
 
 func (handler *OrganizeRouteHandler) editOrganizeNameHandler(context *gin.Context) {
@@ -330,4 +336,31 @@ func (handler *OrganizeRouteHandler) deleteAdminsFromOrganize(context *gin.Conte
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func (handler *OrganizeRouteHandler) getOrgRooms(c *gin.Context) {
+	orgID := c.Param("id")
+	if !bson.IsObjectIdHex(orgID) {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "bad room ID"})
+		return
+	}
+
+	roomIDs, err := handler.organizeService.GetOrgRoomIDs(orgID)
+	if err != nil {
+		fmt.Println("get org room error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return
+	}
+
+	rooms, err := handler.roomService.GetRoomsByIDs(roomIDs)
+	if err != nil {
+		fmt.Println("get org room error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"rooms": rooms,
+	})
+
 }

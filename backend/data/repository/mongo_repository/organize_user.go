@@ -27,20 +27,20 @@ func NewOrganizeUserRepositoryMongo(conn *mgo.Session) *OrganizeUserRepositoryMo
 
 var _ repository.OrganizeUserRepository = (*OrganizeUserRepositoryMongo)(nil)
 
-func (repo *OrganizeUserRepositoryMongo) AddAdminToOrganize(organizeID string, adminIds []string) error {
+func (repo *OrganizeUserRepositoryMongo) AddAdminToOrganize(orgID string, adminIDs []string) error {
 	// Preconfition check
-	n, err := repo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(adminIds)}).Count()
+	n, err := repo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.M{"$in": utills.ToObjectIdArr(adminIDs)}).Count()
 
 	if err != nil {
 		return err
 	}
-	if n != len(adminIds) {
-		return fmt.Errorf("Invalid organizeID, some of them not exists %d/%d", n, len(adminIds))
+	if n != len(adminIDs) {
+		return fmt.Errorf("Invalid orgID, some of them not exists %d/%d", n, len(adminIDs))
 	}
 
-	n, err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(organizeID)).Count()
+	n, err = repo.ConnectionDB.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(orgID)).Count()
 	if n != 1 {
-		return errors.New("Invalid organizeID")
+		return errors.New("Invalid orgID")
 	}
 
 	// Note: as per doc, every tranasction that update field that's managed by mgo/txn
@@ -48,18 +48,29 @@ func (repo *OrganizeUserRepositoryMongo) AddAdminToOrganize(organizeID string, a
 	ops := []txn.Op{
 		{
 			C:  collectionOrganize,
-			Id: bson.ObjectIdHex(organizeID),
+			Id: bson.ObjectIdHex(orgID),
 			Update: bson.M{
 				"$addToSet": model.OrganizationUpdateMongo{
 					Admins: bson.M{
-						"$each": utills.ToObjectIdArr(adminIds),
+						"$each": utills.ToObjectIdArr(adminIDs),
 					},
 					Members: bson.M{
-						"$each": utills.ToObjectIdArr(adminIds),
+						"$each": utills.ToObjectIdArr(adminIDs),
 					},
 				},
 			},
 		},
+	}
+	for _, adminID := range adminIDs {
+		ops = append(ops, txn.Op{
+			C:  collectionUser,
+			Id: bson.ObjectIdHex(adminID),
+			Update: bson.M{
+				"$addToSet": model.UserUpdateMongo{
+					Organize: bson.ObjectIdHex(orgID),
+				},
+			},
+		})
 	}
 
 	err = repo.txnRunner.Run(ops, "", nil)
