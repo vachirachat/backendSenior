@@ -9,6 +9,7 @@ import (
 	"backendSenior/domain/model"
 	"log"
 	"net/http"
+	"unsafe"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
@@ -223,13 +224,14 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 
 // Signup API
 func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context) {
-	var user model.UserSecret
-	err := context.ShouldBindJSON(&user)
+	var userPw model.UserWithPassword
+	err := context.ShouldBindJSON(&userPw)
 	if err != nil {
 		log.Println("error AddUserSignUpHandeler ShouldBindJSON", err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
+	user := *(*model.User)(unsafe.Pointer(&userPw))
 	err = handler.userService.Signup(user)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{

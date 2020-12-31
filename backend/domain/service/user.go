@@ -121,7 +121,7 @@ func (service *UserService) Login(email string, password string) (model.User, er
 // }
 
 // Signup API
-func (service *UserService) Signup(user model.UserSecret) error {
+func (service *UserService) Signup(user model.User) error {
 	_, err := service.userRepository.GetUserByEmail(user.Email)
 	if err == nil {
 		return errors.New("User already exists")
@@ -129,13 +129,11 @@ func (service *UserService) Signup(user model.UserSecret) error {
 
 	// Add User to DB
 	user.Password = utills.HashPassword(user.Password)
-	err = service.userRepository.AddUser(model.User{
-		Email:    user.Email,
-		Password: user.Password,
-		UserType: "user",
-		Room:     []bson.ObjectId{},
-		Organize: []bson.ObjectId{},
-	})
+	user.UserType = "user"
+	user.Room=     []bson.ObjectId{}
+	user.Organize= []bson.ObjectId{}
+	user.FCMTokens = []string{}
+	err = service.userRepository.AddUser(user)
 	if err != nil {
 		return err
 	}
