@@ -186,6 +186,8 @@ func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context) {
 		return
 	}
 
+	isOK = true
+
 	context.JSON(http.StatusCreated, gin.H{"status": "success", "orgId": orgID})
 }
 
