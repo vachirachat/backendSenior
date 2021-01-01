@@ -4,4 +4,5 @@ package repository
 type OrgRoomRepository interface {
 	GetOrgRooms(orgID string) (orgIDs []string, err error)
 	AddRoomsToOrg(orgID string, roomIDs []string) (err error)
+	RemoveRoomsFromOrg(orgID string, roomIDs []string) (err error)
 }

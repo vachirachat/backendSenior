@@ -121,8 +121,10 @@ func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 		return
 	}
 
+	orgID := room.OrgID.Hex()
+	room.OrgID = "" // when invite room to org requires that room has no org!
 	// check org existence
-	_, err = handler.orgService.GetOrganizeById(room.OrgID.Hex())
+	_, err = handler.orgService.GetOrganizeById(orgID)
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error, room might not exist"})
@@ -146,7 +148,7 @@ func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 	}
 
 	// Add room to org
-	err = handler.orgService.AddRoomsToOrg(room.OrgID.Hex(), []string{roomID})
+	err = handler.orgService.AddRoomsToOrg(orgID, []string{roomID})
 	if err != nil {
 		log.Println("error AddRoomHandeler; invite room to org", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -191,7 +193,39 @@ func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context) {
 		return
 	}
 
-	err := handler.roomService.DeleteRoomByID(roomID)
+	room, err := handler.roomService.GetRoomByID(roomID)
+	if err != nil {
+		log.Println("error DeleteRoomHandler before deleting room", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return
+	}
+
+	userIDs := utills.ToStringArr(room.ListUser)
+	proxyIDs := utills.ToStringArr(room.ListProxy)
+	orgID := room.OrgID.Hex()
+
+	// TODO: make it transaction
+	// delete room-user relation
+	err = handler.roomService.DeleteMemberFromRoom(roomID, userIDs)
+	if err != nil {
+		log.Println("error DeleteRoomHandler removing members from room", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return
+	}
+	err = handler.roomService.DeleteProxiesFromRoom(roomID, proxyIDs)
+	if err != nil {
+		log.Println("error DeleteRoomHandler removing proxies from room", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return
+	}
+	err = handler.orgService.DeleteRoomsFromOrg(orgID, []string{roomID})
+	if err != nil {
+		log.Println("error DeleteRoomHandler removing room from org", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return
+	}
+
+	err = handler.roomService.DeleteRoomByID(roomID)
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})

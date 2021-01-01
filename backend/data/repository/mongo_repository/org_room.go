@@ -1,6 +1,7 @@
 package mongo_repository
 
 import (
+	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"backendSenior/utills"
 	"errors"
@@ -15,6 +16,8 @@ type OrgRoomRepository struct {
 	conn      *mgo.Session
 	txnRunner *txn.Runner
 }
+
+var _ repository.OrgRoomRepository = (*OrgRoomRepository)(nil)
 
 func NewOrgRoomRepository(conn *mgo.Session) *OrgRoomRepository {
 	runner := txn.NewRunner(conn.DB(dbName).C(collectionTXNRoomUser))
@@ -67,9 +70,62 @@ func (repo *OrgRoomRepository) AddRoomsToOrg(orgID string, roomIDs []string) err
 		ops = append(ops, txn.Op{
 			C:  collectionRoom,
 			Id: bson.ObjectIdHex(roomID),
+			Assert: model.RoomUpdateMongo{ // assert orgId doesn't exist
+				OrgID: bson.M{
+					"$eq": nil,
+				},
+			},
 			Update: bson.M{
 				"$set": model.RoomUpdateMongo{
 					OrgID: bson.ObjectIdHex(orgID),
+				},
+			},
+		})
+	}
+
+	err = repo.txnRunner.Run(ops, "", nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}
+
+// RemoveRoomsFromOrg delete rooms to the org
+func (repo *OrgRoomRepository) RemoveRoomsFromOrg(orgID string, roomIDs []string) error {
+	n, err := repo.conn.DB(dbName).C(collectionRoom).Find(idInArr(roomIDs)).Count()
+
+	if err != nil {
+		return err
+	}
+	if n != len(roomIDs) {
+		return fmt.Errorf("Invalid userIDs, some of them not exists %d/%d", n, len(roomIDs))
+	}
+
+	n, err = repo.conn.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(orgID)).Count()
+	if err != nil || n != 1 {
+		return errors.New("Invalid Room ID")
+	}
+
+	ops := []txn.Op{
+		{
+			C:  collectionOrganize,
+			Id: bson.ObjectIdHex(orgID),
+			Update: bson.M{
+				"$pullAll": model.OrganizationUpdateMongo{
+					Rooms: utills.ToObjectIdArr(roomIDs),
+				},
+			},
+		},
+	}
+	for _, roomID := range roomIDs {
+		ops = append(ops, txn.Op{
+			C:  collectionRoom,
+			Id: bson.ObjectIdHex(roomID),
+			Update: bson.M{
+				"$unset": model.RoomUpdateMongo{
+					OrgID: "", // value doesn't matter
 				},
 			},
 		})

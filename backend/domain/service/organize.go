@@ -86,9 +86,15 @@ func (service *OrganizeService) GetUserOrganizations(userId string) ([]model.Org
 	return orgs, err
 }
 
-// AddRoomsToOrg add rooms to the organizations
+// AddRoomsToOrg add rooms to the organizations, fail when either of rooms have already an org
 func (service *OrganizeService) AddRoomsToOrg(orgID string, roomIDs []string) error {
 	err := service.orgRoomRepo.AddRoomsToOrg(orgID, roomIDs)
+	return err
+}
+
+// DeleteRoomsFromOrg remove rooms from org
+func (service *OrganizeService) DeleteRoomsFromOrg(orgID string, roomIDs []string) error {
+	err := service.orgRoomRepo.RemoveRoomsFromOrg(orgID, roomIDs)
 	return err
 }
 

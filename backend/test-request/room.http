@@ -4,8 +4,8 @@
 @org = 5feca30a26dcb9d00149e92d
 
 
-@roomA = 5feca99e26dcb9e7f761b096
-@roomB = 5feca9a226dcb9e7f761b099
+@roomA = 5fef6a8926dcb97c19fd898a
+@roomB = 
 
 @proxyA = 5feca53a26dcb9d8b36699b0
 @proxyB = 
@@ -24,7 +24,7 @@ GET {{base}}?me=true
 Authorization: Bearer {{token}}
 
 ### CREATE ROOM
-POST {{base}}
+POST {{base}}/
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -37,6 +37,9 @@ Authorization: Bearer {{token}}
 
 ### GET room by ID
 GET {{base}}/{{roomA}}
+
+###
+DELETE {{base}}/{{roomA}}    
 
 ### EDIT room
 POST {{base}}/{{roomA}}/name
@@ -85,5 +88,3 @@ Content-Type: application/json
 {
   "proxyIds": ["{{proxyA}}"]
 }
-###
-DELETE {{base}}/{{roomA}}     
