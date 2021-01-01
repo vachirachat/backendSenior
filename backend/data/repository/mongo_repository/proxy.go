@@ -3,6 +3,7 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"unsafe"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -33,7 +34,9 @@ func (repo *ProxyRepositoryMongo) AddProxy(proxy model.Proxy) (string, error) {
 	proxy.ProxyID = proxyID
 	proxy.Rooms = []bson.ObjectId{}
 
-	err := repo.conn.DB(dbName).C(collectionProxy).Insert(proxy)
+	proxyInsert := *(*model.ProxyInsert)(unsafe.Pointer(&proxy))
+
+	err := repo.conn.DB(dbName).C(collectionProxy).Insert(proxyInsert)
 	if err != nil {
 		return "", err
 	}

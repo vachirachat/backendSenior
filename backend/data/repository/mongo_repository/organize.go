@@ -4,6 +4,7 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"fmt"
+	"unsafe"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -42,7 +43,10 @@ func (organizeMongo *OrganizeRepositoryMongo) CreateOrganize(organize model.Orga
 	if cnt == 1 || err != nil {
 		return "", fmt.Errorf("room error: %s", err)
 	}
-	err = organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).Insert(organize)
+
+	organizeInsert := *(*model.OrganizationInsert)(unsafe.Pointer(&organize))
+
+	err = organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).Insert(organizeInsert)
 	return organize.OrganizeID.Hex(), err
 }
 

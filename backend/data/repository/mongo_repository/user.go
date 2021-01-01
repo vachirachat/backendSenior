@@ -4,6 +4,7 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"log"
+	"unsafe"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -54,7 +55,9 @@ func (userMongo UserRepositoryMongo) GetLastUser() (model.User, error) {
 }
 
 func (userMongo UserRepositoryMongo) AddUser(user model.User) error {
-	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).Insert(user)
+	userInsert := *(*model.UserInsert)(unsafe.Pointer(&user))
+
+	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).Insert(userInsert)
 }
 
 func (userMongo UserRepositoryMongo) UpdateUser(userID string, user model.User) error {

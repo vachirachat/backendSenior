@@ -101,50 +101,6 @@ func (handler *UserRouteHandler) getUserByEmail(context *gin.Context) {
 	context.JSON(http.StatusOK, user)
 }
 
-//for return roomidList of User
-// func (handler *UserRouteHandler) getUserRoomByUserID(context *gin.Context) {
-// 	var user model.User
-// 	err := context.ShouldBindJSON(&user)
-// 	userResult, err := handler.userService.GetUserByID(user.UserID)
-// 	if err != nil {
-// 		log.Println("error getUserRoomByUserID", err.Error())
-// 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-// 		return
-// 	}
-// 	roomIDList := userResult.Room
-// 	log.Println(roomIDList)
-// 	var roomNameList []string
-// 	for _, s := range roomIDList {
-// 		room, err := handler.userService.GetRoomWithRoomID(s)
-// 		if err != nil {
-// 			log.Println("error getUserRoomByUserID", err.Error())
-// 			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-// 			return
-// 		}
-// 		roomNameList = append(roomNameList, room.RoomName)
-// 	}
-
-// 	context.JSON(http.StatusOK, gin.H{"username": userResult.Name, "RoomIDList": userResult.Room, "RoomNameList": roomNameList})
-// }
-
-// AddUserHandeler api
-func (handler *UserRouteHandler) addUserHandeler(context *gin.Context) {
-	var user model.User
-	err := context.ShouldBindJSON(&user)
-	if err != nil {
-		log.Println("error AddUserHandeler", err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-		return
-	}
-	err = handler.userService.AddUser(user)
-	if err != nil {
-		log.Println("error AddUserHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	context.JSON(http.StatusCreated, gin.H{"status": "success"})
-}
-
 func (handler *UserRouteHandler) updateMyProfileHandler(context *gin.Context) {
 	var user model.User
 	err := context.ShouldBindJSON(&user)

@@ -52,7 +52,9 @@ func (service *UserService) GetUserByEmail(email string) (model.User, error) {
 
 // AddUser create a user
 func (service *UserService) AddUser(user model.User) error {
-
+	user.FCMTokens = []string{}
+	user.Room = []bson.ObjectId{}
+	user.Organize = []bson.ObjectId{}
 	err := service.userRepository.AddUser(user)
 	return err
 }
@@ -130,8 +132,8 @@ func (service *UserService) Signup(user model.User) error {
 	// Add User to DB
 	user.Password = utills.HashPassword(user.Password)
 	user.UserType = "user"
-	user.Room=     []bson.ObjectId{}
-	user.Organize= []bson.ObjectId{}
+	user.Room = []bson.ObjectId{}
+	user.Organize = []bson.ObjectId{}
 	user.FCMTokens = []string{}
 	err = service.userRepository.AddUser(user)
 	if err != nil {

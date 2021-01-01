@@ -26,6 +26,20 @@ type User struct {
 	UserType  string          `json:"userType" bson:"userType,omitempty"`
 	FCMTokens []string        `json:"fcmTokens" bson:"fcmTokens,omitempty"`
 }
+
+// UserInsert is used for inserting where empty fields are
+// not omitted so that we can insert empty array to the database
+type UserInsert struct {
+	UserID    bson.ObjectId   `json:"userId" bson:"_id,omitempty"`
+	Name      string          `json:"name" bson:"name"`
+	Email     string          `json:"email" bson:"email"`
+	Password  string          `json:"-" bson:"password"`
+	Room      []bson.ObjectId `json:"room" bson:"room"`
+	Organize  []bson.ObjectId `json:"organize" bson:"organize"`
+	UserType  string          `json:"userType" bson:"userType"`
+	FCMTokens []string        `json:"fcmTokens" bson:"fcmTokens"`
+}
+
 // UserWithPassword is same as user but password isn't omitted in json
 type UserWithPassword struct {
 	UserID    bson.ObjectId   `json:"userId" bson:"_id,omitempty"`

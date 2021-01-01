@@ -16,6 +16,16 @@ type Organize struct {
 	Rooms      []bson.ObjectId `json:"rooms" bson:"rooms,omitempty"`
 }
 
+// OrganizationInsert is used for inserting where empty fields are
+// not omitted so that we can insert empty array to the database
+type OrganizationInsert struct {
+	OrganizeID bson.ObjectId   `json:"orgId" bson:"_id,omitempty"`
+	Name       string          `json:"name" bson:"name"`
+	Members    []bson.ObjectId `json:"members" bson:"members"`
+	Admins     []bson.ObjectId `json:"admins" bson:"admins"`
+	Rooms      []bson.ObjectId `json:"rooms" bson:"rooms"`
+}
+
 // OrganizationUpdateMongo has same fields as organization, but has types of interface{}.
 // It's used instead of raw bson.M in update operations to ensure that when field name change in organization model
 // is always reflected
