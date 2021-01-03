@@ -1,9 +1,12 @@
 @base = http://localhost:8080/api/v1/proxy
 @baseMessage = http://localhost:8090/api/v1/message/
+
+@baseConMessage = http://localhost:8080/api/v1/message/
+
 @proxyId = 5fe44e6a584cb6bb7effeee9
 @proxyId2 = 5fe44e6a584cb6bb7effeee9
 
-@roomB = 5fe4dc4b584cb64167b8cfdf
+@roomB = 5fe589fd67a8a2531970dc4e
 ###
 GET {{base}}
 
@@ -31,3 +34,8 @@ POST {{base}}/{{proxyId}}/reset
 
 ### 
 GET {{baseMessage}}?roomId={{roomB}}
+
+### 
+GET {{baseConMessage}}?roomId={{roomB}}
+
+
