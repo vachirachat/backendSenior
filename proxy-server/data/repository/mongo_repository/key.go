@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"proxySenior/domain/interface/repository"
 	model_proxy "proxySenior/domain/model"
+	"proxySenior/utils"
 	"time"
 
 	"github.com/globalsign/mgo"
@@ -21,9 +22,6 @@ func NewKeyRepositoryMongo(conn *mgo.Session) *KeyRepository {
 		ConnectionDB: conn,
 	}
 }
-
-// Temp.
-var collectionRoomKey = "RoomKey"
 
 var _ repository.Keystore = (*KeyRepository)(nil)
 
@@ -49,7 +47,6 @@ func (repo *KeyRepository) GetKeyByRoom(roomID string) (keys []model_proxy.KeyRe
 		if err != nil {
 			return []model_proxy.KeyRecord{}, errors.New("Error cannot get key : RoomID Please add key Frist")
 		}
-		// Still hard code
 		return keyRoom.KeyRecodes, nil
 	}
 	return []model_proxy.KeyRecord{}, errors.New("Error not found : RoomID Please add key Frist")
@@ -60,7 +57,7 @@ func (repo *KeyRepository) UpdateNewKey(roomID string, keyRecord []model_proxy.K
 	cnt, err := repo.ConnectionDB.DB(dbName).C(collectionRoomKey).FindId(bson.ObjectIdHex(roomID)).Count()
 	if cnt == 0 || err != nil {
 		if err != nil {
-			fmt.Errorf("UpdateNewKey error: %s", err)
+			fmt.Errorf("Error UpdateNewKey error: %s", err)
 			return model_proxy.RoomKeys{}, err
 		}
 	}
@@ -68,6 +65,7 @@ func (repo *KeyRepository) UpdateNewKey(roomID string, keyRecord []model_proxy.K
 	if err != nil {
 		return model_proxy.RoomKeys{}, err
 	}
+
 	lastKey := keyRoom.KeyRecodes[len(keyRoom.KeyRecodes)-1]
 	if !(lastKey.ValidTo.Before(timestamp) && lastKey.ValidFrom.After(timestamp)) {
 		keyRoom, err = generateRoomKey(roomID, keyRecord)
@@ -105,16 +103,14 @@ func generateRoomKey(roomID string, keyRecord []model_proxy.KeyRecord) (model_pr
 	// Fix Must refractor
 	keyRec := model_proxy.KeyRecord{
 		Key:       key,
-		ValidFrom: timeIn(BACKKOKTIMEZONE),
-		ValidTo:   timeIn(BACKKOKTIMEZONE).Add(time.Minute * 5)}
+		ValidFrom: timeIn(utils.BACKKOKTIMEZONE),
+		ValidTo:   timeIn(utils.BACKKOKTIMEZONE).Add(time.Minute * 5)}
 
 	return model_proxy.RoomKeys{
 		RoomID:     bson.ObjectIdHex(roomID),
 		KeyRecodes: append(keyRecord, keyRec),
 	}, nil
 }
-
-const BACKKOKTIMEZONE = "Asia/Bangkok"
 
 func timeIn(name string) time.Time {
 	loc, err := time.LoadLocation(name)
