@@ -50,7 +50,7 @@ func main() {
 	}
 
 	enc := service.NewEncryptionService(keystore)
-	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil, enc)
+	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
 	upstreamService := service.NewChatUpstreamService(upstream, enc)
 	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)
 	messageService := service.NewMessageService(msgRepo, enc)
@@ -64,7 +64,7 @@ func main() {
 	}).NewRouter()
 
 	// websocket messasge handler
-	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, onMessagePlugin)
+	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, enc, onMessagePlugin)
 	go messageHandler.Start()
 
 	router.Run(utils.LISTEN_ADDRESS)

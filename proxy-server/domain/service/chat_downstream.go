@@ -11,21 +11,19 @@ import (
 
 // ChatDownstreamService manages sending message and connection pool
 type ChatDownstreamService struct {
-	mapRoom    repository.RoomUserRepository
-	send       repository.SendMessageRepository
-	mapConn    repository.SocketConnectionRepository
-	msgRepo    repository.MessageRepository
-	encryption *EncryptionService
+	mapRoom repository.RoomUserRepository
+	send    repository.SendMessageRepository
+	mapConn repository.SocketConnectionRepository
+	msgRepo repository.MessageRepository
 }
 
 // NewChatDownstreamService create new instance of chat service
-func NewChatDownstreamService(roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository, msgRepo repository.MessageRepository, encryption *EncryptionService) *ChatDownstreamService {
+func NewChatDownstreamService(roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository, msgRepo repository.MessageRepository) *ChatDownstreamService {
 	return &ChatDownstreamService{
-		mapRoom:    roomUserRepo,
-		send:       sender,
-		mapConn:    userConnRepo,
-		msgRepo:    msgRepo,
-		encryption: encryption,
+		mapRoom: roomUserRepo,
+		send:    sender,
+		mapConn: userConnRepo,
+		msgRepo: msgRepo,
 	}
 }
 
@@ -57,11 +55,6 @@ func (chat *ChatDownstreamService) SendMessageToConnection(connID string, messag
 // []byte will be sent as is, but other value will be marshalled
 // TODO: in the future there should be broadcast event etc.
 func (chat *ChatDownstreamService) BroadcastMessageToRoom(roomID string, message model.Message) error {
-	message, err := chat.encryption.Decrypt(message)
-	if err != nil {
-		fmt.Printf("recv error: can't decrypt: %s\n", err.Error())
-		return err
-	}
 
 	userIDs, err := chat.mapRoom.GetRoomUsers(roomID)
 	if err != nil {

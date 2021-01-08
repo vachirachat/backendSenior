@@ -18,15 +18,17 @@ type MessageHandler struct {
 	upstreamService   *service.ChatUpstreamService   // recv message from controlller
 	downstreamService *service.ChatDownstreamService // bcast message to user
 	roomUserRepo      repository.RoomUserRepository  // update room on event from controller
+	encryption        *service.EncryptionService     // for decrypting message
 	onMessagePlugin   *plugin.OnMessagePlugin
 }
 
 // NewMessageHandler creates new MessageHandler
-func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository, onMessagePlugin *plugin.OnMessagePlugin) *MessageHandler {
+func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository, encryption *service.EncryptionService, onMessagePlugin *plugin.OnMessagePlugin) *MessageHandler {
 	return &MessageHandler{
 		upstreamService:   upstream,
 		downstreamService: downstream,
 		roomUserRepo:      roomUserRepo,
+		encryption:        encryption,
 		onMessagePlugin:   onMessagePlugin,
 	}
 }
@@ -55,7 +57,13 @@ func (h *MessageHandler) Start() {
 				fmt.Printf("the message was [%s]\n", data)
 				continue
 			}
-			fmt.Println("The message is", msg)
+
+			msg, err = h.encryption.Decrypt(msg)
+			if err != nil {
+				fmt.Println("Error decrpyting", err)
+				continue
+			}
+			fmt.Println("The decrypted message is", msg)
 
 			fmt.Println("try call on message", h.onMessagePlugin, h.onMessagePlugin.IsEnabled())
 			if h.onMessagePlugin != nil && h.onMessagePlugin.IsEnabled() {
