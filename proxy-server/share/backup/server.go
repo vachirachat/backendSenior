@@ -18,6 +18,11 @@ func (s *BackupServer) OnMessageIn(ctx context.Context, req *proto.Chat) (*proto
 	m := RawMessage{
 		MessageID: req.MessageId,
 		Data:      req.Data,
+		TimeStamp: req.Timestamp,
+		RoomID:    req.RoomId,
+		UserID:    req.UserId,
+		ClientUID: req.ClientUid,
+		Type:      req.Type,
 	}
 	err := s.Impl.OnMessageIn(m)
 	return &proto.Empty{}, err
