@@ -12,3 +12,7 @@ exper
 
 # for windows user
 *.exe
+
+
+# 
+.env

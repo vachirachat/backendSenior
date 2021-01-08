@@ -11,6 +11,7 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/go-plugin v1.4.0
+	github.com/joho/godotenv v1.3.0
 	github.com/mergermarket/go-pkcs7 v0.0.0-20170926155232-153b18ea13c9
 	google.golang.org/grpc v1.31.0
 )

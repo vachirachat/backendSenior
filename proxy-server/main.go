@@ -14,10 +14,17 @@ import (
 	"proxySenior/domain/service"
 	"proxySenior/utils"
 
+	"github.com/joho/godotenv"
+
 	"github.com/globalsign/mgo/bson"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalln("Can't load .env file, does it exist ?")
+	}
+
 	// Repo
 	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.CONTROLLER_ORIGIN)
 	pool := chatsocket.NewConnectionPool()
@@ -44,7 +51,7 @@ func main() {
 	keystore := &mongo_repository.KeyRepository{}
 	onMessagePlugin := plugin.NewOnMessagePlugin(enablePlugin, pluginPath)
 
-	err := onMessagePlugin.Wait()
+	err = onMessagePlugin.Wait()
 	if err != nil {
 		log.Fatalln("Wait for onMessagePlugin Error")
 	}
