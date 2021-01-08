@@ -8,6 +8,7 @@ import (
 	"backendSenior/domain/model/chatsocket/room"
 	"encoding/json"
 	"fmt"
+	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
 )
 
@@ -17,14 +18,16 @@ type MessageHandler struct {
 	upstreamService   *service.ChatUpstreamService   // recv message from controlller
 	downstreamService *service.ChatDownstreamService // bcast message to user
 	roomUserRepo      repository.RoomUserRepository  // update room on event from controller
+	onMessagePlugin   *plugin.OnMessagePlugin
 }
 
 // NewMessageHandler creates new MessageHandler
-func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository) *MessageHandler {
+func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository, onMessagePlugin *plugin.OnMessagePlugin) *MessageHandler {
 	return &MessageHandler{
 		upstreamService:   upstream,
 		downstreamService: downstream,
 		roomUserRepo:      roomUserRepo,
+		onMessagePlugin:   onMessagePlugin,
 	}
 }
 
@@ -53,6 +56,12 @@ func (h *MessageHandler) Start() {
 				continue
 			}
 			fmt.Println("The message is", msg)
+
+			fmt.Println("try call on message", h.onMessagePlugin, h.onMessagePlugin.IsEnabled())
+			if h.onMessagePlugin != nil && h.onMessagePlugin.IsEnabled() {
+				err := h.onMessagePlugin.OnMessageIn(msg)
+				fmt.Println("[plugin] called on message", err)
+			}
 
 			err = h.downstreamService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
 			if err != nil {

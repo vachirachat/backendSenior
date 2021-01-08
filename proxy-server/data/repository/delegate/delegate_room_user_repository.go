@@ -45,7 +45,7 @@ func (repo *DelegateRoomUserRepository) GetUserRooms(userID string) (roomIDs []s
 	rooms := repo.userToRooms[userID]
 	repo.lock.RUnlock()
 
-	if time.Now().Sub(fetchTime) > repo.ttl {
+	if fetchTime.IsZero() || time.Now().Sub(fetchTime) > repo.ttl {
 		url := url.URL{
 			Scheme: "http",
 			Host:   repo.controllerOrigin,
@@ -90,7 +90,7 @@ func (repo *DelegateRoomUserRepository) GetRoomUsers(roomID string) (userIDs []s
 	users := repo.roomToUsers[roomID]
 	repo.lock.RUnlock()
 
-	if time.Now().Sub(fetchTime) > repo.ttl {
+	if fetchTime.IsZero() || time.Now().Sub(fetchTime) > repo.ttl {
 		url := url.URL{
 			Scheme: "http",
 			Host:   repo.controllerOrigin,

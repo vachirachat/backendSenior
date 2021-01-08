@@ -2,6 +2,7 @@ package main
 
 import (
 	"backendSenior/data/repository/chatsocket"
+	"fmt"
 	"log"
 	"os"
 	"proxySenior/controller/chat"
@@ -9,6 +10,7 @@ import (
 	"proxySenior/data/repository/delegate"
 	"proxySenior/data/repository/mongo_repository"
 	"proxySenior/data/repository/upstream"
+	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
 	"proxySenior/utils"
 
@@ -31,8 +33,21 @@ func main() {
 		log.Fatalln("error: please set client secret")
 	}
 
+	enablePlugin := true
+	pluginPath := os.Getenv("PLUGIN_PATH")
+	if pluginPath == "" {
+		enablePlugin = false
+		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PATH is not set")
+	}
+
 	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN, clientID, clientSecret)
 	keystore := &mongo_repository.KeyRepository{}
+	onMessagePlugin := plugin.NewOnMessagePlugin(enablePlugin, pluginPath)
+
+	err := onMessagePlugin.Wait()
+	if err != nil {
+		log.Fatalln("Wait for onMessagePlugin Error")
+	}
 
 	enc := service.NewEncryptionService(keystore)
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil, enc)
@@ -49,7 +64,7 @@ func main() {
 	}).NewRouter()
 
 	// websocket messasge handler
-	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo)
+	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, onMessagePlugin)
 	go messageHandler.Start()
 
 	router.Run(utils.LISTEN_ADDRESS)
