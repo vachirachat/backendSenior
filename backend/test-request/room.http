@@ -4,10 +4,10 @@
 @org = 5fef751026dcb933397fb49f
 
 
-@roomA = 
+@roomA = 5fef767926dcb936c4e0b6d9
 @roomB = 
 
-@proxyA =
+@proxyA = 5fef76ad26dcb936c4e0b6dc
 @proxyB = 
 
 @userA = 5fef73f4315e73be2c81c74e
@@ -79,6 +79,17 @@ Content-Type: application/json
 
 {
   "proxyIds": ["{{proxyA}}"]
+}
+
+
+### get naster proxy full
+GET {{base}}/{{roomA}}/master-proxy    
+###
+POST {{base}}/{{roomA}}/master-proxy    
+Content-Type: application/json
+
+{
+  "proxyId": "{{proxyA}}"
 }
 
 ###

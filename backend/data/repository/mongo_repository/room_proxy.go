@@ -35,10 +35,10 @@ func NewCachedRoomProxyRepository(conn *mgo.Session) *CachedRoomProxyRepository 
 	}
 }
 
-var _ repository.RoomUserRepository = (*CachedRoomUserRepository)(nil)
+var _ repository.RoomProxyRepository = (*CachedRoomProxyRepository)(nil)
 
-// GetUserRooms get
-func (repo *CachedRoomProxyRepository) GetUserRooms(proxyID string) (roomIDs []string, err error) {
+// GetProxyRooms get proxyIDs in room
+func (repo *CachedRoomProxyRepository) GetProxyRooms(proxyID string) (roomIDs []string, err error) {
 	repo.lock.RLock()
 	rooms, exists := repo.proxyToRooms[proxyID]
 	repo.lock.RUnlock()
@@ -59,8 +59,8 @@ func (repo *CachedRoomProxyRepository) GetUserRooms(proxyID string) (roomIDs []s
 	return rooms, nil
 }
 
-// GetRoomUsers get proxyIds for specified room
-func (repo *CachedRoomProxyRepository) GetRoomUsers(roomID string) (proxyIDs []string, err error) {
+// GetRoomProxies get roomIDs that proxy is in
+func (repo *CachedRoomProxyRepository) GetRoomProxies(roomID string) (proxyIDs []string, err error) {
 	repo.lock.RLock()
 	proxies, exist := repo.roomToProxies[roomID]
 	repo.lock.RUnlock()
@@ -82,9 +82,9 @@ func (repo *CachedRoomProxyRepository) GetRoomUsers(roomID string) (proxyIDs []s
 	return proxies, nil
 }
 
-// AddUsersToRoom adds proxies to member of room, and add room to proxy's room list
+// AddProxiesToRoom adds proxies to room, and add room to proxy's room list
 // It returns error if any of proxyIDs is invalid
-func (repo *CachedRoomProxyRepository) AddUsersToRoom(roomID string, proxyIDs []string) (err error) {
+func (repo *CachedRoomProxyRepository) AddProxiesToRoom(roomID string, proxyIDs []string) (err error) {
 	// Preconfition check
 	n, err := repo.connection.DB(dbName).C(collectionProxy).FindId(bson.M{"$in": utills.ToObjectIdArr(proxyIDs)}).Count()
 
@@ -143,9 +143,9 @@ func (repo *CachedRoomProxyRepository) AddUsersToRoom(roomID string, proxyIDs []
 	return nil
 }
 
-// RemoveUsersFromRoom remove proxyIDs from room in DB and cache
+// RemoveProxiesFromRoom remove proxyIDs from room in DB and cache
 // return error if any of proxyIDs is invalid
-func (repo *CachedRoomProxyRepository) RemoveUsersFromRoom(roomID string, proxyIDs []string) (err error) {
+func (repo *CachedRoomProxyRepository) RemoveProxiesFromRoom(roomID string, proxyIDs []string) (err error) {
 	// Precondition check
 	n, err := repo.connection.DB(dbName).C(collectionProxy).FindId(bson.M{"$in": utills.ToObjectIdArr(proxyIDs)}).Count()
 	if err != nil {
@@ -199,4 +199,48 @@ func (repo *CachedRoomProxyRepository) RemoveUsersFromRoom(roomID string, proxyI
 	delete(repo.roomToProxies, roomID)
 
 	return nil
+}
+
+// GetRoomMasterProxy return the proxyID that is master of room
+func (repo *CachedRoomProxyRepository) GetRoomMasterProxy(roomID string) (model.Proxy, error) {
+	var room model.Room
+	err := repo.connection.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&room)
+	if err != nil {
+		return model.Proxy{}, err
+	}
+	if room.MainProxy == "" {
+		return model.Proxy{}, errors.New("master proxy not set")
+	}
+
+	var proxy model.Proxy
+	err = repo.connection.DB(dbName).C(collectionProxy).FindId(room.MainProxy).One(&proxy)
+
+	return proxy, err
+}
+
+// SetRoomMasterProxy change main proxy of the room
+func (repo *CachedRoomProxyRepository) SetRoomMasterProxy(roomID string, mainProxyID string) error {
+	err := repo.connection.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), model.RoomUpdateMongo{
+		MainProxy: bson.ObjectIdHex(mainProxyID),
+	})
+	return err
+}
+
+// GetProxyMasterRooms get room of which proxy is master
+func (repo *CachedRoomProxyRepository) GetProxyMasterRooms(proxyID string) ([]string, error) {
+	var rooms []model.Room
+	err := repo.connection.DB(dbName).C(collectionRoom).Find(model.RoomUpdateMongo{
+		MainProxy: bson.ObjectIdHex(proxyID),
+	}).All(&rooms)
+	if err != nil {
+		if err.Error() == "not found" {
+			return []string{}, nil
+		}
+		return nil, err
+	}
+	roomIDs := make([]string, len(rooms))
+	for i := range rooms {
+		roomIDs[i] = rooms[i].MainProxy.Hex()
+	}
+	return roomIDs, nil
 }

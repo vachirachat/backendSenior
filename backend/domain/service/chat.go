@@ -11,7 +11,7 @@ import (
 
 // ChatService manages sending message and connection pool
 type ChatService struct {
-	mapRoomProxy repository.RoomUserRepository
+	mapRoomProxy repository.RoomProxyRepository
 	mapRoomUser  repository.RoomUserRepository
 	send         repository.SendMessageRepository
 	mapConn      repository.SocketConnectionRepository
@@ -20,7 +20,7 @@ type ChatService struct {
 }
 
 // NewChatService create new instance of chat service
-func NewChatService(roomProxyRepo repository.RoomUserRepository, roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository, msgRepo repository.MessageRepository, notifService *NotificationService) *ChatService {
+func NewChatService(roomProxyRepo repository.RoomProxyRepository, roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository, msgRepo repository.MessageRepository, notifService *NotificationService) *ChatService {
 	return &ChatService{
 		mapRoomProxy: roomProxyRepo,
 		mapRoomUser:  roomUserRepo,
@@ -31,9 +31,9 @@ func NewChatService(roomProxyRepo repository.RoomUserRepository, roomUserRepo re
 	}
 }
 
-// IsUserInRoom check whether user is in room
-func (chat *ChatService) IsUserInRoom(userID string, roomID string) (bool, error) {
-	rooms, err := chat.mapRoomProxy.GetUserRooms(userID)
+// IsProxyInRoom check whether proxy is in room and allowed to send message
+func (chat *ChatService) IsProxyInRoom(userID string, roomID string) (bool, error) {
+	rooms, err := chat.mapRoomProxy.GetRoomProxies(userID)
 
 	if err != nil {
 		return false, err
@@ -61,7 +61,7 @@ func (chat *ChatService) SendMessageToConnection(connID string, message interfac
 // []byte will be sent as is, but other value will be marshalled
 func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{}) error {
 
-	userIDs, err := chat.mapRoomProxy.GetRoomUsers(roomID)
+	userIDs, err := chat.mapRoomProxy.GetRoomProxies(roomID)
 	if err != nil {
 		return fmt.Errorf("getting room's users: %s", err)
 	}

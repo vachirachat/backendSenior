@@ -32,7 +32,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.JWTService, authMiddleware)
 	messageRouteHandler := NewMessageRouteHandler(deps.MessageService)
 	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService)
-	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService)
+	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService, deps.RoomService)
 	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.RoomService)
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)

@@ -18,6 +18,9 @@ Content-Type: application/json
 }
 
 
-### 
+###  reset secret
 POST {{base}}/{{proxyId}}/reset
 
+
+### get master rooms
+GET {{base}}/{{proxyId}}/master-rooms

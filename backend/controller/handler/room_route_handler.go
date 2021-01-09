@@ -41,25 +41,28 @@ func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddl
 }
 
 //Mount make RoomRouteHandler handler request from specific `RouterGroup`
-func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
+func (h *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/:id/member", handler.getRoomMember)
-	routerGroup.POST("/:id/member", handler.addMemberToRoom)
-	routerGroup.DELETE("/:id/member", handler.deleteMemberFromRoom)
-	routerGroup.GET("/:id/proxy", handler.getRoomProxies)
-	routerGroup.POST("/:id/proxy", handler.addProxiesToRoom)
-	routerGroup.DELETE("/:id/proxy", handler.removeProxiesFromRoom)
+	routerGroup.GET("/:id/member", h.getRoomMember)
+	routerGroup.POST("/:id/member", h.addMemberToRoom)
+	routerGroup.DELETE("/:id/member", h.deleteMemberFromRoom)
+	routerGroup.GET("/:id/proxy", h.getRoomProxies)
+	routerGroup.POST("/:id/proxy", h.addProxiesToRoom)
+	routerGroup.DELETE("/:id/proxy", h.removeProxiesFromRoom)
 
-	routerGroup.POST("/", handler.authMw.AuthRequired(), handler.addRoomHandler)
-	routerGroup.POST("/:id/name" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editRoomNameHandler)
-	routerGroup.DELETE("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteRoomByIDHandler)
-	// routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
-	// routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
-	routerGroup.GET("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomByIDHandler)
-	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.roomListHandler)
+	routerGroup.POST("/:id/master-proxy", h.setMasterProxy)
+	routerGroup.GET("/:id/master-proxy", h.getMasterProxy)
+
+	routerGroup.POST("/", h.authMw.AuthRequired(), h.addRoomHandler)
+	routerGroup.POST("/:id/name" /*h.authService.AuthMiddleware("object", "view"),*/, h.editRoomNameHandler)
+	routerGroup.DELETE("/:id" /*h.authService.AuthMiddleware("object", "view"),*/, h.deleteRoomByIDHandler)
+	// routerGroup.POST("/addmembertoroom" /*h.authService.AuthMiddleware("object", "view"),*/, h.addMemberToRoom)
+	// routerGroup.POST("/deletemembertoroom" /*h.authService.AuthMiddleware("object", "view"),*/, h.deleteMemberFromRoom)
+	routerGroup.GET("/:id" /*h.authService.AuthMiddleware("object", "view"),*/, h.getRoomByIDHandler)
+	routerGroup.GET("/", h.authMw.AuthRequired(), h.roomListHandler)
 }
 
-func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
+func (h *RoomRouteHandler) roomListHandler(context *gin.Context) {
 	var roomsInfo model.RoomInfo
 
 	isMe := context.Query("me") != ""
@@ -69,9 +72,9 @@ func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
 
 	if isMe {
 		myID := context.GetString(auth.UserIdField)
-		rooms, err = handler.roomService.GetUserRooms(myID)
+		rooms, err = h.roomService.GetUserRooms(myID)
 	} else {
-		rooms, err = handler.roomService.GetAllRooms()
+		rooms, err = h.roomService.GetAllRooms()
 	}
 	if err != nil {
 		log.Println("error roomListHandler", err.Error())
@@ -83,14 +86,14 @@ func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
 }
 
 // for get room by id
-func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context) {
+func (h *RoomRouteHandler) getRoomByIDHandler(context *gin.Context) {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
 		return
 	}
 
-	room, err := handler.roomService.GetRoomByID(roomID)
+	room, err := h.roomService.GetRoomByID(roomID)
 	if err != nil {
 		log.Println("error GetRoomByIDHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -100,7 +103,7 @@ func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context) {
 }
 
 // create an empty room, then the creator of the room is automatically invited to the room
-func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
+func (h *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 	var room model.Room
 	var roomID string
 	err := context.BindJSON(&room)
@@ -108,7 +111,7 @@ func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 
 	defer func() {
 		if !isOK && roomID != "" {
-			handler.roomService.DeleteRoomByID(roomID)
+			h.roomService.DeleteRoomByID(roomID)
 		}
 	}()
 
@@ -124,14 +127,14 @@ func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 	orgID := room.OrgID.Hex()
 	room.OrgID = "" // when invite room to org requires that room has no org!
 	// check org existence
-	_, err = handler.orgService.GetOrganizeById(orgID)
+	_, err = h.orgService.GetOrganizeById(orgID)
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error, room might not exist"})
 		return
 	}
 
-	roomID, err = handler.roomService.AddRoom(room)
+	roomID, err = h.roomService.AddRoom(room)
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -140,7 +143,7 @@ func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 
 	// Invite self to rooms
 	userID := context.GetString(auth.UserIdField)
-	err = handler.roomService.AddMembersToRoom(roomID, []string{userID})
+	err = h.roomService.AddMembersToRoom(roomID, []string{userID})
 	if err != nil {
 		log.Println("error AddRoomHandeler; invite self to room", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -148,7 +151,7 @@ func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 	}
 
 	// Add room to org
-	err = handler.orgService.AddRoomsToOrg(orgID, []string{roomID})
+	err = h.orgService.AddRoomsToOrg(orgID, []string{roomID})
 	if err != nil {
 		log.Println("error AddRoomHandeler; invite room to org", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -159,7 +162,7 @@ func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"status": "success", "roomId": roomID})
 }
 
-func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
+func (h *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
@@ -176,7 +179,7 @@ func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
 		return
 	}
 
-	err = handler.roomService.EditRoomName(roomID, room)
+	err = h.roomService.EditRoomName(roomID, room)
 
 	if err != nil {
 		log.Println("error EditRoomNametHandler", err.Error())
@@ -186,14 +189,14 @@ func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context) {
+func (h *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context) {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
 		return
 	}
 
-	room, err := handler.roomService.GetRoomByID(roomID)
+	room, err := h.roomService.GetRoomByID(roomID)
 	if err != nil {
 		log.Println("error DeleteRoomHandler before deleting room", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
@@ -206,26 +209,26 @@ func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context) {
 
 	// TODO: make it transaction
 	// delete room-user relation
-	err = handler.roomService.DeleteMemberFromRoom(roomID, userIDs)
+	err = h.roomService.DeleteMemberFromRoom(roomID, userIDs)
 	if err != nil {
 		log.Println("error DeleteRoomHandler removing members from room", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return
 	}
-	err = handler.roomService.DeleteProxiesFromRoom(roomID, proxyIDs)
+	err = h.roomService.DeleteProxiesFromRoom(roomID, proxyIDs)
 	if err != nil {
 		log.Println("error DeleteRoomHandler removing proxies from room", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return
 	}
-	err = handler.orgService.DeleteRoomsFromOrg(orgID, []string{roomID})
+	err = h.orgService.DeleteRoomsFromOrg(orgID, []string{roomID})
 	if err != nil {
 		log.Println("error DeleteRoomHandler removing room from org", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return
 	}
 
-	err = handler.roomService.DeleteRoomByID(roomID)
+	err = h.roomService.DeleteRoomByID(roomID)
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -237,7 +240,7 @@ func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context) {
 // Match with Socket-structure
 
 //// -- JoinAPI -> getSession(Topic+#ID) -> giveUserSession
-func (handler *RoomRouteHandler) addMemberToRoom(context *gin.Context) {
+func (h *RoomRouteHandler) addMemberToRoom(context *gin.Context) {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
@@ -257,7 +260,7 @@ func (handler *RoomRouteHandler) addMemberToRoom(context *gin.Context) {
 
 	userIDs := utills.ToStringArr(body.UserIDs)
 
-	err = handler.roomService.AddMembersToRoom(roomID, userIDs)
+	err = h.roomService.AddMembersToRoom(roomID, userIDs)
 	if err != nil {
 		log.Println("error AddMemberToRoom", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -265,7 +268,7 @@ func (handler *RoomRouteHandler) addMemberToRoom(context *gin.Context) {
 	}
 
 	// send event to proxy
-	err = handler.chatService.BroadcastMessageToRoom(roomID, chatsocket.Message{
+	err = h.chatService.BroadcastMessageToRoom(roomID, chatsocket.Message{
 		Type: message_types.Room,
 		Payload: room.MemberEvent{
 			Type:    room.Join,
@@ -281,7 +284,7 @@ func (handler *RoomRouteHandler) addMemberToRoom(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-func (handler *RoomRouteHandler) deleteMemberFromRoom(context *gin.Context) {
+func (h *RoomRouteHandler) deleteMemberFromRoom(context *gin.Context) {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
@@ -301,7 +304,7 @@ func (handler *RoomRouteHandler) deleteMemberFromRoom(context *gin.Context) {
 
 	userIDs := utills.ToStringArr(body.UserIDs)
 
-	err = handler.roomService.DeleteMemberFromRoom(roomID, userIDs)
+	err = h.roomService.DeleteMemberFromRoom(roomID, userIDs)
 
 	if err != nil {
 		log.Println("error DeleteRoomHandler", err.Error())
@@ -310,7 +313,7 @@ func (handler *RoomRouteHandler) deleteMemberFromRoom(context *gin.Context) {
 	}
 
 	// send event to proxy
-	err = handler.chatService.BroadcastMessageToRoom(roomID, chatsocket.Message{
+	err = h.chatService.BroadcastMessageToRoom(roomID, chatsocket.Message{
 		Type: message_types.Room,
 		Payload: room.MemberEvent{
 			Type:    room.Leave,
@@ -327,7 +330,7 @@ func (handler *RoomRouteHandler) deleteMemberFromRoom(context *gin.Context) {
 }
 
 // TODO change this to return full object only, currently keep for compatibility of proxy
-func (handler *RoomRouteHandler) getRoomMember(context *gin.Context) {
+func (h *RoomRouteHandler) getRoomMember(context *gin.Context) {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
@@ -335,7 +338,7 @@ func (handler *RoomRouteHandler) getRoomMember(context *gin.Context) {
 	}
 	isFull := context.Query("full") != ""
 
-	userIDs, err := handler.roomService.GetRoomMemberIDs(roomID)
+	userIDs, err := h.roomService.GetRoomMemberIDs(roomID)
 	if err != nil {
 		fmt.Println("[getRoomMember] error", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
@@ -348,7 +351,7 @@ func (handler *RoomRouteHandler) getRoomMember(context *gin.Context) {
 		})
 		return
 	}
-	users, err := handler.userService.GetUsersByIDs(userIDs)
+	users, err := h.userService.GetUsersByIDs(userIDs)
 	if err != nil {
 		fmt.Println("[getRoomMember, full] error", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
@@ -360,23 +363,23 @@ func (handler *RoomRouteHandler) getRoomMember(context *gin.Context) {
 	})
 }
 
-func (handler *RoomRouteHandler) getRoomProxies(context *gin.Context) {
+func (h *RoomRouteHandler) getRoomProxies(context *gin.Context) {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
 		return
 	}
 
-	proxyIDs, err := handler.roomService.GetRoomProxyIDs(roomID)
+	proxyIDs, err := h.roomService.GetRoomProxyIDs(roomID)
 	if err != nil {
-		fmt.Println("[getRoomProxies]", err)
+		fmt.Println("[getRoomProxies] get room proxy", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return
 	}
 
-	proxies, err := handler.proxyService.GetProxiesByIDs(proxyIDs)
+	proxies, err := h.proxyService.GetProxiesByIDs(proxyIDs)
 	if err != nil {
-		fmt.Println("[getRoomProxies]", err)
+		fmt.Println("[getRoomProxies] find proxy", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return
 	}
@@ -387,7 +390,7 @@ func (handler *RoomRouteHandler) getRoomProxies(context *gin.Context) {
 
 }
 
-func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context) {
+func (h *RoomRouteHandler) addProxiesToRoom(context *gin.Context) {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
@@ -402,7 +405,7 @@ func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context) {
 		return
 	}
 
-	err := handler.roomService.AddProxiesToRoom(roomID, utills.ToStringArr(body.ProxyIDs))
+	err := h.roomService.AddProxiesToRoom(roomID, utills.ToStringArr(body.ProxyIDs))
 	if err != nil {
 		fmt.Println("[Room handler] addProxiesToRoom: ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
@@ -413,7 +416,7 @@ func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context) {
 
 }
 
-func (handler *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context) {
+func (h *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context) {
 	roomID := context.Param("id")
 
 	var body struct {
@@ -424,7 +427,7 @@ func (handler *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context) {
 		return
 	}
 
-	err := handler.roomService.DeleteProxiesFromRoom(roomID, utills.ToStringArr(body.ProxyIDs))
+	err := h.roomService.DeleteProxiesFromRoom(roomID, utills.ToStringArr(body.ProxyIDs))
 	if err != nil {
 		fmt.Println("[Room handler] addProxiesToRoom: ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
@@ -433,4 +436,45 @@ func (handler *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context) {
 
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 
+}
+
+func (h *RoomRouteHandler) setMasterProxy(c *gin.Context) {
+	roomID := c.Param("id")
+	if !bson.IsObjectIdHex(roomID) {
+		c.JSON(400, gin.H{"status": "Bad room ID"})
+		return
+	}
+
+	var b struct {
+		ProxyID string
+	}
+	err := c.ShouldBindJSON(&b)
+	if b.ProxyID == "" || !bson.IsObjectIdHex(b.ProxyID) {
+		c.JSON(400, gin.H{"status": "Bad or empty proxyID"})
+		return
+	}
+
+	err = h.roomService.SetRoomMasterProxy(roomID, b.ProxyID)
+	if err != nil {
+		fmt.Println("[room/setMasterProxy] error:", err)
+		c.JSON(500, gin.H{"status": "error"})
+	}
+	c.JSON(200, gin.H{"status": "OK"})
+}
+
+// return object: master proxy of the room
+func (h *RoomRouteHandler) getMasterProxy(c *gin.Context) {
+	roomID := c.Param("id")
+	if !bson.IsObjectIdHex(roomID) {
+		c.JSON(400, gin.H{"status": "Bad room ID"})
+		return
+	}
+
+	mainProxy, err := h.roomService.GetRoomMasterProxy(roomID)
+	if err != nil {
+		fmt.Println("room/getMasterProxy", err)
+		c.JSON(500, gin.H{"status": "error"})
+		return
+	}
+	c.JSON(200, mainProxy)
 }

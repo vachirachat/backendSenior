@@ -14,12 +14,14 @@ import (
 
 type ProxyRouteHandler struct {
 	proxyService *service.ProxyService
+	roomService  *service.RoomService // get master proxy
 }
 
 // NewProxyRouteHandler create new handler for proxy
-func NewProxyRouteHandler(proxyService *service.ProxyService) *ProxyRouteHandler {
+func NewProxyRouteHandler(proxyService *service.ProxyService, roomService *service.RoomService) *ProxyRouteHandler {
 	return &ProxyRouteHandler{
 		proxyService: proxyService,
+		roomService:  roomService,
 	}
 }
 
@@ -29,6 +31,7 @@ func (handler *ProxyRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/", handler.createProxy)
 	routerGroup.POST("/:id/", handler.updateProxy)
 	routerGroup.GET("/:id/", handler.getProxyByID)
+	routerGroup.GET("/:id/master-rooms", handler.getMasterRooms)
 	routerGroup.POST("/:id/reset", handler.resetSecret)
 }
 
@@ -118,4 +121,23 @@ func (handler *ProxyRouteHandler) updateProxy(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func (handler *ProxyRouteHandler) getMasterRooms(c *gin.Context) {
+	proxyID := c.Param("id")
+	if !bson.IsObjectIdHex(proxyID) {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "bad id"})
+		return
+	}
+
+	roomIDs, err := handler.roomService.GetProxyMasterRooms(proxyID)
+	if err != nil {
+		fmt.Println("[proxy/getMasterRooms] error", err)
+		c.JSON(500, gin.H{"status": "error"})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"roomIds": roomIDs,
+	})
 }

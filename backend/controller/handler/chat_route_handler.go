@@ -158,7 +158,7 @@ func (c *client) readPump() {
 				})
 				continue
 			}
-			if ok, err := c.chatService.IsUserInRoom(c.proxyID, msg.RoomID.Hex()); err != nil {
+			if ok, err := c.chatService.IsProxyInRoom(c.proxyID, msg.RoomID.Hex()); err != nil {
 				c.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
 					Type: message_types.Error,
 					Payload: exception.Event{
