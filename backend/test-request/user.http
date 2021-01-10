@@ -7,8 +7,18 @@ POST {{base}}/signup
 Content-Type: application/json
 
 {
+<<<<<<< HEAD
   "email": "rod8712@gmail.com",
   "password": "12345678"
+=======
+<<<<<<< HEAD
+  "email": "top-1@gmail.com",
+=======
+  "name": "addName",
+  "email": "top-d2dsdf@gmail.com",
+>>>>>>> 93363c7652e94dac8efd205ac51d7873eb631df9
+  "password": "topza5353"
+>>>>>>> main
 }
 ### GET all users
 GET {{base}}/user

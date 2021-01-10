@@ -17,6 +17,12 @@ Content-Type: application/json
   "port": 8090
 }
 
+# {
+#   "proxyId": "5fe44e6a584cb6bb7effeee9",
+#   "proxySecret": "mSGBGk8uERmePOJo8Da00CQ1J1AId9Q9LcKPDvO3H/KfkHUxCUPAwd9s7qTZdhcc"
+# }
+
+# CLIENT_ID=5fe44e6a584cb6bb7effeee9 CLIENT_SECRET=mSGBGk8uERmePOJo8Da00CQ1J1AId9Q9LcKPDvO3H/KfkHUxCUPAwd9s7qTZdhcc PORT=:8090 go run main.go
 
 ###  reset secret
 POST {{base}}/{{proxyId}}/reset

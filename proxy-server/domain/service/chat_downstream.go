@@ -35,6 +35,7 @@ func (chat *ChatDownstreamService) SaveMessage(message model.Message) (string, e
 // IsUserInRoom return whether `userID` is in `roomID`
 func (chat *ChatDownstreamService) IsUserInRoom(userID string, roomID string) (bool, error) {
 	rooms, err := chat.mapRoom.GetUserRooms(userID)
+
 	if err != nil {
 		return false, err
 	}

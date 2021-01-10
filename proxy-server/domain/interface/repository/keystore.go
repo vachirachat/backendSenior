@@ -1,14 +1,18 @@
 package repository
 
 import (
-	"proxySenior/domain/model"
-	"time"
+	model_proxy "proxySenior/domain/model"
 )
 
 type Keystore interface {
-	GetKeyForMessage(roomID string, timestamp time.Time) (key model.KeyRecord, err error)
-	GetKeyByRoom(roomID string) (keys []model.KeyRecord, err error)
-	AddNewKey(model.KeyRecord)
+	// Find will find key according to filter
+	Find(filter interface{}) ([]model_proxy.KeyRecord, error)
 
-	RequestKeyForMessage(roomID string, timestamp time.Time) (key model.KeyRecord, err error)
+	// FindByRoom is shortcut for finding keys by room
+	FindByRoom(roomID string) ([]model_proxy.KeyRecord, error)
+
+	// AddNewKey should add a key to room, while invalidate the last key (if exists)
+	AddNewKey(roomID string, key []byte) error
+
+	// Note that key can't be deleted
 }

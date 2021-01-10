@@ -62,44 +62,45 @@ type client struct {
 
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
+	routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), handler.websocketHandler)
+}
 
-	routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
-		// fmt.Println("new connection!")
-		w := context.Writer
-		r := context.Request
+func (handler *ChatRouteHandler) websocketHandler(context *gin.Context) {
+	// fmt.Println("new connection!")
+	w := context.Writer
+	r := context.Request
 
-		var upgrader = websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-			CheckOrigin: func(req *http.Request) bool {
-				return true
-			},
-		}
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+		CheckOrigin: func(req *http.Request) bool {
+			return true
+		},
+	}
 
-		userID := context.GetString(middleware.UserIdField)
-		// Proxy use no auth ?
-		wsConn, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+	userID := context.GetString(middleware.UserIdField)
 
-		var conn = &chatsocket.Connection{
-			Conn:   wsConn,
-			UserID: userID,
-		}
+	// Proxy use no auth ?
+	wsConn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-		id, err := handler.downstream.OnConnect(conn)
+	var conn = &chatsocket.Connection{
+		Conn:   wsConn,
+		UserID: userID,
+	}
 
-		clnt := client{
-			conn:       wsConn,
-			handlerRef: handler,
-			connID:     id,
-			userID:     userID,
-		}
+	id, err := handler.downstream.OnConnect(conn)
 
-		go clnt.readPump()
-	})
+	clnt := client{
+		conn:       wsConn,
+		handlerRef: handler,
+		connID:     id,
+		userID:     userID,
+	}
+	go clnt.readPump()
 }
 
 // TODO: some how move this to connection pool so it's centralized

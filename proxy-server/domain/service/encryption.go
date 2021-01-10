@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 
 	"github.com/mergermarket/go-pkcs7"
 
@@ -28,16 +29,32 @@ func NewEncryptionService(keystore repository.Keystore) *EncryptionService {
 	}
 }
 
+//
+func (enc *EncryptionService) getLastKeyForRoom(roomID string) ([]byte, error) {
+	roomKeys, err := enc.keystore.FindByRoom(roomID)
+	if len(roomKeys) == 0 {
+		return nil, errors.New("No room keys exists, please generate one")
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("error getting key: %v", err)
+	}
+
+	key := roomKeys[len(roomKeys)-1].Key
+	return key, nil
+}
+
 // source: https://gist.github.com/brettscott/2ac58ab7cb1c66e2b4a32d6c1c3908a7
 
 // Encrypt takes a message, then return message with data encrypted
 func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, error) {
-	keyRec, err := enc.keystore.GetKeyForMessage(message.RoomID.Hex(), message.TimeStamp)
+	log.Println("\n Encrypted log.Println(keyRec.KeyRecodes --> \n")
+
+	key, err := enc.getLastKeyForRoom(message.RoomID.Hex())
 	if err != nil {
-		return message, fmt.Errorf("getting key: %s", err.Error())
+		return message, err
 	}
 
-	key := keyRec.Key
 	plainText := []byte(message.Data)
 	plainText, err = pkcs7.Pad(plainText, aes.BlockSize)
 	if err != nil {
@@ -76,6 +93,7 @@ func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, err
 
 // Decrypt takes a message, then return message with data decrypted with appropiate key
 func (enc *EncryptionService) Decrypt(message model.Message) (model.Message, error) {
+	log.Println("\n Decrypted log.Println(keyRec.KeyRecodes --> \n")
 	// fmt.Printf("[Decode] original message text is [%s]\n", message.Data)
 	// decoder := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))
 	// decoded, err := ioutil.ReadAll(decoder)
@@ -84,12 +102,10 @@ func (enc *EncryptionService) Decrypt(message model.Message) (model.Message, err
 	// } else {
 	// 	message.Data = string(decoded)
 	// }
-	keyRec, err := enc.keystore.GetKeyForMessage(message.RoomID.Hex(), message.TimeStamp)
+	key, err := enc.getLastKeyForRoom(message.RoomID.Hex())
 	if err != nil {
-		return message, fmt.Errorf("getting key: %s", err.Error())
+		return message, err
 	}
-
-	key := keyRec.Key
 
 	// b64 := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))
 	cipherText, err := base64.StdEncoding.DecodeString(message.Data)

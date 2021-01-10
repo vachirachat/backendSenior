@@ -129,6 +129,9 @@ func (service *UserService) Signup(user model.User) error {
 		return errors.New("User already exists")
 	}
 
+	user.Room = []bson.ObjectId{}
+	user.Organize = []bson.ObjectId{}
+
 	// Add User to DB
 	user.Password = utills.HashPassword(user.Password)
 	user.UserType = "user"
