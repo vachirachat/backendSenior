@@ -32,8 +32,8 @@ func NewChatService(roomProxyRepo repository.RoomProxyRepository, roomUserRepo r
 }
 
 // IsProxyInRoom check whether proxy is in room and allowed to send message
-func (chat *ChatService) IsProxyInRoom(userID string, roomID string) (bool, error) {
-	rooms, err := chat.mapRoomProxy.GetRoomProxies(userID)
+func (chat *ChatService) IsProxyInRoom(proxyID string, roomID string) (bool, error) {
+	rooms, err := chat.mapRoomProxy.GetProxyRooms(proxyID)
 
 	if err != nil {
 		return false, err

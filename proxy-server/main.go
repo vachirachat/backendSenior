@@ -39,6 +39,7 @@ func main() {
 	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.CONTROLLER_ORIGIN)
 	pool := chatsocket.NewConnectionPool()
 	msgRepo := delegate.NewDelegateMessageRepository(utils.CONTROLLER_ORIGIN)
+	proxyMasterAPI := delegate.NewRoomProxyAPI(utils.CONTROLLER_ORIGIN)
 
 	// Service
 	clientID := os.Getenv("CLIENT_ID")
@@ -70,6 +71,7 @@ func main() {
 	upstreamService := service.NewChatUpstreamService(upstream, enc)
 	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)
 	messageService := service.NewMessageService(msgRepo, enc)
+	keyService := service.NewKeyService(keystore, proxyMasterAPI, clientID)
 
 	// create router from service
 	router := (&route.RouterDeps{
@@ -77,6 +79,7 @@ func main() {
 		DownstreamService: downstreamService,
 		AuthService:       delegateAuth,
 		MessageService:    messageService,
+		KeyService:        keyService,
 	}).NewRouter()
 
 	// websocket messasge handler

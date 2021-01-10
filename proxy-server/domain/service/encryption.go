@@ -31,7 +31,9 @@ func NewEncryptionService(keystore repository.Keystore) *EncryptionService {
 
 //
 func (enc *EncryptionService) getLastKeyForRoom(roomID string) ([]byte, error) {
+	// result = key sort be date DESC
 	roomKeys, err := enc.keystore.FindByRoom(roomID)
+
 	if len(roomKeys) == 0 {
 		return nil, errors.New("No room keys exists, please generate one")
 	}
@@ -40,7 +42,7 @@ func (enc *EncryptionService) getLastKeyForRoom(roomID string) ([]byte, error) {
 		return nil, fmt.Errorf("error getting key: %v", err)
 	}
 
-	key := roomKeys[len(roomKeys)-1].Key
+	key := roomKeys[0].Key // key 0 is latest key
 	return key, nil
 }
 
@@ -48,8 +50,6 @@ func (enc *EncryptionService) getLastKeyForRoom(roomID string) ([]byte, error) {
 
 // Encrypt takes a message, then return message with data encrypted
 func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, error) {
-	log.Println("\n Encrypted log.Println(keyRec.KeyRecodes --> \n")
-
 	key, err := enc.getLastKeyForRoom(message.RoomID.Hex())
 	if err != nil {
 		return message, err
@@ -102,9 +102,21 @@ func (enc *EncryptionService) Decrypt(message model.Message) (model.Message, err
 	// } else {
 	// 	message.Data = string(decoded)
 	// }
-	key, err := enc.getLastKeyForRoom(message.RoomID.Hex())
+	keys, err := enc.keystore.FindByRoom(message.RoomID.Hex())
 	if err != nil {
 		return message, err
+	}
+	var key []byte
+	found := false
+	for _, k := range keys {
+		if k.ValidFrom.Before(message.TimeStamp) && (k.ValidTo.IsZero() || k.ValidTo.After(message.TimeStamp)) {
+			key = k.Key
+			found = true
+			break
+		}
+	}
+	if !found {
+		return message, errors.New("decrypt: can't find key for with timestamp suitable for message")
 	}
 
 	// b64 := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))

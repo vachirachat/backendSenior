@@ -10,7 +10,7 @@ import (
 type KeyRecord struct {
 	ID        bson.ObjectId `json:"-" bson:"_id,omitempty"`
 	Key       []byte        `json:"key" bson:"key"`
-	RoomID    bson.ObjectId `json:"room" bson:"_id"`
+	RoomID    bson.ObjectId `json:"roomId" bson:"roomId"`
 	ValidFrom time.Time     `json:"from" bson:"from"`
 	ValidTo   time.Time     `json:"to" bson:"to"`
 }
@@ -18,7 +18,7 @@ type KeyRecord struct {
 // KeyRecordUpdate is used for updating
 type KeyRecordUpdate struct {
 	Key       interface{} `json:"key" bson:"key,omitempty"`
-	RoomID    interface{} `json:"room" bson:"_id,omitempty"`
+	RoomID    interface{} `json:"roomId" bson:"roomId,omitempty"`
 	ValidFrom interface{} `json:"from" bson:"from,omitempty"`
 	ValidTo   interface{} `json:"to" bson:"to,omitempty"`
 }

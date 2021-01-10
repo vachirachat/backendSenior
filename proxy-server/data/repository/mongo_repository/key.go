@@ -38,7 +38,7 @@ func (r *KeyRepository) Find(filter interface{}) ([]model_proxy.KeyRecord, error
 // FindByRoom is shortcut for finding by room, it also sort by time descending
 func (r *KeyRepository) FindByRoom(roomID string) ([]model_proxy.KeyRecord, error) {
 	var keys []model_proxy.KeyRecord
-	err := r.col.Find(model_proxy.KeyRecord{
+	err := r.col.Find(model_proxy.KeyRecordUpdate{
 		RoomID: bson.ObjectIdHex(roomID),
 	}).Sort("-from").All(&keys)
 
@@ -50,8 +50,13 @@ func (r *KeyRepository) AddNewKey(roomID string, key []byte) error {
 	now := time.Now()
 	var dummy json.RawMessage
 
+	var keys []model_proxy.KeyRecord
+	_ = r.col.Find(model_proxy.KeyRecordUpdate{
+		RoomID: bson.ObjectIdHex(roomID),
+	}).All(&keys)
+
 	// TODO make it transaction
-	_, err := r.col.Find(model_proxy.KeyRecord{
+	_, err := r.col.Find(model_proxy.KeyRecordUpdate{
 		RoomID: bson.ObjectIdHex(roomID),
 	}).Sort("-from").Limit(1).Apply(mgo.Change{
 		Update: bson.M{
