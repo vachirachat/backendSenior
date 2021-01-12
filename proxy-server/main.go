@@ -40,6 +40,7 @@ func main() {
 	pool := chatsocket.NewConnectionPool()
 	msgRepo := delegate.NewDelegateMessageRepository(utils.CONTROLLER_ORIGIN)
 	proxyMasterAPI := delegate.NewRoomProxyAPI(utils.CONTROLLER_ORIGIN)
+	keyAPI := delegate.NewKeyAPI(utils.CONTROLLER_ORIGIN)
 
 	// Service
 	clientID := os.Getenv("CLIENT_ID")
@@ -66,12 +67,14 @@ func main() {
 		log.Fatalln("Wait for onMessagePlugin Error")
 	}
 
-	enc := service.NewEncryptionService(keystore)
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
-	upstreamService := service.NewChatUpstreamService(upstream, enc)
 	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)
+	keyService := service.NewKeyService(keystore, keyAPI, proxyMasterAPI, clientID)
+
+	enc := service.NewEncryptionService(keyService)
+
+	upstreamService := service.NewChatUpstreamService(upstream, enc)
 	messageService := service.NewMessageService(msgRepo, enc)
-	keyService := service.NewKeyService(keystore, proxyMasterAPI, clientID)
 
 	// create router from service
 	router := (&route.RouterDeps{

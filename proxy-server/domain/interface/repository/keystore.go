@@ -4,6 +4,7 @@ import (
 	model_proxy "proxySenior/domain/model"
 )
 
+// Keystore represent local keystore
 type Keystore interface {
 	// Find will find key according to filter
 	Find(filter interface{}) ([]model_proxy.KeyRecord, error)
@@ -15,4 +16,9 @@ type Keystore interface {
 	AddNewKey(roomID string, key []byte) error
 
 	// Note that key can't be deleted
+}
+
+// RemoteKeyStore represent remote key store
+type RemoteKeyStore interface {
+	GetByRoom(roomID string) ([]model_proxy.KeyRecord, error)
 }

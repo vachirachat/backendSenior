@@ -1,8 +1,15 @@
 package utils
 
-import "os"
+import (
+	"os"
+
+	"github.com/joho/godotenv"
+)
 
 func defaultEnv(key string, defaultVal string) string {
+	// TODO: handle error
+	_ = godotenv.Load()
+
 	val, ok := os.LookupEnv(key)
 	if ok {
 		return val

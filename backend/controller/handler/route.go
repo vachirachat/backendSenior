@@ -36,6 +36,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.RoomService)
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
+	keyRouteHandler := NewKeyRoute(deps.RoomService)
 	r := gin.Default()
 
 	subgroup := r.Group("/api/v1")
@@ -48,5 +49,6 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	OrganizeRouteHandler.Mount(subgroup.Group("/org"))
 	fcmTokenRouteHandler.Mount(subgroup.Group("/fcm"))
 	connStateRouteHandler.Mount(subgroup.Group("/conn"))
+	keyRouteHandler.Mount(subgroup.Group("/key"))
 	return r
 }

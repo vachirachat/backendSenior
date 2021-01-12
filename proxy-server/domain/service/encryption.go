@@ -10,50 +10,64 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	model_proxy "proxySenior/domain/model"
+	"time"
 
 	"github.com/mergermarket/go-pkcs7"
-
-	"proxySenior/domain/interface/repository"
 )
 
 // EncryptionService is service for encrpyting and decrypting message
 type EncryptionService struct {
-	keystore repository.Keystore
+	keyService *KeyService
 }
 
 // NewEncryptionService create instance of encryption service
-func NewEncryptionService(keystore repository.Keystore) *EncryptionService {
+func NewEncryptionService(keyService *KeyService) *EncryptionService {
 	return &EncryptionService{
-		keystore: keystore,
+		keyService: keyService,
 	}
 }
 
-//
-func (enc *EncryptionService) getLastKeyForRoom(roomID string) ([]byte, error) {
-	// result = key sort be date DESC
-	roomKeys, err := enc.keystore.FindByRoom(roomID)
-
-	if len(roomKeys) == 0 {
-		return nil, errors.New("No room keys exists, please generate one")
+func keyFor(keys []model_proxy.KeyRecord, timestamp time.Time) []byte {
+	var key []byte
+	found := false
+	for _, k := range keys {
+		if k.ValidFrom.Before(timestamp) && (k.ValidTo.IsZero() || k.ValidTo.After(timestamp)) {
+			key = k.Key
+			found = true
+			break
+		}
 	}
-
-	if err != nil {
-		return nil, fmt.Errorf("error getting key: %v", err)
+	if !found {
+		return nil
 	}
-
-	key := roomKeys[0].Key // key 0 is latest key
-	return key, nil
+	return key
 }
 
 // source: https://gist.github.com/brettscott/2ac58ab7cb1c66e2b4a32d6c1c3908a7
 
 // Encrypt takes a message, then return message with data encrypted
 func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, error) {
-	key, err := enc.getLastKeyForRoom(message.RoomID.Hex())
+	local, err := enc.keyService.IsLocal(message.RoomID.Hex())
 	if err != nil {
-		return message, err
+		return message, fmt.Errorf("error determining where to get key %v", err)
 	}
+
+	var keys []model_proxy.KeyRecord
+	if local {
+		fmt.Println("LOCAL key for room", message.RoomID.Hex())
+		keys, err = enc.keyService.GetKeyLocal(message.RoomID.Hex())
+		if err != nil {
+			return message, fmt.Errorf("error getting key locally %v", err)
+		}
+	} else {
+		fmt.Println("REMOTE key for room", message.RoomID.Hex())
+		keys, err = enc.keyService.GetKeyRemote(message.RoomID.Hex())
+		if err != nil {
+			return message, fmt.Errorf("error getting key remotely %v", err)
+		}
+	}
+	key := keyFor(keys, message.TimeStamp)
 
 	plainText := []byte(message.Data)
 	plainText, err = pkcs7.Pad(plainText, aes.BlockSize)
@@ -93,31 +107,26 @@ func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, err
 
 // Decrypt takes a message, then return message with data decrypted with appropiate key
 func (enc *EncryptionService) Decrypt(message model.Message) (model.Message, error) {
-	log.Println("\n Decrypted log.Println(keyRec.KeyRecodes --> \n")
-	// fmt.Printf("[Decode] original message text is [%s]\n", message.Data)
-	// decoder := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))
-	// decoded, err := ioutil.ReadAll(decoder)
-	// if err != nil {
-	// 	message.Data = "Error Decoding: " + err.Error()
-	// } else {
-	// 	message.Data = string(decoded)
-	// }
-	keys, err := enc.keystore.FindByRoom(message.RoomID.Hex())
+	local, err := enc.keyService.IsLocal(message.RoomID.Hex())
 	if err != nil {
-		return message, err
+		return message, fmt.Errorf("error determining where to get key %v", err)
 	}
-	var key []byte
-	found := false
-	for _, k := range keys {
-		if k.ValidFrom.Before(message.TimeStamp) && (k.ValidTo.IsZero() || k.ValidTo.After(message.TimeStamp)) {
-			key = k.Key
-			found = true
-			break
+
+	var keys []model_proxy.KeyRecord
+	if local {
+		fmt.Println("LOCAL key for room", message.RoomID.Hex())
+		keys, err = enc.keyService.GetKeyLocal(message.RoomID.Hex())
+		if err != nil {
+			return message, fmt.Errorf("error getting key locally %v", err)
+		}
+	} else {
+		fmt.Println("REMOTE key for room", message.RoomID.Hex())
+		keys, err = enc.keyService.GetKeyRemote(message.RoomID.Hex())
+		if err != nil {
+			return message, fmt.Errorf("error getting key remotely %v", err)
 		}
 	}
-	if !found {
-		return message, errors.New("decrypt: can't find key for with timestamp suitable for message")
-	}
+	key := keyFor(keys, message.TimeStamp)
 
 	// b64 := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))
 	cipherText, err := base64.StdEncoding.DecodeString(message.Data)
