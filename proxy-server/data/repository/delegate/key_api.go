@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"proxySenior/domain/interface/repository"
-	model_proxy "proxySenior/domain/model"
 )
 
 type KeyAPI struct {
@@ -27,35 +26,33 @@ func NewKeyAPI(controller string) *KeyAPI {
 }
 
 // GetByRoom ask key for `roomID` from controller
-func (a *KeyAPI) GetByRoom(roomID string, details key_exchange.KeyExchangeRequest) ([]model_proxy.KeyRecord, error) {
+func (a *KeyAPI) GetByRoom(roomID string, details key_exchange.KeyExchangeRequest) (key_exchange.KeyExchangeResponse, error) {
 	fmt.Println("[remote key store] get key for room", roomID)
 	u := url.URL{
 		Scheme: "http",
 		Host:   a.origin,
 		Path:   "/api/v1/key/room-key/" + roomID,
 	}
-	defer print("error if not see result")
 
 	body, err := json.Marshal(details)
 	bodyReader := bytes.NewReader(body)
 
 	res, err := http.Post(u.String(), "appliation/json", bodyReader)
 	if err != nil {
-		return nil, fmt.Errorf("error making request: %v", err)
+		return key_exchange.KeyExchangeResponse{}, fmt.Errorf("error making request: %v", err)
 	}
 	if res.StatusCode >= 400 {
-		return nil, fmt.Errorf("server return with non OK status: %d", res.StatusCode)
+		return key_exchange.KeyExchangeResponse{}, fmt.Errorf("server return with non OK status: %d", res.StatusCode)
 	}
 
 	body, err = ioutil.ReadAll(res.Body)
-	fmt.Printf("body: %s\n", body)
 	defer res.Body.Close()
 
-	var keys []model_proxy.KeyRecord
+	var keys key_exchange.KeyExchangeResponse
 	err = json.Unmarshal(body, &keys)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding response: %v", err)
+		return key_exchange.KeyExchangeResponse{}, fmt.Errorf("error decoding response: %v", err)
 	}
-	fmt.Println("[remote key store] result ", keys)
+	fmt.Printf("[get key] response :%s\n", body)
 	return keys, nil
 }

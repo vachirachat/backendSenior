@@ -70,6 +70,7 @@ func main() {
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
 	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)
 	keyService := service.NewKeyService(keystore, keyAPI, proxyMasterAPI, clientID)
+	keyService.InitKeyPair()
 
 	enc := service.NewEncryptionService(keyService)
 

@@ -7,4 +7,10 @@ const (
 	Room = "ROOM"
 	// Error represent error
 	Error = "ERROR"
+
+	// KeyRequest is used for requesting key
+	KeyRequest = "KEY_REQUEST"
+
+	// KeyResponse is response for requesting key
+	KeyResponse = "KEY_RESPONSE"
 )

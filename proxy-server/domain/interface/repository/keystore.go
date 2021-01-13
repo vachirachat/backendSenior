@@ -21,5 +21,5 @@ type Keystore interface {
 
 // RemoteKeyStore represent remote key store
 type RemoteKeyStore interface {
-	GetByRoom(roomID string, details key_exchange.KeyExchangeRequest) ([]model_proxy.KeyRecord, error)
+	GetByRoom(roomID string, details key_exchange.KeyExchangeRequest) (key_exchange.KeyExchangeResponse, error)
 }

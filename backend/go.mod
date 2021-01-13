@@ -2,6 +2,8 @@ module backendSenior
 
 go 1.15
 
+replace proxySenior => ../proxy-server
+
 require (
 	firebase.google.com/go/v4 v4.1.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -24,5 +26,6 @@ require (
 	google.golang.org/api v0.30.0
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2 // indirect
+	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
