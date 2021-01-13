@@ -1,6 +1,8 @@
 package delegate
 
 import (
+	"backendSenior/domain/model/chatsocket/key_exchange"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -25,7 +27,7 @@ func NewKeyAPI(controller string) *KeyAPI {
 }
 
 // GetByRoom ask key for `roomID` from controller
-func (a *KeyAPI) GetByRoom(roomID string) ([]model_proxy.KeyRecord, error) {
+func (a *KeyAPI) GetByRoom(roomID string, details key_exchange.KeyExchangeRequest) ([]model_proxy.KeyRecord, error) {
 	fmt.Println("[remote key store] get key for room", roomID)
 	u := url.URL{
 		Scheme: "http",
@@ -34,7 +36,10 @@ func (a *KeyAPI) GetByRoom(roomID string) ([]model_proxy.KeyRecord, error) {
 	}
 	defer print("error if not see result")
 
-	res, err := http.Get(u.String())
+	body, err := json.Marshal(details)
+	bodyReader := bytes.NewReader(body)
+
+	res, err := http.Post(u.String(), "appliation/json", bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %v", err)
 	}
@@ -42,7 +47,7 @@ func (a *KeyAPI) GetByRoom(roomID string) ([]model_proxy.KeyRecord, error) {
 		return nil, fmt.Errorf("server return with non OK status: %d", res.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err = ioutil.ReadAll(res.Body)
 	fmt.Printf("body: %s\n", body)
 	defer res.Body.Close()
 

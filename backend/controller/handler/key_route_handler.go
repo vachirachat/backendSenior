@@ -25,7 +25,7 @@ func NewKeyRoute(room *service.RoomService) *KeyRoute {
 }
 
 func (r *KeyRoute) Mount(rg *gin.RouterGroup) {
-	rg.GET("/room-key/:id", r.getRoomKeyFromProxy)
+	rg.POST("/room-key/:id", r.getRoomKeyFromProxy)
 	rg.GET("/public-key/:id")
 	rg.POST("/public-key/:id")
 }
@@ -49,10 +49,20 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context) {
 	u := url.URL{
 		Scheme: "http",
 		Host:   proxy.IP + ":" + fmt.Sprint(proxy.Port),
-		Path:   "/api/v1/key/" + roomID + "/key",
+		Path:   "/api/v1/key/" + roomID + "/get-key",
 	}
 
-	res, err := http.Get(u.String())
+	// cType := c.Request.Header.Get("content-type")
+	// if cType == "" {
+	// 	cTypeArr := c.Request.Header["content-type"]
+	// 	if len(cTypeArr) > 0 {
+	// 		cType = cTypeArr[0]
+	// 	}
+	// }
+
+	// make request
+
+	res, err := http.Post(u.String(), "application/json", c.Request.Body)
 	if err != nil {
 		fmt.Println("keyRoute/getRoomKeyForProxy: error making request to proxy", err)
 		c.JSON(500, gin.H{"status": "error making request to proxy"})
@@ -70,13 +80,23 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context) {
 	fmt.Println("[get key] proxy responded", body)
 
 	// TODO: do we need to verify ? or just pass the response ?
-	var keys []interface{}
-	err = json.Unmarshal(body, &keys)
+	var resBody interface{}
+	err = json.Unmarshal(body, &resBody)
 	if err != nil {
 		fmt.Println("keyRoute/getRoomKeyForProxy: error decoding proxy response", err)
 		c.JSON(500, gin.H{"status": "error decoding proxy response"})
 		return
 	}
 
-	c.JSON(200, keys)
+	// dupe response
+
+	// cType = c.Request.Header.Get("content-type")
+	// if cType == "" {
+	// 	cTypeArr := c.Request.Header["content-type"]
+	// 	if len(cTypeArr) > 0 {
+	// 		cType = cTypeArr[0]
+	// 	}
+	// }
+
+	c.JSON(200, resBody)
 }

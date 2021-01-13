@@ -1,6 +1,7 @@
 package service
 
 import (
+	"backendSenior/domain/model/chatsocket/key_exchange"
 	"crypto/rand"
 	"errors"
 	"fmt"
@@ -111,7 +112,7 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 		}
 	}
 
-	rec, err := s.remote.GetByRoom(roomID)
+	rec, err := s.remote.GetByRoom(roomID, key_exchange.KeyExchangeRequest{})
 	if err != nil {
 		return nil, err
 	}

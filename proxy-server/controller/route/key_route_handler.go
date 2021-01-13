@@ -24,7 +24,7 @@ func NewKeyRouteHandler(keyService *service.KeyService) *KeyRoute {
 // Mount add routes to router group
 func (h *KeyRoute) Mount(rg *gin.RouterGroup) {
 	rg.POST("/:id/key", h.generate)
-	rg.GET("/:id/key", h.getAll)
+	rg.POST("/:id/get-key", h.getAll) // it's post since it require more data
 }
 
 func (h *KeyRoute) generate(c *gin.Context) {

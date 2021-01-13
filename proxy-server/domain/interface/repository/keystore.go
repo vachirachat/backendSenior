@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"backendSenior/domain/model/chatsocket/key_exchange"
 	model_proxy "proxySenior/domain/model"
 )
 
@@ -20,5 +21,5 @@ type Keystore interface {
 
 // RemoteKeyStore represent remote key store
 type RemoteKeyStore interface {
-	GetByRoom(roomID string) ([]model_proxy.KeyRecord, error)
+	GetByRoom(roomID string, details key_exchange.KeyExchangeRequest) ([]model_proxy.KeyRecord, error)
 }
