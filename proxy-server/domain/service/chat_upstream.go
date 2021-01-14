@@ -11,28 +11,21 @@ import (
 
 // ChatUpstreamService manages sending message to controller
 type ChatUpstreamService struct {
-	upstream   repository.UpstreamMessageRepository
-	encryption *EncryptionService
+	upstream repository.UpstreamMessageRepository
 }
 
 // NewChatUpstreamService create instance of ChatUpstreamService
-func NewChatUpstreamService(controller repository.UpstreamMessageRepository, encryption *EncryptionService) *ChatUpstreamService {
+func NewChatUpstreamService(controller repository.UpstreamMessageRepository) *ChatUpstreamService {
 	return &ChatUpstreamService{
-		upstream:   controller,
-		encryption: encryption,
+		upstream: controller,
 	}
 }
 
-// SendMessage encrypt mesasge and forward to upstream
+// SendMessage send message to controller, it doesn't encrypt message
 func (service *ChatUpstreamService) SendMessage(message model.Message) error {
-	encryptedMessage, err := service.encryption.Encrypt(message)
-	if err != nil {
-		fmt.Printf("send error: can't encrypt: %s\n", err.Error())
-		return err
-	}
 	data, err := json.Marshal(chatsocket.Message{
 		Type:    message_types.Chat,
-		Payload: encryptedMessage,
+		Payload: message,
 	})
 	if err != nil {
 		return err

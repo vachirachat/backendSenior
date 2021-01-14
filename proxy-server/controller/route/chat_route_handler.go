@@ -11,7 +11,10 @@ import (
 	"log"
 	"net/http"
 	"proxySenior/controller/middleware"
+	"proxySenior/domain/encryption"
+	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/service"
+	"proxySenior/domain/service/key_service"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -23,13 +26,15 @@ type ChatRouteHandler struct {
 	upstream       *service.ChatUpstreamService
 	downstream     *service.ChatDownstreamService
 	authMiddleware *middleware.AuthMiddleware
+	key            *key_service.KeyService
 }
 
-func NewChatRouteHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, authMw *middleware.AuthMiddleware) *ChatRouteHandler {
+func NewChatRouteHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, authMw *middleware.AuthMiddleware, key *key_service.KeyService) *ChatRouteHandler {
 	return &ChatRouteHandler{
 		upstream:       upstream,
 		downstream:     downstream,
 		authMiddleware: authMw,
+		key:            key,
 	}
 }
 
@@ -177,10 +182,36 @@ func (c *client) readPump() {
 				continue
 			}
 
-			// Saving messag
-			msg.TimeStamp = time.Now()
-			msg.UserID = bson.ObjectIdHex(c.userID)
+			keys, err := c.handlerRef.getKeyFromRoom(msg.RoomID.Hex())
+			if err != nil {
+				fmt.Println("can't get key for room:", msg.RoomID.Hex())
+				c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{
+					Type: message_types.Error,
+					Payload: exception.Event{
+						Reason: "can't get key for room: " + msg.RoomID.Hex(),
+					},
+				})
+				continue
+			}
 
+			now := time.Now()
+			key := keyFor(keys, now)
+			encrypted, err := encryption.AESEncrypt([]byte(msg.Data), key)
+			if err != nil {
+				fmt.Println("encryption error:", err)
+				c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{
+					Type: message_types.Error,
+					Payload: exception.Event{
+						Reason: "encryption error: " + err.Error(),
+					},
+				})
+				continue
+			}
+			encrypted = encryption.B64Encode(encrypted)
+			msg.Data = string(encrypted)
+
+			msg.TimeStamp = now
+			msg.UserID = bson.ObjectIdHex(c.userID)
 			err = c.handlerRef.upstream.SendMessage(msg)
 			if err != nil {
 				fmt.Println("error sending")
@@ -197,4 +228,47 @@ func (c *client) readPump() {
 			fmt.Printf("INFO: unrecognized message\n==\n%s\n==\n", inMessage)
 		}
 	}
+}
+
+// TODO: this is duplicate code as in message_handler.go
+//getKeyFromRoom determine where to get key and get the key
+func (h *ChatRouteHandler) getKeyFromRoom(roomID string) ([]model_proxy.KeyRecord, error) {
+	local, err := h.key.IsLocal(roomID)
+	if err != nil {
+		return nil, fmt.Errorf("error deftermining locality ok key %v", err)
+	}
+
+	var keys []model_proxy.KeyRecord
+	if local {
+		fmt.Println("[message] use LOCAL key for", roomID)
+		keys, err = h.key.GetKeyLocal(roomID)
+		if err != nil {
+			return nil, fmt.Errorf("error getting key locally %v", err)
+		}
+	} else {
+		fmt.Println("[message] use REMOTE key for room", roomID)
+		keys, err = h.key.GetKeyRemote(roomID)
+		if err != nil {
+			return nil, fmt.Errorf("error getting key remotely %v", err)
+		}
+	}
+
+	return keys, nil
+}
+
+// keyFor is helper function for finding key in array by time
+func keyFor(keys []model_proxy.KeyRecord, timestamp time.Time) []byte {
+	var key []byte
+	found := false
+	for _, k := range keys {
+		if k.ValidFrom.Before(timestamp) && (k.ValidTo.IsZero() || k.ValidTo.After(timestamp)) {
+			key = k.Key
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil
+	}
+	return key
 }

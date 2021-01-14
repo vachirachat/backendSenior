@@ -2,9 +2,7 @@ package main
 
 import (
 	"backendSenior/data/repository/chatsocket"
-	"fmt"
 	"log"
-	"os"
 	"proxySenior/controller/chat"
 	"proxySenior/controller/route"
 	"proxySenior/data/repository/delegate"
@@ -12,6 +10,7 @@ import (
 	"proxySenior/data/repository/upstream"
 	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
+	"proxySenior/domain/service/key_service"
 	"proxySenior/utils"
 
 	"github.com/joho/godotenv"
@@ -36,30 +35,26 @@ func main() {
 	keystore := mongo_repository.NewKeyRepositoryMongo(connectionDB)
 
 	// Repo
-	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.CONTROLLER_ORIGIN)
+	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.ControllerOrigin)
 	pool := chatsocket.NewConnectionPool()
-	msgRepo := delegate.NewDelegateMessageRepository(utils.CONTROLLER_ORIGIN)
-	proxyMasterAPI := delegate.NewRoomProxyAPI(utils.CONTROLLER_ORIGIN)
-	keyAPI := delegate.NewKeyAPI(utils.CONTROLLER_ORIGIN)
+	msgRepo := delegate.NewDelegateMessageRepository(utils.ControllerOrigin)
+	proxyMasterAPI := delegate.NewRoomProxyAPI(utils.ControllerOrigin)
+	keyAPI := delegate.NewKeyAPI(utils.ControllerOrigin)
 
 	// Service
-	clientID := os.Getenv("CLIENT_ID")
+	clientID := utils.ClientID
 	if !bson.IsObjectIdHex(clientID) {
 		log.Fatalln("error: please set valid CLIENT_ID")
 	}
-	clientSecret := os.Getenv("CLIENT_SECRET")
+	clientSecret := utils.ClientSecret
 	if clientSecret == "" {
 		log.Fatalln("error: please set client secret")
 	}
 
 	enablePlugin := true
-	pluginPath := os.Getenv("PLUGIN_PATH")
-	if pluginPath == "" {
-		enablePlugin = false
-		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PATH is not set")
-	}
+	pluginPath := utils.PluginPath
 
-	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN, clientID, clientSecret)
+	upstream := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)
 	onMessagePlugin := plugin.NewOnMessagePlugin(enablePlugin, pluginPath)
 
 	err = onMessagePlugin.Wait()
@@ -68,14 +63,12 @@ func main() {
 	}
 
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
-	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)
-	keyService := service.NewKeyService(keystore, keyAPI, proxyMasterAPI, clientID)
+	delegateAuth := service.NewDelegateAuthService(utils.ControllerOrigin)
+	keyService := key_service.New(keystore, keyAPI, proxyMasterAPI, clientID)
 	keyService.InitKeyPair()
 
-	enc := service.NewEncryptionService(keyService)
-
-	upstreamService := service.NewChatUpstreamService(upstream, enc)
-	messageService := service.NewMessageService(msgRepo, enc)
+	upstreamService := service.NewChatUpstreamService(upstream)
+	messageService := service.NewMessageService(msgRepo)
 
 	// create router from service
 	router := (&route.RouterDeps{
@@ -87,9 +80,9 @@ func main() {
 	}).NewRouter()
 
 	// websocket messasge handler
-	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, enc, onMessagePlugin)
+	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, keyService, onMessagePlugin)
 	go messageHandler.Start()
 
-	router.Run(utils.LISTEN_ADDRESS)
+	router.Run(utils.ListenAddress)
 
 }

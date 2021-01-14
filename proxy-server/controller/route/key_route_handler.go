@@ -3,7 +3,8 @@ package route
 import (
 	"backendSenior/domain/model/chatsocket/key_exchange"
 	"fmt"
-	"proxySenior/domain/service"
+	"proxySenior/domain/encryption"
+	"proxySenior/domain/service/key_service"
 
 	"crypto/rsa"
 
@@ -14,11 +15,11 @@ import (
 // KeyRoute route for
 // - getting and generating key
 type KeyRoute struct {
-	k *service.KeyService
+	k *key_service.KeyService
 }
 
 // NewKeyRouteHandler create new handler
-func NewKeyRouteHandler(keyService *service.KeyService) *KeyRoute {
+func NewKeyRouteHandler(keyService *key_service.KeyService) *KeyRoute {
 	return &KeyRoute{
 		k: keyService,
 	}
@@ -65,14 +66,15 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 	// it sends public key
 	if len(keyReq.PublicKey) > 0 {
 		shouldSendPK = true
-		pk = h.k.BytesToPublicKey(keyReq.PublicKey)
+		pk, err := encryption.BytesToPublicKey(keyReq.PublicKey)
 		if pk == nil {
 			c.JSON(400, gin.H{
 				"status":  "error",
-				"message": "the sent key isn't public key",
+				"message": "public key error:" + err.Error(),
 			})
 		}
-		h.k.SetProxyPublicKey(keyReq.ProxyID, keyReq.PublicKey)
+		// remember key
+		h.k.SetProxyPublicKey(keyReq.ProxyID, pk)
 	} else {
 		localPk, ok := h.k.GetProxyPublicKey(keyReq.ProxyID)
 		if !ok {
@@ -96,11 +98,11 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 	for i := range keys {
 		// TODO: 2 layer encrypt
 		// enc = encrypt with our private key
-		enc := h.k.EncryptWithPublicKey(keys[i].Key, pk)
+		enc, err := encryption.EncryptWithPublicKey(keys[i].Key, pk)
 		if enc == nil {
 			c.JSON(500, gin.H{
 				"status":  "error",
-				"message": "can't encrypt",
+				"message": "error encryption: " + err.Error(),
 			})
 			return
 		}
@@ -109,7 +111,12 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 
 	var pkBytes []byte
 	if shouldSendPK {
-		pkBytes = h.k.PublicKeyToBytes(pk)
+		pkBytes = encryption.PublicKeyToBytes(pk)
+	}
+
+	message := ""
+	if !shouldSendPK {
+		message = "USING OLD KEY"
 	}
 
 	c.JSON(200, key_exchange.KeyExchangeResponse{
@@ -117,6 +124,6 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 		ProxyID:      keyReq.ProxyID,
 		RoomID:       keyReq.RoomID,
 		Keys:         keys,
-		ErrorMessage: "[Note] using old key",
+		ErrorMessage: message,
 	})
 }
