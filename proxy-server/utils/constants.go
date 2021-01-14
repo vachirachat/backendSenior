@@ -41,7 +41,9 @@ var (
 
 // setup env
 func init() {
-	err := godotenv.Load()
+	envFile := defaultEnv("ENV_FILE", ".env")
+
+	err := godotenv.Load(envFile)
 	if err != nil {
 		log.Fatalln("error loading env", err)
 	}

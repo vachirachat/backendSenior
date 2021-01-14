@@ -24,7 +24,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	r := gin.Default()
 
 	chatRouteHandler := NewChatRouteHandler(deps.UpstreamService, deps.DownstreamService, authMiddleware, deps.KeyService)
-	messageRouteHandler := NewMessageRouteHandler(deps.MessageService)
+	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.KeyService)
 	pingRouteHandler := NewPingRouteHandler()
 	keyRouteHandler := NewKeyRouteHandler(deps.KeyService)
 

@@ -17,9 +17,7 @@ func B64Encode(data []byte) []byte {
 
 // B64Decode decode base64
 func B64Decode(data []byte) ([]byte, error) {
-	decodedSize := base64.StdEncoding.DecodedLen(len(data))
-	dst := make([]byte, decodedSize)
-
-	_, err := base64.StdEncoding.Decode(dst, data)
-	return dst, err
+	// TODO: wtf
+	decoded, err := base64.StdEncoding.DecodeString(string(data))
+	return decoded, err
 }

@@ -49,6 +49,7 @@ func New(local repository.Keystore, remote repository.RemoteKeyStore, proxy repo
 		clientID: clientID,
 		// cache
 		keyCache:     make(map[string]keyCacheEntry),
+		pubKeyCache:  make(map[string]*rsa.PublicKey),
 		isLocalCache: make(map[string]isLocalEntry),
 		// keypair
 		public:     nil,

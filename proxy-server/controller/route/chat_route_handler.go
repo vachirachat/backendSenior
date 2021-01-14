@@ -255,20 +255,3 @@ func (h *ChatRouteHandler) getKeyFromRoom(roomID string) ([]model_proxy.KeyRecor
 
 	return keys, nil
 }
-
-// keyFor is helper function for finding key in array by time
-func keyFor(keys []model_proxy.KeyRecord, timestamp time.Time) []byte {
-	var key []byte
-	found := false
-	for _, k := range keys {
-		if k.ValidFrom.Before(timestamp) && (k.ValidTo.IsZero() || k.ValidTo.After(timestamp)) {
-			key = k.Key
-			found = true
-			break
-		}
-	}
-	if !found {
-		return nil
-	}
-	return key
-}

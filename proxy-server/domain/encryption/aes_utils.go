@@ -87,7 +87,7 @@ func AESDecrypt(cipherText []byte, key []byte) ([]byte, error) {
 func isValid(padded []byte) bool {
 	// this is taken for pkcs7 source code
 	bufLen := len(padded) - int(padded[len(padded)-1])
-	if bufLen < 0 || bufLen%aes.BlockSize != 0 {
+	if bufLen < 0 {
 		return false
 	}
 	return true
