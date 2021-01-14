@@ -39,13 +39,13 @@ func (obp *GRPCOnPortMessagePlugin) CloseConnection() {
 // Wait blocks until underlying GRPC server is ready
 func (obp *GRPCOnPortMessagePlugin) Wait() error {
 	fmt.Println("waiting for GRPC server...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
 	for {
 		temp := *obp.client
 		ok, err := temp.IsReady(ctx, &proto.Empty{})
+		log.Println("Return temp", ok)
 		if err != nil {
-			log.Println(">>>>> ", err)
 			return err
 		}
 		if ok.GetOk() {
@@ -53,8 +53,7 @@ func (obp *GRPCOnPortMessagePlugin) Wait() error {
 		}
 		time.Sleep(5 * time.Second)
 	}
-	defer cancel()
-	return nil
+
 }
 
 // GetService return instance of backup service to be called

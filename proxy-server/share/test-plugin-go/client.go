@@ -67,14 +67,16 @@ func onMessage(client proto.BackupClient, msg RawMessage) {
 	log.Println(feature)
 }
 
-func isReady(client proto.BackupClient) {
+func isReady(client proto.BackupClient) *proto.Status {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	ok, err := client.IsReady(ctx, &proto.Empty{})
 	if err != nil {
 		log.Fatalf("%v.isReady(_) = _, %v: ", client, err)
 	}
+
 	log.Println(ok)
+	return ok
 }
 
 func main() {
@@ -93,16 +95,27 @@ func main() {
 	log.Println(client)
 
 	msg := RawMessage{
-		TimeStamp: 150000,
+		MessageID: bson.ObjectId("60001d1cf0a50a974cee376d").Hex(),
+		TimeStamp: time.Now().Unix(),
 		RoomID:    bson.ObjectIdHex("60001d1cf0a50a974cee376d").Hex(),
 		UserID:    bson.ObjectIdHex("60001e33584cb6da2059f5b7").Hex(),
 		ClientUID: "60001d1cf0a50a974cee376d",
 		Data:      "Test-message-1",
 		Type:      "CHAT",
 	}
+	// msg := RawMessage{
+	// 	TimeStamp: 150000,
+	// 	RoomID:    bson.ObjectIdHex("60001d1cf0a50a974cee376d").Hex(),
+	// 	UserID:    bson.ObjectIdHex("60001e33584cb6da2059f5b7").Hex(),
+	// 	ClientUID: "60001d1cf0a50a974cee376d",
+	// 	Data:      "Test-message-1",
+	// 	Type:      "CHAT",
+	// }
 	defer conn.Close()
+
+	ok := isReady(client)
+	log.Print("Return from isReady", ok)
 	onMessage(client, msg)
-	isReady(client)
 }
 
 // IN main client-> proxy
@@ -127,3 +140,14 @@ func main() {
 // 	ClientUid: msg.ClientUID,
 // 	Data:      msg.Data,
 // })
+
+// -> simple websocket-check
+// ws://localhost:8090/api/v1/chat/ws?userId=60001d1cf0a50a974cee376d
+// {"type":"CHAT",
+// "payload":{
+// "data":"hi 1149 --> Test in DB -> TO javascript new",
+// "uid":"60007606000000000400a304",
+// "roomId":"60001e33584cb6da2059f5b7",
+// "userId":"60001d1cf0a50a974cee376d",
+// "type":"TEXT"}
+// }

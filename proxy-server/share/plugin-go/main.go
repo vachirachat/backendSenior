@@ -44,12 +44,12 @@ func (b *BackupServer) OnMessageIn(context context.Context, chat *proto.Chat) (*
 		Data:      chat.Data,
 		Type:      chat.Type,
 	}
-	// var message []BackupMessage
-	// conn.DB("backup").C("message").Find(nil).All(&message)
-	// log.Println(message)
-	// for _, v := range message {
-	// 	log.Println(v)
-	// }
+	var message []BackupMessage
+	conn.DB("backup").C("message").Find(nil).All(&message)
+	log.Println(message)
+	for _, v := range message {
+		log.Println(v)
+	}
 	return &proto.Empty{}, conn.DB("backup").C("message").Insert(bMsg)
 }
 func (b *BackupServer) IsReady(context context.Context, empty *proto.Empty) (*proto.Status, error) {

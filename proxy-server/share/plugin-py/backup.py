@@ -14,30 +14,43 @@ import backup_pb2_grpc
 class BackupServicer(backup_pb2_grpc.BackupServicer):
     """Provides methods that implement functionality of route guide server."""
     def __init__(self):
-        self.tricker = "triker"
         self.conn = MongoClient('mongodb://localhost:27017')
 
     def OnMessageIn(self, request, context):
-        
-        data = backup_pb2.Chat()
-        print("Access OnMessageIn", self.tricker,"OnMessageIn")
-        print(context)
+        print("Access OnMessageIn","OnMessageIn")
         print(request)
+        
+        temp_dict = {
+            "_id": request.messageId,
+            "timestamp": request.timestamp,
+            "roomId":    request.roomId,
+            "userId":    request.userId,
+            "clientUID": request.clientUid,
+            "data":      request.data,
+            "type":      request.type,
+        }
+
         db = self.conn['backup']
         dbCollection = db.message
-        # result = dbCollection.insert_one(request)
+        result = dbCollection.insert_one(temp_dict)
+        # Return must look like interface class in [name]_pb2_GRPC
         return backup_pb2.Empty()
+
     def IsReady(self, request, context):
+        print("Access IsReady","IsReady")
         print(request)
-        # data = backup_pb2.
-        print("Access IsReady", self.tricker,"IsReady")
-        return backup_pb2.Status()
+        # Look like class in Python, you have to manual add attribute follow backup_pb2
+        # is this case Status have 1 attribute is Status{ok:bool}, you have to assign
+        response = backup_pb2.Status()
+        response.ok = True
+        # Return must look like interface class in [name]_pb2_GRPC
+        return response
 
 
 if __name__ == '__main__':
     print("start-server")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
-    server.add_insecure_port('[::]:5005')
+    server.add_insecure_port('localhost:5005')
     backup_pb2_grpc.add_BackupServicer_to_server(BackupServicer(), server)
 
     try:

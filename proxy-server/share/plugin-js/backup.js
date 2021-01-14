@@ -23,16 +23,16 @@ function onMessageIn(call, callback) {
   console.log("OnMessageIn printout: ",request)
   var emptyRes = {}
 
-  // MongoClient.connect(url, function(err, db) {
-  //   if (err) throw err;
-  //   var dbo = db.db("backup");
-  //   // var myobj = { name: "Company Inc", address: "Highway 37" };
-  //   dbo.collection("message").insertOne(request, function(err, res) {
-  //     if (err) throw err;
-  //     console.log("1 document inserted");
-  //     db.close();
-  //   });
-  // });
+  MongoClient.connect(url, function(err, db) {
+    if (err) throw err;
+    var dbo = db.db("backup");
+    // var myobj = { name: "Company Inc", address: "Highway 37" };
+    dbo.collection("message").insertOne(request, function(err, res) {
+      if (err) throw err;
+      console.log("1 document inserted");
+      db.close();
+    });
+  });
 
   callback(null, emptyRes);
 }
@@ -43,7 +43,6 @@ function isReady(call, callback) {
   console.log("IsReady printout: ", request)
 
   // Process the business logic
-  
   var statusRes = {
        ok: true
   }
