@@ -15,21 +15,21 @@ import (
 // MessageHandler handle message from controller
 // ex. broadcasting to users, updating room-user repo
 type MessageHandler struct {
-	upstreamService   *service.ChatUpstreamService   // recv message from controlller
-	downstreamService *service.ChatDownstreamService // bcast message to user
-	roomUserRepo      repository.RoomUserRepository  // update room on event from controller
-	encryption        *service.EncryptionService     // for decrypting message
-	onMessagePlugin   *plugin.OnMessagePlugin
+	upstreamService     *service.ChatUpstreamService   // recv message from controlller
+	downstreamService   *service.ChatDownstreamService // bcast message to user
+	roomUserRepo        repository.RoomUserRepository  // update room on event from controller
+	encryption          *service.EncryptionService     // for decrypting message
+	onMessagePortPlugin *plugin.OnMessagePortPlugin
 }
 
 // NewMessageHandler creates new MessageHandler
-func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository, encryption *service.EncryptionService, onMessagePlugin *plugin.OnMessagePlugin) *MessageHandler {
+func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository, encryption *service.EncryptionService, onMessagePortPlugin *plugin.OnMessagePortPlugin) *MessageHandler {
 	return &MessageHandler{
-		upstreamService:   upstream,
-		downstreamService: downstream,
-		roomUserRepo:      roomUserRepo,
-		encryption:        encryption,
-		onMessagePlugin:   onMessagePlugin,
+		upstreamService:     upstream,
+		downstreamService:   downstream,
+		roomUserRepo:        roomUserRepo,
+		encryption:          encryption,
+		onMessagePortPlugin: onMessagePortPlugin,
 	}
 }
 
@@ -65,9 +65,9 @@ func (h *MessageHandler) Start() {
 			}
 			fmt.Println("The decrypted message is", msg)
 
-			fmt.Println("try call on message", h.onMessagePlugin, h.onMessagePlugin.IsEnabled())
-			if h.onMessagePlugin != nil && h.onMessagePlugin.IsEnabled() {
-				err := h.onMessagePlugin.OnMessageIn(msg)
+			fmt.Println("try call on message", h.onMessagePortPlugin, h.onMessagePortPlugin.IsEnabled())
+			if h.onMessagePortPlugin != nil && h.onMessagePortPlugin.IsEnabled() {
+				err := h.onMessagePortPlugin.OnMessagePortPlugin(msg)
 				fmt.Println("[plugin] called on message", err)
 			}
 
@@ -98,4 +98,5 @@ func (h *MessageHandler) Start() {
 		}
 
 	}
+
 }

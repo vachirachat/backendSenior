@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 // KeyRecord represent key stored in database
 type KeyRecord struct {

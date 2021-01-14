@@ -63,7 +63,7 @@ type client struct {
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
+	routerGroup.GET("/ws" /*, handler.authMiddleware.AuthRequired()*/, func(context *gin.Context) {
 		// fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
