@@ -74,7 +74,10 @@ func (handler *UserRouteHandler) userListHandler(context *gin.Context) {
 
 // for get user by id
 func (handler *UserRouteHandler) getUserByIDHandler(context *gin.Context) {
+	// Test
+	log.Println("getUserByIDHandler by proxy")
 	userID := context.Param("id")
+	log.Println("userID")
 	if !bson.IsObjectIdHex(userID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad user id"})
 		return

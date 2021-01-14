@@ -24,7 +24,6 @@ func main() {
 	if err != nil {
 		log.Fatalln("Can't load .env file, does it exist ?")
 	}
-
 	// Repo
 	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.CONTROLLER_ORIGIN)
 	pool := chatsocket.NewConnectionPool()
@@ -47,9 +46,8 @@ func main() {
 		enablePlugin = false
 		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PATH is not set")
 	}
-
+	log.Println("Connect to Plugin-Server")
 	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, pluginPort)
-	defer onMessagePlugin.CloseConnection()
 
 	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN, clientID, clientSecret)
 	keystore := &mongo_repository.KeyRepository{}
@@ -58,18 +56,6 @@ func main() {
 	if err != nil {
 		log.Fatalln("Wait for onMessagePlugin Error")
 	}
-
-	// var message model.Message
-	// message = model.Message{
-	// 	MessageID: bson.NewObjectId(),
-	// 	TimeStamp: time.Now(),
-	// 	RoomID:    bson.NewObjectId(),
-	// 	UserID:    bson.NewObjectId(),
-	// 	ClientUID: "waritphon",
-	// 	Data:      "Test - data",
-	// 	Type:      "TEST",
-	// }
-	// err = external.OnMessageIn(message)
 
 	enc := service.NewEncryptionService(keystore)
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
@@ -90,5 +76,5 @@ func main() {
 	go messageHandler.Start()
 
 	router.Run(utils.LISTEN_ADDRESS)
-
+	defer onMessagePlugin.CloseConnection()
 }

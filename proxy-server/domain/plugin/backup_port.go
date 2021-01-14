@@ -41,6 +41,7 @@ func (p *OnMessagePortPlugin) Wait() error {
 }
 
 // OnMessageIn should be called when message in
+// TO TEST must DELETE : Change backup to Model.Message
 func (p *OnMessagePortPlugin) OnMessagePortPlugin(message model.Message) error {
 	if !p.enabled {
 		return errors.New("Plugin not enabled")

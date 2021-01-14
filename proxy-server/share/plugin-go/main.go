@@ -7,6 +7,9 @@ import (
 	"log"
 	"net"
 	"proxySenior/share/proto"
+	"time"
+
+	"github.com/globalsign/mgo/bson"
 
 	"github.com/globalsign/mgo"
 	"google.golang.org/grpc"
@@ -21,27 +24,32 @@ type BackupServer struct {
 }
 
 type BackupMessage struct {
-	MessageID string `bson:"_id"`
-	TimeStamp int64  `bson:"timestamp"`
-	RoomID    string `bson:"roomId"`
-	UserID    string `bson:"userId"`
-	ClientUID string `bson:"clientUID"`
-	Data      string `bson:"data"`
-	Type      string `bson:"type"`
+	MessageID bson.ObjectId `bson:"_id"`
+	TimeStamp time.Time     `bson:"timestamp"`
+	RoomID    bson.ObjectId `bson:"roomId"`
+	UserID    bson.ObjectId `bson:"userId"`
+	ClientUID string        `bson:"clientUID"`
+	Data      string        `bson:"data"`
+	Type      string        `bson:"type"`
 }
 
 func (b *BackupServer) OnMessageIn(context context.Context, chat *proto.Chat) (*proto.Empty, error) {
-	log.Println("Access OnMessage")
-	log.Println("Access ", chat)
+	log.Println("Access OnMessageIn")
 	bMsg := BackupMessage{
-		MessageID: chat.MessageId,
-		TimeStamp: chat.Timestamp,
-		RoomID:    chat.RoomId,
-		UserID:    chat.UserId,
+		MessageID: bson.ObjectIdHex(chat.MessageId),
+		TimeStamp: time.Unix(chat.Timestamp, 0),
+		RoomID:    bson.ObjectIdHex(chat.RoomId),
+		UserID:    bson.ObjectIdHex(chat.UserId),
 		ClientUID: chat.ClientUid,
 		Data:      chat.Data,
 		Type:      chat.Type,
 	}
+	// var message []BackupMessage
+	// conn.DB("backup").C("message").Find(nil).All(&message)
+	// log.Println(message)
+	// for _, v := range message {
+	// 	log.Println(v)
+	// }
 	return &proto.Empty{}, conn.DB("backup").C("message").Insert(bMsg)
 }
 func (b *BackupServer) IsReady(context context.Context, empty *proto.Empty) (*proto.Status, error) {
@@ -56,6 +64,7 @@ func NewBackupServer() proto.BackupServer {
 
 func main() {
 	//connect mongo Server
+	log.Println("Start-go Server with PORT", "5005")
 	go func() {
 		var err error
 		conn, err = mgo.Dial("mongodb://localhost:27017")

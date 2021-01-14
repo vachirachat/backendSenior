@@ -40,11 +40,9 @@ func (obp *GRPCOnPortMessagePlugin) CloseConnection() {
 func (obp *GRPCOnPortMessagePlugin) Wait() error {
 	fmt.Println("waiting for GRPC server...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+
 	for {
 		temp := *obp.client
-		log.Println(">>>>> ", temp)
-		log.Println("obp.client", obp.client)
 		ok, err := temp.IsReady(ctx, &proto.Empty{})
 		if err != nil {
 			log.Println(">>>>> ", err)
@@ -55,7 +53,8 @@ func (obp *GRPCOnPortMessagePlugin) Wait() error {
 		}
 		time.Sleep(5 * time.Second)
 	}
-
+	defer cancel()
+	return nil
 }
 
 // GetService return instance of backup service to be called
@@ -64,12 +63,11 @@ func (obp *GRPCOnPortMessagePlugin) Wait() error {
 // }
 
 // OnMessageIn convert message from model.Message then send over GRPC
+// TO TEST must DELETE : Change backup to Model.Message
 func (obp *GRPCOnPortMessagePlugin) OnMessageIn(msg model.Message) error {
 	log.Println("Getting onMessage for point", msg.Data)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	temp := *obp.client
-	log.Println(temp)
 	feature, err := temp.OnMessageIn(ctx, &proto.Chat{
 		MessageId: msg.MessageID.Hex(),
 		RoomId:    msg.RoomID.Hex(),
@@ -79,9 +77,11 @@ func (obp *GRPCOnPortMessagePlugin) OnMessageIn(msg model.Message) error {
 		ClientUid: msg.ClientUID,
 		Data:      msg.Data,
 	})
+
 	if err != nil {
 		log.Fatalf("%v.onMessage(_) = _, %v: ", obp.client, err)
 	}
 	log.Println(feature)
+	defer cancel()
 	return err
 }

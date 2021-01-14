@@ -18,12 +18,14 @@ class BackupServicer(backup_pb2_grpc.BackupServicer):
         self.conn = MongoClient('mongodb://localhost:27017')
 
     def OnMessageIn(self, request, context):
-        print(request)
-        # data = backup_pb2.
+        
+        data = backup_pb2.Chat()
         print("Access OnMessageIn", self.tricker,"OnMessageIn")
+        print(context)
+        print(request)
         db = self.conn['backup']
         dbCollection = db.message
-        result = dbCollection.insert_one(request)
+        # result = dbCollection.insert_one(request)
         return backup_pb2.Empty()
     def IsReady(self, request, context):
         print(request)

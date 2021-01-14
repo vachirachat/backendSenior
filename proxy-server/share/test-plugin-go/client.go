@@ -30,6 +30,7 @@ import (
 	"proxySenior/share/proto"
 	"time"
 
+	"github.com/globalsign/mgo/bson"
 	"google.golang.org/grpc"
 )
 
@@ -91,8 +92,38 @@ func main() {
 	client := proto.NewBackupClient(conn)
 	log.Println(client)
 
-	msg := RawMessage{}
+	msg := RawMessage{
+		TimeStamp: 150000,
+		RoomID:    bson.ObjectIdHex("60001d1cf0a50a974cee376d").Hex(),
+		UserID:    bson.ObjectIdHex("60001e33584cb6da2059f5b7").Hex(),
+		ClientUID: "60001d1cf0a50a974cee376d",
+		Data:      "Test-message-1",
+		Type:      "CHAT",
+	}
 	defer conn.Close()
 	onMessage(client, msg)
 	isReady(client)
 }
+
+// IN main client-> proxy
+// // TO TEST must DELETE : TEST Message
+// Message := backup.RawMessage{
+// 	MessageID: bson.ObjectId("60001d1cf0a50a974cee376d").Hex(),
+// 	TimeStamp: time.Now().Unix(),
+// 	RoomID:    bson.ObjectIdHex("60001d1cf0a50a974cee376d").Hex(),
+// 	UserID:    bson.ObjectIdHex("60001e33584cb6da2059f5b7").Hex(),
+// 	ClientUID: "60001d1cf0a50a974cee376d",
+// 	Data:      "Test-message-1",
+// 	Type:      "CHAT",
+// }
+
+// User in OnMessageIn on_message_plugin_port
+// feature, err := temp.OnMessageIn(ctx, &proto.Chat{
+// 	MessageId: msg.MessageID,
+// 	RoomId:    msg.RoomID,
+// 	Timestamp: msg.TimeStamp,
+// 	UserId:    msg.UserID,
+// 	Type:      msg.Type,
+// 	ClientUid: msg.ClientUID,
+// 	Data:      msg.Data,
+// })

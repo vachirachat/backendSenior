@@ -8,6 +8,7 @@ import (
 	"backendSenior/domain/model/chatsocket/room"
 	"encoding/json"
 	"fmt"
+	"log"
 	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
 )
@@ -37,12 +38,14 @@ func (h *MessageHandler) Start() {
 	pipe := make(chan []byte, 100)
 	h.upstreamService.RegsiterHandler(pipe)
 	defer h.upstreamService.UnRegsiterHandler(pipe)
-
+	log.Println("Start", "Chat Service")
 	for {
 		data := <-pipe
 		fmt.Printf("[upstream] <-- %s\n", data)
+
 		var rawMessage chatmodel.RawMessage
 		err := json.Unmarshal(data, &rawMessage)
+
 		if err != nil {
 			fmt.Println("error parsing message from upstream", err)
 			fmt.Printf("the message was [%s]\n", data)

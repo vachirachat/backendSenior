@@ -63,7 +63,8 @@ type client struct {
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/ws" /*, handler.authMiddleware.AuthRequired()*/, func(context *gin.Context) {
+	routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
+
 		// fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
@@ -155,6 +156,7 @@ func (c *client) readPump() {
 				continue
 			}
 
+			log.Println("ReadPUMP >>> ", c.userID)
 			if ok, err := c.handlerRef.downstream.IsUserInRoom(c.userID, msg.RoomID.Hex()); err != nil {
 				fmt.Println("unable to check room")
 				c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{
