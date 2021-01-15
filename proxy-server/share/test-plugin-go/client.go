@@ -120,7 +120,15 @@ func main() {
 
 // chat-route-handler
 // userID := "60001d1cf0a50a974cee376d"
-// routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
+// routerGroup.GET("/ws" /*, handler.authMiddleware.AuthRequired() */, func(context *gin.Context) {
+
+// // Prin
+// var message []BackupMessage
+// conn.DB("backup").C("message").Find(nil).All(&message)
+// for _, v := range message {
+// 	log.Println(v, "\n")
+// }
+// return &proto.Empty{}, nil
 
 // IN main client-> proxy
 // // TO TEST must DELETE : TEST Message

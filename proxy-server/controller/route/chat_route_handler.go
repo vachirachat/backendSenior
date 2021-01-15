@@ -67,7 +67,6 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 		// fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
-
 		var upgrader = websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
