@@ -5,7 +5,7 @@ import logging
 
 from pymongo import MongoClient
 import grpc
-
+from bson import ObjectId
 
 import backup_pb2
 import backup_pb2_grpc
@@ -19,12 +19,12 @@ class BackupServicer(backup_pb2_grpc.BackupServicer):
     def OnMessageIn(self, request, context):
         print("Access OnMessageIn","OnMessageIn")
         print(request)
-        
+
         temp_dict = {
-            "_id": request.messageId,
+            "_id": ObjectId(request.messageId),
             "timestamp": request.timestamp,
-            "roomId":    request.roomId,
-            "userId":    request.userId,
+            "roomId":    ObjectId(request.roomId),
+            "userId":    ObjectId(request.userId),
             "clientUID": request.clientUid,
             "data":      request.data,
             "type":      request.type,

@@ -1,6 +1,7 @@
 var grpc = require('grpc');
 var protoLoader = require('@grpc/proto-loader');
 var MongoClient = require('mongodb').MongoClient;
+var ObjectID = require('mongodb').ObjectID;
 var url = "mongodb://localhost:27017/";
 
 
@@ -22,12 +23,19 @@ function onMessageIn(call, callback) {
   // Process the business logic
   console.log("OnMessageIn printout: ",request)
   var emptyRes = {}
-
+  insertMsg = {
+            "_id": ObjectID(request.messageId),
+            "timestamp": request.timestamp,
+            "roomId":    ObjectID(request.roomId),
+            "userId":    ObjectID(request.userId),
+            "clientUID": request.clientUid,
+            "data":      request.data,
+            "type":      request.type,
+  }
   MongoClient.connect(url, function(err, db) {
     if (err) throw err;
     var dbo = db.db("backup");
-    // var myobj = { name: "Company Inc", address: "Highway 37" };
-    dbo.collection("message").insertOne(request, function(err, res) {
+    dbo.collection("message").insertOne(insertMsg, function(err, res) {
       if (err) throw err;
       console.log("1 document inserted");
       db.close();

@@ -62,7 +62,6 @@ func (obp *GRPCOnPortMessagePlugin) Wait() error {
 // }
 
 // OnMessageIn convert message from model.Message then send over GRPC
-// TO TEST must DELETE : Change backup to Model.Message
 func (obp *GRPCOnPortMessagePlugin) OnMessageIn(msg model.Message) error {
 	log.Println("Getting onMessage for point", msg.Data)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

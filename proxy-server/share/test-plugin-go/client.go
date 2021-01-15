@@ -118,6 +118,10 @@ func main() {
 	onMessage(client, msg)
 }
 
+// chat-route-handler
+// userID := "60001d1cf0a50a974cee376d"
+// routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
+
 // IN main client-> proxy
 // // TO TEST must DELETE : TEST Message
 // Message := backup.RawMessage{

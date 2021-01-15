@@ -35,22 +35,22 @@ type BackupMessage struct {
 
 func (b *BackupServer) OnMessageIn(context context.Context, chat *proto.Chat) (*proto.Empty, error) {
 	log.Println("Access OnMessageIn")
-	bMsg := BackupMessage{
-		MessageID: bson.ObjectIdHex(chat.MessageId),
-		TimeStamp: time.Unix(chat.Timestamp, 0),
-		RoomID:    bson.ObjectIdHex(chat.RoomId),
-		UserID:    bson.ObjectIdHex(chat.UserId),
-		ClientUID: chat.ClientUid,
-		Data:      chat.Data,
-		Type:      chat.Type,
-	}
+	// bMsg := BackupMessage{
+	// 	MessageID: bson.ObjectIdHex(chat.MessageId),
+	// 	TimeStamp: time.Unix(chat.Timestamp, 0),
+	// 	RoomID:    bson.ObjectIdHex(chat.RoomId),
+	// 	UserID:    bson.ObjectIdHex(chat.UserId),
+	// 	ClientUID: chat.ClientUid,
+	// 	Data:      chat.Data,
+	// 	Type:      chat.Type,
+	// }
 	var message []BackupMessage
 	conn.DB("backup").C("message").Find(nil).All(&message)
-	log.Println(message)
 	for _, v := range message {
-		log.Println(v)
+		log.Println(v, "\n")
 	}
-	return &proto.Empty{}, conn.DB("backup").C("message").Insert(bMsg)
+	// return &proto.Empty{}, conn.DB("backup").C("message").Insert(bMsg)
+	return &proto.Empty{}, nil
 }
 func (b *BackupServer) IsReady(context context.Context, empty *proto.Empty) (*proto.Status, error) {
 	log.Println("Access IsReady")
