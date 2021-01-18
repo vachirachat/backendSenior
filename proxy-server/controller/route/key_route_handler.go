@@ -32,7 +32,6 @@ func (h *KeyRoute) Mount(rg *gin.RouterGroup) {
 }
 
 func (h *KeyRoute) generate(c *gin.Context) {
-	// TODO check if is local
 	roomID := c.Param("id")
 	if roomID == "" || !bson.IsObjectIdHex(roomID) {
 		c.JSON(400, gin.H{"status": "bad room ID"})
@@ -50,7 +49,6 @@ func (h *KeyRoute) generate(c *gin.Context) {
 }
 
 func (h *KeyRoute) getAll(c *gin.Context) {
-	// TODO: when implement publickey encryption, determine the requester proxy to use public key
 	roomID := c.Param("id")
 	if roomID == "" || !bson.IsObjectIdHex(roomID) {
 		c.JSON(400, gin.H{"status": "bad room ID"})

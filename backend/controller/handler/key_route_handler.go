@@ -15,17 +15,25 @@ import (
 // KeyRoute is route for key sharing of controller
 type KeyRoute struct {
 	// keyAPI
-	room *service.RoomService
+	proxy *service.ProxyService
+	keyEx *service.KeyExchangeService
 }
 
-func NewKeyRoute(room *service.RoomService) *KeyRoute {
+func NewKeyRoute(proxy *service.ProxyService, keyEx *service.KeyExchangeService) *KeyRoute {
 	return &KeyRoute{
-		room: room,
+		proxy: proxy,
+		keyEx: keyEx,
 	}
 }
 
 func (r *KeyRoute) Mount(rg *gin.RouterGroup) {
 	rg.POST("/room-key/:id", r.getRoomKeyFromProxy)
+	rg.POST("/room-key/:id/generate", r.generateRoomKey)
+	rg.GET("/master-proxy/:id", r.getMasterProxy) // return *current* master proxy
+
+	rg.GET("/priority/:roomId", r.getRoomPriority)
+	rg.POST("/priority/:roomId/:proxyId", r.setRoomPriority)
+
 	rg.GET("/public-key/:id")
 	rg.POST("/public-key/:id")
 }
@@ -39,10 +47,17 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context) {
 	}
 	fmt.Println("[get key] incoming request for", roomID)
 
-	proxy, err := r.room.GetRoomMasterProxy(roomID)
+	pid, err := r.keyEx.GetMaster(roomID)
 	if err != nil {
 		fmt.Println("keyRoute/getRoomKeyForProxy: can't get master proxy", err)
-		c.JSON(400, gin.H{"status": "couldn't determine proxy to get key"})
+		c.JSON(500, gin.H{"status": err.Error()})
+		return
+	}
+
+	proxy, err := r.proxy.GetProxyByID(pid)
+	if err != nil {
+		fmt.Println("keyRoute/getRoomKeyForProxy: can't get master proxy", err)
+		c.JSON(500, gin.H{"status": "couldn't determine proxy to get key"})
 		return
 	}
 
@@ -51,15 +66,6 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context) {
 		Host:   proxy.IP + ":" + fmt.Sprint(proxy.Port),
 		Path:   "/api/v1/key/" + roomID + "/get-key",
 	}
-
-	// cType := c.Request.Header.Get("content-type")
-	// if cType == "" {
-	// 	cTypeArr := c.Request.Header["content-type"]
-	// 	if len(cTypeArr) > 0 {
-	// 		cType = cTypeArr[0]
-	// 	}
-	// }
-
 	// make request
 
 	res, err := http.Post(u.String(), "application/json", c.Request.Body)
@@ -99,4 +105,125 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context) {
 	// }
 
 	c.JSON(200, resBody)
+}
+
+// generateRoomKey tell proxy to generate key
+func (r *KeyRoute) generateRoomKey(c *gin.Context) {
+	roomID := c.Param("id")
+	if !bson.IsObjectIdHex(roomID) {
+		c.JSON(400, gin.H{"status": "bad room id"})
+		return
+	}
+	fmt.Println("[get key] incoming request for", roomID)
+
+	pid, err := r.keyEx.GetMaster(roomID)
+	if err != nil {
+		fmt.Println("keyRoute/generateRoomKey: can't get master proxy", err)
+		c.JSON(500, gin.H{"status": err.Error()})
+		return
+	}
+
+	proxy, err := r.proxy.GetProxyByID(pid)
+	if err != nil {
+		fmt.Println("keyRoute/generateRoomKey: can't get master proxy", err)
+		c.JSON(500, gin.H{"status": "couldn't determine proxy to get key"})
+		return
+	}
+
+	u := url.URL{
+		Scheme: "http",
+		Host:   proxy.IP + ":" + fmt.Sprint(proxy.Port),
+		Path:   "/api/v1/key/" + roomID + "/key",
+	}
+	// make request
+
+	res, err := http.Post(u.String(), "application/json", nil)
+	if err != nil {
+		fmt.Println("keyRoute/generateRoomKey: error making request to proxy", err)
+		c.JSON(500, gin.H{"status": "error making request to proxy"})
+		return
+	}
+
+	if res.StatusCode >= 400 {
+		fmt.Println("keyRoute/generateRoomKey: proxy retured non OK status " + fmt.Sprint(res.StatusCode))
+		c.JSON(500, gin.H{"status": "proxy retured non OK status " + fmt.Sprint(res.StatusCode)})
+		return
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	fmt.Printf("[get key] proxy responded %s\n", body)
+
+	c.JSON(200, gin.H{"status": "OK"})
+}
+
+// getMasterProxy return current master proxy of room
+func (r *KeyRoute) getMasterProxy(c *gin.Context) {
+	roomID := c.Param("id")
+	if !bson.IsObjectIdHex(roomID) {
+		c.JSON(400, gin.H{"status": "bad room id"})
+		return
+	}
+	fmt.Println("[get key] incoming request for", roomID)
+
+	pid, err := r.keyEx.GetMaster(roomID)
+	if err != nil {
+		fmt.Println("keyRoute/generateRoomKey: can't get master proxy", err)
+		c.JSON(500, gin.H{"status": err.Error()})
+		return
+	}
+
+	proxy, err := r.proxy.GetProxyByID(pid)
+	if err != nil {
+		fmt.Println("keyRoute/generateRoomKey: can't get master proxy", err)
+		c.JSON(500, gin.H{"status": "couldn't determine proxy to get key"})
+		return
+	}
+
+	c.JSON(200, proxy)
+}
+
+func (r *KeyRoute) setRoomPriority(c *gin.Context) {
+	roomID := c.Param("roomId")
+	proxyID := c.Param("proxyId")
+	if !bson.IsObjectIdHex(roomID) || !bson.IsObjectIdHex(proxyID) {
+		c.JSON(400, gin.H{"status": "bad room id or proxy id"})
+		return
+	}
+
+	var body struct {
+		Priority *int `json:"priority"`
+	}
+	err := c.ShouldBindJSON(&body)
+	if err != nil || body.Priority == nil {
+		c.JSON(400, gin.H{"status": "bad or invalid `priority` field"})
+		return
+	}
+
+	err = r.keyEx.SetPriority(roomID, proxyID, *body.Priority)
+	if err != nil {
+		fmt.Println("key/setRoomPriority: err", err)
+		c.JSON(500, gin.H{"status": "error"})
+		return
+	}
+
+	c.JSON(200, gin.H{"status": "OK"})
+}
+
+func (r *KeyRoute) getRoomPriority(c *gin.Context) {
+	roomID := c.Param("roomId")
+	if !bson.IsObjectIdHex(roomID) {
+		c.JSON(400, gin.H{"status": "bad room id"})
+		return
+	}
+
+	priorities, err := r.keyEx.GetPriorities(roomID)
+
+	if err != nil {
+		fmt.Println("key/getRoomPriority: err", err)
+		c.JSON(500, gin.H{"status": "error"})
+		return
+	}
+
+	c.JSON(200, priorities)
 }

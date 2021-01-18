@@ -113,20 +113,22 @@ func (s *RoomService) GetRoomProxyIDs(roomID string) ([]string, error) {
 	return members, err
 }
 
-// GetRoomMasterProxy return master proxy of the room
-func (s *RoomService) GetRoomMasterProxy(roomID string) (masterProxy model.Proxy, err error) {
-	masterProxy, err = s.roomProxyRepository.GetRoomMasterProxy(roomID)
-	return
-}
+// Proxy master no longer fixed
 
-// SetRoomMasterProxy set proxy that is master of the room
-func (s *RoomService) SetRoomMasterProxy(roomID string, masterProxyID string) error {
-	err := s.roomProxyRepository.SetRoomMasterProxy(roomID, masterProxyID)
-	return err
-}
+// // GetRoomMasterProxy return master proxy of the room
+// func (s *RoomService) GetRoomMasterProxy(roomID string) (masterProxy model.Proxy, err error) {
+// 	masterProxy, err = s.roomProxyRepository.GetRoomMasterProxy(roomID)
+// 	return
+// }
 
-// GetProxyMasterRooms get rooms of which proxy is master of
-func (s *RoomService) GetProxyMasterRooms(proxyID string) ([]string, error) {
-	roomIDs, err := s.roomProxyRepository.GetProxyMasterRooms(proxyID)
-	return roomIDs, err
-}
+// // SetRoomMasterProxy set proxy that is master of the room
+// func (s *RoomService) SetRoomMasterProxy(roomID string, masterProxyID string) error {
+// 	err := s.roomProxyRepository.SetRoomMasterProxy(roomID, masterProxyID)
+// 	return err
+// }
+
+// // GetProxyMasterRooms get rooms of which proxy is master of
+// func (s *RoomService) GetProxyMasterRooms(proxyID string) ([]string, error) {
+// 	roomIDs, err := s.roomProxyRepository.GetProxyMasterRooms(proxyID)
+// 	return roomIDs, err
+// }

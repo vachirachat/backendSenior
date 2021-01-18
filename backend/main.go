@@ -104,6 +104,7 @@ func main() {
 
 	proxySvc := service.NewProxyService(proxyRepo)
 	proxyAuthSvc := auth.NewProxyAuth(proxyRepo)
+	keyExSvc := service.NewKeyExchangeService(mongo_repository.KeyVersionCollection(connectionDB))
 
 	routerDeps := route.RouterDeps{
 		RoomService:         roomSvc,
@@ -115,6 +116,7 @@ func main() {
 		ProxyAuth:           proxyAuthSvc,
 		OraganizeService:    organizeSvc,
 		NotificationService: notifSvc,
+		KeyExchangeService:  keyExSvc,
 	}
 
 	router := routerDeps.NewRouter()

@@ -201,46 +201,46 @@ func (repo *CachedRoomProxyRepository) RemoveProxiesFromRoom(roomID string, prox
 	return nil
 }
 
-// GetRoomMasterProxy return the proxyID that is master of room
-func (repo *CachedRoomProxyRepository) GetRoomMasterProxy(roomID string) (model.Proxy, error) {
-	var room model.Room
-	err := repo.connection.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&room)
-	if err != nil {
-		return model.Proxy{}, err
-	}
-	if room.MainProxy == "" {
-		return model.Proxy{}, errors.New("master proxy not set")
-	}
+// // GetRoomMasterProxy return the proxyID that is master of room
+// func (repo *CachedRoomProxyRepository) GetRoomMasterProxy(roomID string) (model.Proxy, error) {
+// 	var room model.Room
+// 	err := repo.connection.DB(dbName).C(collectionRoom).FindId(bson.ObjectIdHex(roomID)).One(&room)
+// 	if err != nil {
+// 		return model.Proxy{}, err
+// 	}
+// 	if room.MainProxy == "" {
+// 		return model.Proxy{}, errors.New("master proxy not set")
+// 	}
 
-	var proxy model.Proxy
-	err = repo.connection.DB(dbName).C(collectionProxy).FindId(room.MainProxy).One(&proxy)
+// 	var proxy model.Proxy
+// 	err = repo.connection.DB(dbName).C(collectionProxy).FindId(room.MainProxy).One(&proxy)
 
-	return proxy, err
-}
+// 	return proxy, err
+// }
 
-// SetRoomMasterProxy change main proxy of the room
-func (repo *CachedRoomProxyRepository) SetRoomMasterProxy(roomID string, mainProxyID string) error {
-	err := repo.connection.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), model.RoomUpdateMongo{
-		MainProxy: bson.ObjectIdHex(mainProxyID),
-	})
-	return err
-}
+// // SetRoomMasterProxy change main proxy of the room
+// func (repo *CachedRoomProxyRepository) SetRoomMasterProxy(roomID string, mainProxyID string) error {
+// 	err := repo.connection.DB(dbName).C(collectionRoom).UpdateId(bson.ObjectIdHex(roomID), model.RoomUpdateMongo{
+// 		MainProxy: bson.ObjectIdHex(mainProxyID),
+// 	})
+// 	return err
+// }
 
-// GetProxyMasterRooms get room of which proxy is master
-func (repo *CachedRoomProxyRepository) GetProxyMasterRooms(proxyID string) ([]string, error) {
-	var rooms []model.Room
-	err := repo.connection.DB(dbName).C(collectionRoom).Find(model.RoomUpdateMongo{
-		MainProxy: bson.ObjectIdHex(proxyID),
-	}).All(&rooms)
-	if err != nil {
-		if err.Error() == "not found" {
-			return []string{}, nil
-		}
-		return nil, err
-	}
-	roomIDs := make([]string, len(rooms))
-	for i := range rooms {
-		roomIDs[i] = rooms[i].MainProxy.Hex()
-	}
-	return roomIDs, nil
-}
+// // GetProxyMasterRooms get room of which proxy is master
+// func (repo *CachedRoomProxyRepository) GetProxyMasterRooms(proxyID string) ([]string, error) {
+// 	var rooms []model.Room
+// 	err := repo.connection.DB(dbName).C(collectionRoom).Find(model.RoomUpdateMongo{
+// 		MainProxy: bson.ObjectIdHex(proxyID),
+// 	}).All(&rooms)
+// 	if err != nil {
+// 		if err.Error() == "not found" {
+// 			return []string{}, nil
+// 		}
+// 		return nil, err
+// 	}
+// 	roomIDs := make([]string, len(rooms))
+// 	for i := range rooms {
+// 		roomIDs[i] = rooms[i].MainProxy.Hex()
+// 	}
+// 	return roomIDs, nil
+// }

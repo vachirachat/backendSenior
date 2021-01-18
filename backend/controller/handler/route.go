@@ -19,6 +19,7 @@ type RouterDeps struct {
 	ProxyAuth           *auth.ProxyAuth
 	OraganizeService    *service.OrganizeService
 	NotificationService *service.NotificationService
+	KeyExchangeService  *service.KeyExchangeService
 }
 
 // NewRouter create new router (gin server) with various handler
@@ -36,7 +37,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.RoomService)
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
-	keyRouteHandler := NewKeyRoute(deps.RoomService)
+	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService)
 	r := gin.Default()
 
 	subgroup := r.Group("/api/v1")

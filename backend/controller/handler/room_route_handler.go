@@ -50,8 +50,8 @@ func (h *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/:id/proxy", h.addProxiesToRoom)
 	routerGroup.DELETE("/:id/proxy", h.removeProxiesFromRoom)
 
-	routerGroup.POST("/:id/master-proxy", h.setMasterProxy)
-	routerGroup.GET("/:id/master-proxy", h.getMasterProxy)
+	// routerGroup.POST("/:id/master-proxy", h.setMasterProxy)
+	// routerGroup.GET("/:id/master-proxy", h.getMasterProxy)
 
 	routerGroup.POST("/", h.authMw.AuthRequired(), h.addRoomHandler)
 	routerGroup.POST("/:id/name" /*h.authService.AuthMiddleware("object", "view"),*/, h.editRoomNameHandler)
@@ -438,43 +438,43 @@ func (h *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context) {
 
 }
 
-func (h *RoomRouteHandler) setMasterProxy(c *gin.Context) {
-	roomID := c.Param("id")
-	if !bson.IsObjectIdHex(roomID) {
-		c.JSON(400, gin.H{"status": "Bad room ID"})
-		return
-	}
+// func (h *RoomRouteHandler) setMasterProxy(c *gin.Context) {
+// 	roomID := c.Param("id")
+// 	if !bson.IsObjectIdHex(roomID) {
+// 		c.JSON(400, gin.H{"status": "Bad room ID"})
+// 		return
+// 	}
 
-	var b struct {
-		ProxyID string
-	}
-	err := c.ShouldBindJSON(&b)
-	if b.ProxyID == "" || !bson.IsObjectIdHex(b.ProxyID) {
-		c.JSON(400, gin.H{"status": "Bad or empty proxyID"})
-		return
-	}
+// 	var b struct {
+// 		ProxyID string
+// 	}
+// 	err := c.ShouldBindJSON(&b)
+// 	if b.ProxyID == "" || !bson.IsObjectIdHex(b.ProxyID) {
+// 		c.JSON(400, gin.H{"status": "Bad or empty proxyID"})
+// 		return
+// 	}
 
-	err = h.roomService.SetRoomMasterProxy(roomID, b.ProxyID)
-	if err != nil {
-		fmt.Println("[room/setMasterProxy] error:", err)
-		c.JSON(500, gin.H{"status": "error"})
-	}
-	c.JSON(200, gin.H{"status": "OK"})
-}
+// 	err = h.roomService.SetRoomMasterProxy(roomID, b.ProxyID)
+// 	if err != nil {
+// 		fmt.Println("[room/setMasterProxy] error:", err)
+// 		c.JSON(500, gin.H{"status": "error"})
+// 	}
+// 	c.JSON(200, gin.H{"status": "OK"})
+// }
 
 // return object: master proxy of the room
-func (h *RoomRouteHandler) getMasterProxy(c *gin.Context) {
-	roomID := c.Param("id")
-	if !bson.IsObjectIdHex(roomID) {
-		c.JSON(400, gin.H{"status": "Bad room ID"})
-		return
-	}
+// func (h *RoomRouteHandler) getMasterProxy(c *gin.Context) {
+// 	roomID := c.Param("id")
+// 	if !bson.IsObjectIdHex(roomID) {
+// 		c.JSON(400, gin.H{"status": "Bad room ID"})
+// 		return
+// 	}
 
-	mainProxy, err := h.roomService.GetRoomMasterProxy(roomID)
-	if err != nil {
-		fmt.Println("room/getMasterProxy", err)
-		c.JSON(500, gin.H{"status": "error"})
-		return
-	}
-	c.JSON(200, mainProxy)
-}
+// 	mainProxy, err := h.
+// 	if err != nil {
+// 		fmt.Println("room/getMasterProxy", err)
+// 		c.JSON(500, gin.H{"status": "error"})
+// 		return
+// 	}
+// 	c.JSON(200, mainProxy)
+// }

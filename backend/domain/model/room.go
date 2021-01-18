@@ -18,7 +18,7 @@ type Room struct {
 	RoomType         string          `json:"roomType" bson:"roomType,omitempty"`
 	ListUser         []bson.ObjectId `json:"users" bson:"users,omitempty"`
 	ListProxy        []bson.ObjectId `json:"proxies" bson:"proxies,omitempty"`
-	MainProxy        bson.ObjectId   `json:"mainProxy" bson:"mainProxy"`
+	// MainProxy        bson.ObjectId   `json:"mainProxy" bson:"mainProxy"`
 }
 
 // RoomInsert is used for inserting where empty fields are
@@ -31,7 +31,7 @@ type RoomInsert struct {
 	RoomType         string          `json:"roomType" bson:"roomType"`
 	ListUser         []bson.ObjectId `json:"users" bson:"users"`
 	ListProxy        []bson.ObjectId `json:"proxies" bson:"proxies"`
-	MainProxy        bson.ObjectId   `json:"mainProxy" bson:"mainProxy,omitempty"` // mainProxy can be empty (when creating)
+	// MainProxy        bson.ObjectId   `json:"mainProxy" bson:"mainProxy,omitempty"` // mainProxy can be empty (when creating)
 }
 
 // RoomUpdateMongo has same fields as room, but has types of interface{}.

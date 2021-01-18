@@ -16,6 +16,7 @@ const (
 	collectionFCMToken = "fcmTokens"
 	// for mgo/txn
 	collectionTXNRoomUser = "txnRoomUser"
+	collectionKeyVersion  = "keyVersions"
 )
 
 // return filter of {_id: {$in: ... }}, query that match multiple ID

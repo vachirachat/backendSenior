@@ -27,7 +27,7 @@ func (a *RoomProxyAPI) GetRoomMasterProxy(roomID string) (model.Proxy, error) {
 	u := url.URL{
 		Scheme: "http",
 		Host:   a.origin,
-		Path:   "/api/v1/room/" + roomID + "/master-proxy",
+		Path:   "/api/v1/key/master-proxy/" + roomID,
 	}
 	res, err := http.Get(u.String())
 	if err != nil {
