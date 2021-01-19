@@ -18,8 +18,14 @@ type KeyExchangeService struct {
 // NewKeyExchangeService create key exchange service
 func NewKeyExchangeService(col *mgo.Collection) *KeyExchangeService {
 	return &KeyExchangeService{
-		col: col,
+		col:      col,
+		isOnline: make(map[string]bool),
 	}
+}
+
+// SetOnline set online status of procy
+func (s *KeyExchangeService) SetOnline(proxyID string, online bool) {
+	s.isOnline[proxyID] = online
 }
 
 // CatchupKeyVersion set key version of roomId, proxyId to latest version possible

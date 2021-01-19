@@ -56,7 +56,13 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 	}
 
 	var keyReq key_exchange.KeyExchangeRequest
-	c.ShouldBindJSON(&keyReq)
+	var err error
+	err = c.ShouldBindJSON(&keyReq)
+	if err != nil {
+		fmt.Println("error", err)
+		c.JSON(400, gin.H{"status": "bad request"})
+		return
+	}
 
 	var pk *rsa.PublicKey
 	var shouldSendPK bool
@@ -64,12 +70,13 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 	// it sends public key
 	if len(keyReq.PublicKey) > 0 {
 		shouldSendPK = true
-		pk, err := encryption.BytesToPublicKey(keyReq.PublicKey)
+		pk, err = encryption.BytesToPublicKey(keyReq.PublicKey)
 		if pk == nil {
 			c.JSON(400, gin.H{
 				"status":  "error",
 				"message": "public key error:" + err.Error(),
 			})
+			return
 		}
 		// remember key
 		h.k.SetProxyPublicKey(keyReq.ProxyID, pk)

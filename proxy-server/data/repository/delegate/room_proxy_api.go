@@ -33,12 +33,13 @@ func (a *RoomProxyAPI) GetRoomMasterProxy(roomID string) (model.Proxy, error) {
 	if err != nil {
 		return model.Proxy{}, fmt.Errorf("error making request: %v", err)
 	}
-	if res.StatusCode >= 400 {
-		return model.Proxy{}, fmt.Errorf("server return with non OK status: %d", res.StatusCode)
-	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		return model.Proxy{}, fmt.Errorf("server return with non OK status: %d\nbody:%s", res.StatusCode, body)
+	}
 
 	var masterProxy model.Proxy
 	err = json.Unmarshal(body, &masterProxy)
@@ -60,12 +61,13 @@ func (a *RoomProxyAPI) GetProxyMasterRooms(proxyID string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %v", err)
 	}
-	if res.StatusCode >= 400 {
-		return nil, fmt.Errorf("server return with non OK status: %d", res.StatusCode)
-	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
+
+	if res.StatusCode >= 400 {
+		return nil, fmt.Errorf("server return with non OK status: %d\nbody:%s", res.StatusCode, body)
+	}
 
 	var r struct { // see backend/proxy_route_handler
 		RoomIDs []string `json:"roomIds"`

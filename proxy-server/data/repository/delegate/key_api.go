@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"proxySenior/domain/interface/repository"
+	"proxySenior/utils"
 )
 
 // KeyAPI is for getting key remotely
@@ -61,7 +62,36 @@ func (a *KeyAPI) GetByRoom(roomID string, details key_exchange.KeyExchangeReques
 
 	// force error message
 	if !isOK {
-		err = fmt.Errorf("server return with non OK status: %d", res.StatusCode)
+		err = fmt.Errorf("server return with non OK status: %d\nbody:%s", res.StatusCode, body)
 	}
 	return dataResp, err
+}
+
+func (a *KeyAPI) CatchUp(roomID string) error {
+	fmt.Println("[remote key store] report catchup", roomID)
+	u := url.URL{
+		Scheme: "http",
+		Host:   a.origin,
+		Path:   "/api/v1/key/catch-up/" + roomID + "/" + utils.ClientID,
+	}
+
+	res, err := http.Post(u.String(), "appliation/json", nil)
+	if err != nil {
+		return fmt.Errorf("error making request: %v", err)
+	}
+
+	// event with non-OK status, we still want to return the response
+	isOK := true
+	if res.StatusCode >= 400 {
+		isOK = false
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+
+	// force error message
+	if !isOK {
+		err = fmt.Errorf("server return with non OK status: %d\nbody:%s", res.StatusCode, body)
+	}
+	return nil
 }

@@ -33,6 +33,7 @@ func (r *KeyRoute) Mount(rg *gin.RouterGroup) {
 
 	rg.GET("/priority/:roomId", r.getRoomPriority)
 	rg.POST("/priority/:roomId/:proxyId", r.setRoomPriority)
+	rg.POST("/catch-up/:roomId/:proxyId", r.catchUpKeyVersion) // proxy tell controller that its version of key is updated
 
 	rg.GET("/public-key/:id")
 	rg.POST("/public-key/:id")
@@ -150,6 +151,12 @@ func (r *KeyRoute) generateRoomKey(c *gin.Context) {
 		return
 	}
 
+	err = r.keyEx.IncrementVersion(roomID, proxy.ProxyID.Hex())
+	if err != nil {
+		fmt.Println("keyRoute/generateRoomKey: increment version error ", err)
+		c.JSON(500, gin.H{"status": "error"})
+	}
+
 	body, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 	fmt.Printf("[get key] proxy responded %s\n", body)
@@ -226,4 +233,22 @@ func (r *KeyRoute) getRoomPriority(c *gin.Context) {
 	}
 
 	c.JSON(200, priorities)
+}
+
+func (r *KeyRoute) catchUpKeyVersion(c *gin.Context) {
+	roomID := c.Param("roomId")
+	proxyID := c.Param("proxyId")
+	if !bson.IsObjectIdHex(roomID) || !bson.IsObjectIdHex(proxyID) {
+		c.JSON(400, gin.H{"status": "bad room id or proxy id"})
+		return
+	}
+
+	err := r.keyEx.CatchupKeyVersion(roomID, proxyID)
+	if err != nil {
+		fmt.Println("key/catchUpKeyVersion: error updating version", err)
+		c.JSON(500, gin.H{"status": "error updating version, try again"})
+		return
+	}
+
+	c.JSON(200, gin.H{"stauts": "OK"})
 }

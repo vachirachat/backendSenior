@@ -42,25 +42,26 @@ var (
 type ChatRouteHandler struct {
 	chatService *service.ChatService
 	proxyMw     *auth.ProxyMiddleware
+	keyEx       *service.KeyExchangeService
 	roomService *service.RoomService // for mapping
 }
 
 // NewChatRouteHandler create new `ChatRouteHandler`
-func NewChatRouteHandler(chatService *service.ChatService, proxyMw *auth.ProxyMiddleware, roomSvc *service.RoomService) *ChatRouteHandler {
+func NewChatRouteHandler(chatService *service.ChatService, proxyMw *auth.ProxyMiddleware, roomSvc *service.RoomService, keyEx *service.KeyExchangeService) *ChatRouteHandler {
 	return &ChatRouteHandler{
 		chatService: chatService,
 		proxyMw:     proxyMw,
 		roomService: roomSvc,
+		keyEx:       keyEx,
 	}
 }
 
 // client abstraction
 type client struct {
-	conn        *websocket.Conn
-	chatService *service.ChatService // reference chat service to call
-	roomService *service.RoomService
-	connID      string
-	proxyID     string
+	conn    *websocket.Conn
+	handler *ChatRouteHandler // reference to handler to call
+	connID  string
+	proxyID string
 }
 
 //Mount make the handler handle request from specfied routerGroup
@@ -93,13 +94,13 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 		}
 
 		id, err := handler.chatService.OnConnect(conn)
+		handler.keyEx.SetOnline(clientID, true)
 
 		clnt := client{
-			conn:        wsConn,
-			chatService: handler.chatService,
-			roomService: handler.roomService,
-			connID:      id,
-			proxyID:     clientID,
+			conn:    wsConn,
+			handler: handler,
+			connID:  id,
+			proxyID: clientID,
 		}
 
 		go clnt.readPump()
@@ -112,7 +113,8 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 // for more information about read/writePump, see https://github.com/gorilla/websocket/tree/master/examples/chat
 func (c *client) readPump() {
 	defer func() {
-		c.chatService.OnDisconnect(c.connID)
+		c.handler.chatService.OnDisconnect(c.connID)
+		c.handler.keyEx.SetOnline(c.proxyID, false)
 		c.conn.Close()
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
@@ -135,7 +137,7 @@ func (c *client) readPump() {
 		var rawMessage chatsocket.RawMessage
 		err = json.Unmarshal(message, &rawMessage)
 		if err != nil {
-			c.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
+			c.handler.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
 				Type: message_types.Error,
 				Payload: exception.Event{
 					Reason: "Bad socket message structure",
@@ -149,7 +151,7 @@ func (c *client) readPump() {
 			var msg model.Message
 			err = json.Unmarshal(rawMessage.Payload, &msg)
 			if err != nil {
-				c.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
+				c.handler.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
 					Type: message_types.Error,
 					Payload: exception.Event{
 						Reason: "bad message payload format",
@@ -158,8 +160,8 @@ func (c *client) readPump() {
 				})
 				continue
 			}
-			if ok, err := c.chatService.IsProxyInRoom(c.proxyID, msg.RoomID.Hex()); err != nil {
-				c.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
+			if ok, err := c.handler.chatService.IsProxyInRoom(c.proxyID, msg.RoomID.Hex()); err != nil {
+				c.handler.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
 					Type: message_types.Error,
 					Payload: exception.Event{
 						Reason: "unable to check room",
@@ -168,7 +170,7 @@ func (c *client) readPump() {
 				})
 				continue
 			} else if !ok {
-				c.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
+				c.handler.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
 					Type: message_types.Error,
 					Payload: exception.Event{
 						Reason: "unauthorized to send message to the room",
@@ -183,14 +185,14 @@ func (c *client) readPump() {
 				continue
 			}
 
-			messageID, err := c.chatService.SaveMessage(msg)
+			messageID, err := c.handler.chatService.SaveMessage(msg)
 			if err != nil {
 				fmt.Printf("error saving message %s\n", err.Error())
 				continue
 			}
 			msg.MessageID = bson.ObjectIdHex(messageID)
 
-			err = c.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), chatsocket.Message{
+			err = c.handler.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), chatsocket.Message{
 				Type:    message_types.Chat,
 				Payload: msg,
 			})
@@ -198,7 +200,7 @@ func (c *client) readPump() {
 				fmt.Printf("Error bcasting message: %s\n", err.Error())
 			}
 
-			c.chatService.SendNotificationToRoomExceptUser(msg.RoomID.Hex(), msg.UserID.Hex(), &model.Notification{
+			c.handler.chatService.SendNotificationToRoomExceptUser(msg.RoomID.Hex(), msg.UserID.Hex(), &model.Notification{
 				// Title: "New Message in room " + msg.RoomID.Hex(),
 				// Body:  fmt.Sprintf("[%s]: %s", msg.UserID.Hex(), msg.Data),
 				Data: map[string]string{
@@ -211,7 +213,6 @@ func (c *client) readPump() {
 
 		default:
 			fmt.Printf("INFO: unrecognized message\n==\n%s\n==\n", message)
-
 		}
 
 	}

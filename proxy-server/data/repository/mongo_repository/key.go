@@ -2,6 +2,7 @@ package mongo_repository
 
 import (
 	"encoding/json"
+	"fmt"
 	"proxySenior/domain/interface/repository"
 	model_proxy "proxySenior/domain/model"
 	"time"
@@ -79,6 +80,28 @@ func (r *KeyRepository) AddNewKey(roomID string, key []byte) error {
 	err = r.col.Insert(keyRecord)
 
 	return err
+}
+
+// ReplaceKey for replacing key in the room, when update
+func (repo *KeyRepository) ReplaceKey(roomID string, keys []model_proxy.KeyRecord) error {
+	// delete key
+	// TODO: preserve old one  and revert if fail
+	_, err := repo.col.RemoveAll(model_proxy.KeyRecordUpdate{RoomID: bson.ObjectIdHex(roomID)})
+	if err != nil {
+		return fmt.Errorf("error removing key: %w", err)
+	}
+
+	all := make([]interface{}, 0)
+	for _, k := range keys {
+		all = append(all, k)
+	}
+
+	err = repo.col.Insert(all...)
+	if err != nil {
+		return fmt.Errorf("error inserting key: %w", err)
+	}
+
+	return nil
 }
 
 // func (repo *KeyRepository) GetKeyByRoom(roomID string) (keys []model_proxy.KeyRecord, err error) {

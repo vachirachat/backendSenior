@@ -108,6 +108,14 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 	_respJSON, _ := json.Marshal(resp) // so we can see byte message easier
 	fmt.Printf("[get-key-remote] roomId: %s\ndecrypted keys: %s\n", roomID, _respJSON)
 
+	// if success we cache the key to DB and report to controller
+	fmt.Println(resp.Keys[0].RoomID.Hex())
+	err = s.local.ReplaceKey(roomID, resp.Keys)
+	if err != nil {
+		fmt.Println("update key error:", err)
+	}
+	s.remote.CatchUp(roomID)
+
 	s.keyCache[roomID] = keyCacheEntry{
 		data:    resp.Keys,
 		expires: time.Now().Add(10 * time.Second),

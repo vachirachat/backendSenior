@@ -184,7 +184,7 @@ func (c *client) readPump() {
 
 			keys, err := c.handlerRef.getKeyFromRoom(msg.RoomID.Hex())
 			if err != nil {
-				fmt.Println("can't get key for room:", msg.RoomID.Hex())
+				fmt.Println("can't get key for room:", msg.RoomID.Hex(), err)
 				c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{
 					Type: message_types.Error,
 					Payload: exception.Event{

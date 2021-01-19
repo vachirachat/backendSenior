@@ -16,10 +16,14 @@ type Keystore interface {
 	// AddNewKey should add a key to room, while invalidate the last key (if exists)
 	AddNewKey(roomID string, key []byte) error
 
-	// Note that key can't be deleted
+	// used for syncing key
+	ReplaceKey(roomID string, keys []model_proxy.KeyRecord) error
 }
 
 // RemoteKeyStore represent remote key store
 type RemoteKeyStore interface {
+	// get key from master of the room
 	GetByRoom(roomID string, details key_exchange.KeyExchangeRequest) (key_exchange.KeyExchangeResponse, error)
+	// report controller that we are up-to-date
+	CatchUp(roomID string) error
 }
