@@ -28,11 +28,11 @@ GET {{base}}/priority/{{roomId}}
 
 
 ###
-POST {{base}}/priority/{{roomId}}/{{proxyA}}
+POST {{base}}/priority/{{roomId}}/{{proxyB}}
 Content-Type: application/json
 
 {
-  "priority": 4
+  "priority": 3
 }
 
 

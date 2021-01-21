@@ -83,9 +83,12 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 	} else {
 		localPk, ok := h.k.GetProxyPublicKey(keyReq.ProxyID)
 		if !ok {
-			c.JSON(500, gin.H{
-				"status":  "error",
-				"message": "no key for room, please send request with key",
+			c.JSON(500, key_exchange.KeyExchangeResponse{
+				PublicKey:    nil,
+				ProxyID:      keyReq.ProxyID,
+				RoomID:       keyReq.RoomID,
+				Keys:         nil,
+				ErrorMessage: "ERR_NO_KEY",
 			})
 			return
 		} else {
@@ -105,6 +108,7 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 		// enc = encrypt with our private key
 		enc, err := encryption.EncryptWithPublicKey(keys[i].Key, pk)
 		if enc == nil {
+			// we should return with res
 			c.JSON(500, gin.H{
 				"status":  "error",
 				"message": "error encryption: " + err.Error(),

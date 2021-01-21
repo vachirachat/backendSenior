@@ -58,10 +58,10 @@ func NewChatRouteHandler(chatService *service.ChatService, proxyMw *auth.ProxyMi
 
 // client abstraction
 type client struct {
-	conn    *websocket.Conn
-	handler *ChatRouteHandler // reference to handler to call
-	connID  string
-	proxyID string
+	chatsocket *chatsocket.Connection
+	handler    *ChatRouteHandler // reference to handler to call
+	connID     string
+	proxyID    string
 }
 
 //Mount make the handler handle request from specfied routerGroup
@@ -97,10 +97,10 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 		handler.keyEx.SetOnline(clientID, true)
 
 		clnt := client{
-			conn:    wsConn,
-			handler: handler,
-			connID:  id,
-			proxyID: clientID,
+			chatsocket: conn, // chatsocket model
+			handler:    handler,
+			connID:     id,
+			proxyID:    clientID,
 		}
 
 		go clnt.readPump()
@@ -113,15 +113,17 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 // for more information about read/writePump, see https://github.com/gorilla/websocket/tree/master/examples/chat
 func (c *client) readPump() {
 	defer func() {
-		c.handler.chatService.OnDisconnect(c.connID)
+		c.handler.chatService.OnDisconnect(c.chatsocket)
+		// here we assume that proxy has ONLY ONE connection
 		c.handler.keyEx.SetOnline(c.proxyID, false)
-		c.conn.Close()
+
+		c.chatsocket.Conn.Close()
 	}()
-	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.chatsocket.Conn.SetReadLimit(maxMessageSize)
+	c.chatsocket.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.chatsocket.Conn.SetPongHandler(func(string) error { c.chatsocket.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, message, err := c.chatsocket.Conn.ReadMessage()
 		// fmt.Printf("[chat] <-- %s\n", message)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {

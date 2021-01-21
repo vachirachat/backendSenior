@@ -1,6 +1,7 @@
 package key_service
 
 import (
+	"backendSenior/domain/model"
 	"backendSenior/domain/model/chatsocket/key_exchange"
 	"crypto/rand"
 	"crypto/rsa"
@@ -10,35 +11,34 @@ import (
 	"proxySenior/domain/interface/repository"
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/utils"
-	"time"
 )
 
 // KeyService is service for managing key
 // - manage symmetric key generation and query locally
 // - manage getting symmetric key from
 type KeyService struct {
-	local        repository.Keystore // local
-	remote       repository.RemoteKeyStore
-	proxy        repository.ProxyMasterAPI
-	clientID     string // clientID of this proxy
-	keyCache     map[string]keyCacheEntry
-	pubKeyCache  map[string]*rsa.PublicKey
-	isLocalCache map[string]isLocalEntry
-	public       *rsa.PublicKey
-	privateKey   *rsa.PrivateKey
+	local           repository.Keystore // local
+	remote          repository.RemoteKeyStore
+	proxy           repository.ProxyMasterAPI
+	clientID        string // clientID of this proxy
+	keyCache        map[string][]model_proxy.KeyRecord
+	pubKeyCache     map[string]*rsa.PublicKey
+	roomMasterCache map[string]model.Proxy
+	public          *rsa.PublicKey
+	privateKey      *rsa.PrivateKey
 }
 
-// keyCacheEntry is used for caching key with expire time
-type keyCacheEntry struct {
-	data    []model_proxy.KeyRecord // keys
-	expires time.Time               // cache expires
-}
+// // keyCacheEntry is used for caching key with expire time
+// type keyCacheEntry struct {
+// 	data    []model_proxy.KeyRecord // keys
+// 	expires time.Time               // cache expires
+// }
 
-// isLocalEntry is used for caching answer for `IsLocal`
-type isLocalEntry struct {
-	data    bool      // whether room is local
-	expires time.Time // cache expires
-}
+// // isLocalEntry is used for caching answer for `IsLocal`
+// type isLocalEntry struct {
+// 	data    bool      // whether room is local
+// 	expires time.Time // cache expires
+// }
 
 // New create new key service
 func New(local repository.Keystore, remote repository.RemoteKeyStore, proxy repository.ProxyMasterAPI, clientID string) *KeyService {
@@ -48,9 +48,9 @@ func New(local repository.Keystore, remote repository.RemoteKeyStore, proxy repo
 		proxy:    proxy,
 		clientID: clientID,
 		// cache
-		keyCache:     make(map[string]keyCacheEntry),
-		pubKeyCache:  make(map[string]*rsa.PublicKey),
-		isLocalCache: make(map[string]isLocalEntry),
+		keyCache:        make(map[string][]model_proxy.KeyRecord), // cache room key
+		pubKeyCache:     make(map[string]*rsa.PublicKey),          // cache proxy public key
+		roomMasterCache: make(map[string]model.Proxy),             // ca
 		// keypair
 		public:     nil,
 		privateKey: nil,
@@ -62,10 +62,9 @@ func New(local repository.Keystore, remote repository.RemoteKeyStore, proxy repo
 // sendKey determine whether we will additionally exchange public key
 func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error) {
 	// memoization
-	if cache, ok := s.keyCache[roomID]; ok {
-		if cache.expires.After(time.Now()) {
-			return cache.data, nil
-		}
+	if keys, ok := s.keyCache[roomID]; ok {
+		fmt.Println("[REMOTE] cached key")
+		return keys, nil
 	}
 
 	proxy, err := s.proxy.GetRoomMasterProxy(roomID)
@@ -78,7 +77,7 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 
 	// key not exists (ok) then send key
 	resp, err := s.getRoomKey(roomID, !ok)
-
+	fmt.Println("response is", resp)
 	if err != nil {
 		// if otherside have lost the key, the send key gain
 		if resp.ErrorMessage == "ERR_NO_KEY" {
@@ -116,10 +115,7 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 	}
 	s.remote.CatchUp(roomID)
 
-	s.keyCache[roomID] = keyCacheEntry{
-		data:    resp.Keys,
-		expires: time.Now().Add(10 * time.Second),
-	}
+	s.keyCache[roomID] = resp.Keys
 
 	return resp.Keys, nil
 }

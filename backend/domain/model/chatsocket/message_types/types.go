@@ -8,6 +8,9 @@ const (
 	// Error represent error
 	Error = "ERROR"
 
+	InvalidateMaster = "INVALIDATE_MASTER"
+	InvalidateKey    = "INVALIDATE_KEY"
+
 	// KeyRequest is used for requesting key
 	KeyRequest = "KEY_REQUEST"
 

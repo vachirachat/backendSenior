@@ -113,6 +113,12 @@ func (s *RoomService) GetRoomProxyIDs(roomID string) ([]string, error) {
 	return members, err
 }
 
+// GetProxyRoomIDs return roomIds of proxy
+func (s *RoomService) GetProxyRoomIDs(proxyID string) ([]string, error) {
+	rooms, err := s.roomProxyRepository.GetRoomProxies(proxyID)
+	return rooms, err
+}
+
 // Proxy master no longer fixed
 
 // // GetRoomMasterProxy return master proxy of the room

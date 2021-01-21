@@ -5,6 +5,7 @@ import (
 	"backendSenior/domain/model/chatsocket"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -120,6 +121,7 @@ func (pool *ConnectionPool) SendMessage(connID string, data interface{}) error {
 	pool.lock.RUnlock()
 
 	if !exist {
+		fmt.Println("[send message] conn", connID, "not found")
 		return errors.New("Connection with that ID not found")
 	}
 	var messageBytes []byte
@@ -141,9 +143,11 @@ func removeConn(connID string, connArr []*chatsocket.Connection) ([]*chatsocket.
 	n := len(connArr)
 	found := false
 	for i := 0; i < n; i++ {
-		connArr[i], connArr[n-1] = connArr[n-1], connArr[i]
-		found = true
-		break
+		if connArr[i].ConnID == connID {
+			connArr[i], connArr[n-1] = connArr[n-1], connArr[i]
+			found = true
+			break
+		}
 	}
 	if found {
 		res := connArr[n-1]

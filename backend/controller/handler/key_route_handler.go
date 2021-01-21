@@ -1,6 +1,7 @@
 package route
 
 import (
+	"backendSenior/domain/model/chatsocket"
 	"backendSenior/domain/service"
 	"encoding/json"
 	"fmt"
@@ -17,12 +18,14 @@ type KeyRoute struct {
 	// keyAPI
 	proxy *service.ProxyService
 	keyEx *service.KeyExchangeService
+	chat  *service.ChatService // for broadcast message to room when key change
 }
 
-func NewKeyRoute(proxy *service.ProxyService, keyEx *service.KeyExchangeService) *KeyRoute {
+func NewKeyRoute(proxy *service.ProxyService, keyEx *service.KeyExchangeService, chat *service.ChatService) *KeyRoute {
 	return &KeyRoute{
 		proxy: proxy,
 		keyEx: keyEx,
+		chat:  chat,
 	}
 }
 
@@ -157,6 +160,8 @@ func (r *KeyRoute) generateRoomKey(c *gin.Context) {
 		c.JSON(500, gin.H{"status": "error"})
 	}
 
+	go r.chat.BroadcastMessageToRoom(roomID, chatsocket.InvalidateRoomKeyMessage(roomID))
+
 	body, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 	fmt.Printf("[get key] proxy responded %s\n", body)
@@ -175,14 +180,14 @@ func (r *KeyRoute) getMasterProxy(c *gin.Context) {
 
 	pid, err := r.keyEx.GetMaster(roomID)
 	if err != nil {
-		fmt.Println("keyRoute/generateRoomKey: can't get master proxy", err)
+		fmt.Println("keyRoute/getMasterProxy: can't get master proxy", err)
 		c.JSON(500, gin.H{"status": err.Error()})
 		return
 	}
 
 	proxy, err := r.proxy.GetProxyByID(pid)
 	if err != nil {
-		fmt.Println("keyRoute/generateRoomKey: can't get master proxy", err)
+		fmt.Println("keyRoute/getMasterProxy: can't get master proxy", err)
 		c.JSON(500, gin.H{"status": "couldn't determine proxy to get key"})
 		return
 	}
@@ -249,6 +254,9 @@ func (r *KeyRoute) catchUpKeyVersion(c *gin.Context) {
 		c.JSON(500, gin.H{"status": "error updating version, try again"})
 		return
 	}
+
+	// when catchup, master could change, should invalidate old one
+	go r.chat.BroadcastMessageToRoom(roomID, chatsocket.InvalidateRoomMasterMessage(roomID))
 
 	c.JSON(200, gin.H{"stauts": "OK"})
 }

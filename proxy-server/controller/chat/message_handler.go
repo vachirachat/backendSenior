@@ -109,7 +109,24 @@ func (h *MessageHandler) Start() {
 			} else {
 				fmt.Println("[handle room event] unkown event type", event.Type)
 			}
-
+		} else if rawMessage.Type == message_types.InvalidateMaster {
+			var roomID string
+			err := json.Unmarshal(rawMessage.Payload, &roomID)
+			if err != nil {
+				fmt.Println("bad payload", err)
+				continue
+			}
+			fmt.Println("invalidate master", roomID)
+			h.key.InvalidateRoomMaster(roomID)
+		} else if rawMessage.Type == message_types.InvalidateKey {
+			var roomID string
+			err := json.Unmarshal(rawMessage.Payload, &roomID)
+			if err != nil {
+				fmt.Println("bad payload", err)
+				continue
+			}
+			fmt.Println("invalidate KEY", roomID)
+			h.key.InvalidateKeyCache(roomID)
 		}
 
 	}

@@ -37,7 +37,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.RoomService)
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
-	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService)
+	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService)
 	r := gin.Default()
 
 	subgroup := r.Group("/api/v1")
