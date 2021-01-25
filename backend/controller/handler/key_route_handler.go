@@ -87,7 +87,7 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context) {
 
 	body, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
-	fmt.Printf("[get key] proxy responded %s\n", body)
+	// fmt.Printf("[get key] proxy responded %s\n", body)
 
 	// TODO: do we need to verify ? or just pass the response ?
 	var resBody interface{}
@@ -164,7 +164,8 @@ func (r *KeyRoute) generateRoomKey(c *gin.Context) {
 
 	body, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
-	fmt.Printf("[get key] proxy responded %s\n", body)
+	_ = body
+	// fmt.Printf("[get key] proxy responded %s\n", body)
 
 	c.JSON(200, gin.H{"status": "OK"})
 }

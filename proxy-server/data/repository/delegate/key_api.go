@@ -58,7 +58,7 @@ func (a *KeyAPI) GetByRoom(roomID string, details key_exchange.KeyExchangeReques
 	if err != nil {
 		return key_exchange.KeyExchangeResponse{}, fmt.Errorf("error decoding response: %v", err)
 	}
-	fmt.Printf("[get key] response OK?=%v :%s\n", isOK, body)
+	// fmt.Printf("[get key] response OK?=%v :%s\n", isOK, body)
 
 	// force error message
 	if !isOK {

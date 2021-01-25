@@ -44,3 +44,24 @@ func (service *ChatUpstreamService) RegsiterHandler(channel chan []byte) error {
 func (service *ChatUpstreamService) UnRegsiterHandler(channel chan []byte) error {
 	return service.upstream.UnRegisterHandler(channel)
 }
+
+// OnConnect register channel to be notified when upstream is connected
+func (service *ChatUpstreamService) OnConnect(channel chan struct{}) {
+	service.upstream.OnConnect(channel)
+	// service.up = append(upstream.onConnectRecv, channel)
+}
+
+// OffConnect unregister channel from being notified when upstream is connected
+func (service *ChatUpstreamService) OffConnect(channel chan struct{}) {
+	service.upstream.OffConnect(channel)
+}
+
+// OnDisconnect register channel to be notified when upstream is disconnected
+func (service *ChatUpstreamService) OnDisconnect(channel chan struct{}) {
+	service.upstream.OnDisconnect(channel)
+}
+
+// OffDisconnect unregister channel from being notified when upstream is disconnected
+func (service *ChatUpstreamService) OffDisconnect(channel chan struct{}) {
+	service.upstream.OffDisconnect(channel)
+}

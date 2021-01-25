@@ -117,7 +117,7 @@ func (h *MessageHandler) Start() {
 				continue
 			}
 			fmt.Println("invalidate master", roomID)
-			h.key.InvalidateRoomMaster(roomID)
+			h.key.RevalidateRoomMaster(roomID)
 		} else if rawMessage.Type == message_types.InvalidateKey {
 			var roomID string
 			err := json.Unmarshal(rawMessage.Payload, &roomID)
@@ -126,7 +126,7 @@ func (h *MessageHandler) Start() {
 				continue
 			}
 			fmt.Println("invalidate KEY", roomID)
-			h.key.InvalidateKeyCache(roomID)
+			h.key.RevalidateKeyCache(roomID)
 		}
 
 	}

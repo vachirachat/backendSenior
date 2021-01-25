@@ -7,6 +7,7 @@ import (
 	"fmt"
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/utils"
+	"time"
 
 	"github.com/globalsign/mgo/bson"
 )
@@ -61,7 +62,7 @@ func (s *KeyService) NewKeyForRoom(roomID string) error {
 	err = s.local.AddNewKey(roomID, key)
 	// invalidate self key
 	if err != nil {
-		s.InvalidateKeyCache(roomID)
+		s.RevalidateKeyCache(roomID)
 	}
 
 	return err
@@ -82,12 +83,48 @@ func (s *KeyService) IsLocal(roomID string) (bool, error) {
 	return isLocal, nil
 }
 
-// InvalidateRoomMaster invalidate cached query of locality
-func (s *KeyService) InvalidateRoomMaster(roomID string) {
+// RevalidateRoomMaster revalidate cached query of locality
+func (s *KeyService) RevalidateRoomMaster(roomID string) {
 	delete(s.roomMasterCache, roomID)
+	time.Sleep(100 * time.Millisecond) // have some buffer time
+	_, _ = s.IsLocal(roomID)
 }
 
-// InvalidateKeyCache invalidate cached key (forcing to get new key)
-func (s *KeyService) InvalidateKeyCache(roomID string) {
+// RevalidateKeyCache revalidate cached key (delete and get key again)
+func (s *KeyService) RevalidateKeyCache(roomID string) {
 	delete(s.keyCache, roomID)
+	time.Sleep(100 * time.Millisecond)
+	s._ensureKey(roomID)
+}
+
+func (s *KeyService) _ensureKey(roomID string) {
+	if local, err := s.IsLocal(roomID); err != nil {
+		fmt.Println("[warn] invalidate all: isLocal", roomID, ":", err)
+	} else if local {
+		_, _ = s.GetKeyLocal(roomID)
+	} else if !local {
+		_, _ = s.GetKeyRemote(roomID)
+	}
+}
+
+// RevalidateAll revalidate locality, and keys of all rooms.
+// additionally, it also get key of all rooms that proxy is in
+func (s *KeyService) RevalidateAll() {
+	fmt.Println("invalidating and re-getting all keys")
+	for roomID := range s.roomMasterCache {
+		s.RevalidateRoomMaster(roomID)
+	}
+	for roomID := range s.keyCache {
+		s.RevalidateKeyCache(roomID)
+	}
+
+	proxy, err := s.proxy.GetProxyByID(utils.ClientID)
+	if err != nil {
+		fmt.Printf("revalidate all: %v\n", err)
+	} else {
+		for _, roomID := range proxy.Rooms {
+			s._ensureKey(roomID.Hex())
+			_, _ = s.IsLocal(roomID.Hex())
+		}
+	}
 }

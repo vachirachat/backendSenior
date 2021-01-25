@@ -77,7 +77,7 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 
 	// key not exists (ok) then send key
 	resp, err := s.getRoomKey(roomID, !ok)
-	fmt.Println("response is", resp)
+	// fmt.Println("response is", resp)
 	if err != nil {
 		// if otherside have lost the key, the send key gain
 		if resp.ErrorMessage == "ERR_NO_KEY" {

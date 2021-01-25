@@ -55,6 +55,13 @@ func main() {
 	pluginPath := utils.PluginPath
 
 	upstream := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)
+	defer upstream.Stop()
+	upstreamService := service.NewChatUpstreamService(upstream)
+
+	conn := make(chan struct{}, 10)
+	upstreamService.OnConnect(conn)
+	defer upstreamService.OffConnect(conn)
+
 	onMessagePlugin := plugin.NewOnMessagePlugin(enablePlugin, pluginPath)
 
 	err = onMessagePlugin.Wait()
@@ -67,7 +74,6 @@ func main() {
 	keyService := key_service.New(keystore, keyAPI, proxyMasterAPI, clientID)
 	keyService.InitKeyPair()
 
-	upstreamService := service.NewChatUpstreamService(upstream)
 	messageService := service.NewMessageService(msgRepo)
 
 	// create router from service
@@ -82,6 +88,15 @@ func main() {
 	// websocket messasge handler
 	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, keyService, onMessagePlugin)
 	go messageHandler.Start()
+
+	// TODO; refactor
+	// auto reset key
+	go func() {
+		for {
+			<-conn
+			keyService.RevalidateAll()
+		}
+	}()
 
 	router.Run(utils.ListenAddress)
 

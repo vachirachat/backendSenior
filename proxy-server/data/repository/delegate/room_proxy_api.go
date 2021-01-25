@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"proxySenior/domain/interface/repository"
+	"proxySenior/utils"
 )
 
 type RoomProxyAPI struct {
@@ -57,25 +58,31 @@ func (a *RoomProxyAPI) GetProxyMasterRooms(proxyID string) ([]string, error) {
 		Host:   a.origin,
 		Path:   "/api/v1/proxy/" + proxyID + "/master-rooms",
 	}
-	res, err := http.Get(u.String())
-	if err != nil {
-		return nil, fmt.Errorf("error making request: %v", err)
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		return nil, fmt.Errorf("server return with non OK status: %d\nbody:%s", res.StatusCode, body)
-	}
 
 	var r struct { // see backend/proxy_route_handler
 		RoomIDs []string `json:"roomIds"`
 	}
-	err = json.Unmarshal(body, &r)
+	err := utils.HTTPGet(u, &r)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding response: %v", err)
+		return nil, fmt.Errorf("get proxy master rooms: %w", err)
 	}
 
 	return r.RoomIDs, nil
+}
+
+// GetProxyByID call controller API for getting proxy by ID
+func (a *RoomProxyAPI) GetProxyByID(proxyID string) (model.Proxy, error) {
+	u := url.URL{
+		Scheme: "http",
+		Host:   a.origin,
+		Path:   "/api/v1/proxy/" + proxyID,
+	}
+
+	var p model.Proxy
+	err := utils.HTTPGet(u, &p)
+	if err != nil {
+		return model.Proxy{}, fmt.Errorf("get proxy by id: %w", err)
+	}
+
+	return p, nil
 }

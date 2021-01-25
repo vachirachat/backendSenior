@@ -22,11 +22,14 @@ const (
 // UpstreamRepository is the client to upstream (controller)
 // It manage websocket connection automatically
 type UpstreamRepository struct {
-	origin       string
-	sendChannel  chan []byte
-	receivers    []chan []byte
-	clientID     string
-	clientSecret string
+	origin           string
+	sendChannel      chan []byte
+	receivers        []chan []byte
+	onConnectRecv    []chan struct{}
+	onDisconnectRecv []chan struct{}
+	stopChan         chan struct{}
+	clientID         string
+	clientSecret     string
 }
 
 var _ repository.UpstreamMessageRepository = (*UpstreamRepository)(nil)
@@ -34,17 +37,26 @@ var _ repository.UpstreamMessageRepository = (*UpstreamRepository)(nil)
 // NewUpStreamController create new upstream controller
 func NewUpStreamController(origin string, clientID string, clientSecret string) *UpstreamRepository {
 	ctrl := &UpstreamRepository{
-		origin:       origin,
-		sendChannel:  make(chan []byte, 10),
-		receivers:    make([]chan []byte, 0),
-		clientID:     clientID,
-		clientSecret: clientSecret,
+		origin:           origin,
+		sendChannel:      make(chan []byte, 10),
+		receivers:        make([]chan []byte, 0),
+		onConnectRecv:    make([]chan struct{}, 0),
+		onDisconnectRecv: make([]chan struct{}, 0),
+		stopChan:         make(chan struct{}),
+		clientID:         clientID,
+		clientSecret:     clientSecret,
 	}
 	go ctrl.connect()
 	return ctrl
 }
 
+// Stop disconnect and stop controller
+func (upstream *UpstreamRepository) Stop() {
+	close(upstream.stopChan)
+}
+
 func (upstream *UpstreamRepository) connect() {
+loop:
 	for {
 		url := url.URL{
 			Scheme: "ws",
@@ -66,16 +78,33 @@ func (upstream *UpstreamRepository) connect() {
 		}
 		fmt.Println("Connected to upstream")
 
+		for _, c := range upstream.onConnectRecv {
+			select {
+			case c <- struct{}{}:
+			default:
+			}
+		}
+
 		// is used to signal close of connection
 		connCloseChan := make(chan struct{})
 
 		go readPump(c, connCloseChan, upstream.receivers)
 		go writePump(c, connCloseChan, upstream.sendChannel)
 
-		<-connCloseChan
-
+		select {
+		case <-connCloseChan:
+			fmt.Print("conncetion closed")
+		case <-upstream.stopChan:
+			break loop
+		}
 		fmt.Println("Reconnecting")
 		c.Close()
+	}
+	for _, c := range upstream.onDisconnectRecv {
+		select {
+		case c <- struct{}{}:
+		default:
+		}
 	}
 }
 
@@ -166,4 +195,38 @@ func (upstream *UpstreamRepository) UnRegisterHandler(channel chan []byte) error
 		}
 	}
 	return errors.New("No Channel Removed")
+}
+
+// OnConnect register channel to be notified when upstream is connected
+func (upstream *UpstreamRepository) OnConnect(channel chan struct{}) {
+	upstream.onConnectRecv = append(upstream.onConnectRecv, channel)
+}
+
+// OffConnect unregister channel from being notified when upstream is connected
+func (upstream *UpstreamRepository) OffConnect(channel chan struct{}) {
+	idx := 0
+	for i := 0; i < len(upstream.onConnectRecv); i++ {
+		if upstream.onConnectRecv[i] != channel {
+			upstream.onConnectRecv[idx] = upstream.onConnectRecv[i]
+			idx++
+		}
+	}
+	upstream.onConnectRecv = upstream.onConnectRecv[:idx]
+}
+
+// OnDisconnect register channel to be notified when upstream is disconnected
+func (upstream *UpstreamRepository) OnDisconnect(channel chan struct{}) {
+	upstream.onDisconnectRecv = append(upstream.onDisconnectRecv, channel)
+}
+
+// OffDisconnect unregister channel from being notified when upstream is disconnected
+func (upstream *UpstreamRepository) OffDisconnect(channel chan struct{}) {
+	idx := 0
+	for i := 0; i < len(upstream.onDisconnectRecv); i++ {
+		if upstream.onDisconnectRecv[i] != channel {
+			upstream.onDisconnectRecv[idx] = upstream.onDisconnectRecv[i]
+			idx++
+		}
+	}
+	upstream.onDisconnectRecv = upstream.onDisconnectRecv[:idx]
 }
