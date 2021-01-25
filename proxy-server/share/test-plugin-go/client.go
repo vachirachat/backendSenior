@@ -118,6 +118,8 @@ func main() {
 	onMessage(client, msg)
 }
 
+// docker run --rm -itd -p 27017:27017 -v /Users/waritphon/Downloads/Senior:/data/db mongo
+
 // chat-route-handler
 // userID := "60001d1cf0a50a974cee376d"
 // routerGroup.GET("/ws" /*, handler.authMiddleware.AuthRequired() */, func(context *gin.Context) {
