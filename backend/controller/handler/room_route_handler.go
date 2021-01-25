@@ -26,10 +26,11 @@ type RoomRouteHandler struct {
 	authMw       *auth.JWTMiddleware
 	chatService  *service.ChatService     // for broadcast event when join/leave room
 	orgService   *service.OrganizeService // for add room to org
+	keyExService *service.KeyExchangeService
 }
 
 // NewRoomHandler create new handler for room
-func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware, userService *service.UserService, proxyService *service.ProxyService, chatService *service.ChatService, orgService *service.OrganizeService) *RoomRouteHandler {
+func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware, userService *service.UserService, proxyService *service.ProxyService, chatService *service.ChatService, orgService *service.OrganizeService, keyEx *service.KeyExchangeService) *RoomRouteHandler {
 	return &RoomRouteHandler{
 		roomService:  roomService,
 		userService:  userService,
@@ -37,6 +38,7 @@ func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddl
 		proxyService: proxyService,
 		chatService:  chatService,
 		orgService:   orgService,
+		keyExService: keyEx,
 	}
 }
 
@@ -405,12 +407,15 @@ func (h *RoomRouteHandler) addProxiesToRoom(context *gin.Context) {
 		return
 	}
 
-	err := h.roomService.AddProxiesToRoom(roomID, utills.ToStringArr(body.ProxyIDs))
+	proxyIDs := utills.ToStringArr(body.ProxyIDs)
+	err := h.roomService.AddProxiesToRoom(roomID, proxyIDs)
 	if err != nil {
 		fmt.Println("[Room handler] addProxiesToRoom: ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return
 	}
+
+	h.keyExService.Ensure(roomID, proxyIDs)
 
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 
@@ -427,12 +432,15 @@ func (h *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context) {
 		return
 	}
 
-	err := h.roomService.DeleteProxiesFromRoom(roomID, utills.ToStringArr(body.ProxyIDs))
+	proxyIDs := utills.ToStringArr(body.ProxyIDs)
+	err := h.roomService.DeleteProxiesFromRoom(roomID, proxyIDs)
 	if err != nil {
 		fmt.Println("[Room handler] addProxiesToRoom: ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return
 	}
+
+	h.keyExService.Delete(roomID, proxyIDs)
 
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 

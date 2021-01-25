@@ -8,7 +8,7 @@
 @roomB = 
 
 @proxyA = 5fef76ad26dcb936c4e0b6dc
-@proxyB = 
+@proxyB = 5ffd0a7c26dcb9a228363902
 
 @userA = 5fef73f4315e73be2c81c74e
 @userB = 5fef73eb315e73be2c81c745
@@ -82,15 +82,6 @@ Content-Type: application/json
 }
 
 
-### get naster proxy full
-GET {{base}}/{{roomA}}/master-proxy    
-###
-POST {{base}}/{{roomA}}/master-proxy    
-Content-Type: application/json
-
-{
-  "proxyId": "{{proxyA}}"
-}
 
 ###
 DELETE {{base}}/{{roomA}}/proxy    

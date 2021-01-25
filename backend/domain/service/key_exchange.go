@@ -2,8 +2,10 @@ package service
 
 import (
 	"backendSenior/domain/model"
+	"backendSenior/utills"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -98,4 +100,45 @@ func (s *KeyExchangeService) GetPriorities(roomID string) ([]model.KeyVersion, e
 	var kvs []model.KeyVersion
 	err := s.col.Find(model.KeyVersionFilter{RoomID: bson.ObjectIdHex(roomID)}).All(&kvs)
 	return kvs, err
+}
+
+type MultipleErrors struct {
+	error
+	Errors []error
+}
+
+func (e MultipleErrors) Error() string {
+	return fmt.Sprint(len(e.Errors), "errors occured")
+}
+
+// Ensure keyversion is available
+func (s *KeyExchangeService) Ensure(roomID string, proxyIDs []string) error {
+	var wg sync.WaitGroup
+	errors := []error{}
+	for _, pid := range proxyIDs {
+		wg.Add(1)
+		go func(pid string) {
+			_, err := s.col.Upsert(model.KeyVersionFilter{RoomID: bson.ObjectIdHex(roomID), ProxyID: bson.ObjectIdHex(pid)}, bson.M{
+				"$inc": model.KeyVersionFilter{Version: 0, Priority: 0}, // force create field if not exists
+			})
+			if err != nil {
+				errors = append(errors, err)
+			}
+			wg.Done()
+		}(pid)
+	}
+	wg.Wait()
+	if len(errors) == 0 {
+		return nil
+	}
+	return MultipleErrors{Errors: errors}
+}
+
+// Delete delete key version from database
+func (s *KeyExchangeService) Delete(roomID string, proxyIDs []string) error {
+	_, err := s.col.RemoveAll(model.KeyVersionFilter{
+		RoomID:  roomID,
+		ProxyID: bson.M{"$in": utills.ToObjectIdArr(proxyIDs)},
+	})
+	return err
 }
