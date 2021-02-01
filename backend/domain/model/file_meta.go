@@ -1,8 +1,14 @@
 package model
 
+import (
+	"time"
+
+	"github.com/globalsign/mgo/bson"
+)
+
 type FileMeta struct {
-	FileID     bson.objectId `json:"id" bson:"_id"`
-	RoomID     bson.objectId `json:"roomId" bson:"roomId"`
+	FileID     bson.ObjectId `json:"id" bson:"_id"`
+	RoomID     bson.ObjectId `json:"roomId" bson:"roomId"`
 	BucketName string        `json:"bucketName" bson:"bucketName"`
 	// meta
 	FileName  string    `json:"fileName" bson:"fileName"`
@@ -11,11 +17,11 @@ type FileMeta struct {
 }
 
 type FileMetaFilter struct {
-	FileID     bson.objectId `bson:"_id,omitempty"`
-	RoomID     bson.objectId `bson:"roomId,omitempty"`
-	BucketName string        `bson:"bucketName,omitempty"`
+	FileID     interface{} `bson:"_id,omitempty"`
+	RoomID     interface{} `bson:"roomId,omitempty"`
+	BucketName interface{} `bson:"bucketName,omitempty"`
 	// meta
-	FileName  string    `bson:"fileName,omitempty"`
-	Size      int       `bson:"size,omitempty"`
-	CreatedAt time.Time `bson:"createdAt,omitempty"`
+	FileName  interface{} `bson:"fileName,omitempty"`
+	Size      interface{} `bson:"size,omitempty"`
+	CreatedAt interface{} `bson:"createdAt,omitempty"`
 }

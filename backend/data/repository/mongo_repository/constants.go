@@ -17,6 +17,8 @@ const (
 	// for mgo/txn
 	collectionTXNRoomUser = "txnRoomUser"
 	collectionKeyVersion  = "keyVersions"
+	// meta
+	collectionMeta = "filemeta"
 )
 
 // return filter of {_id: {$in: ... }}, query that match multiple ID
