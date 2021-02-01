@@ -79,3 +79,4 @@ Content-Type: application/json
 ### GET rooms in organization
 GET {{base}}/{{orgA}}/room
 
+ไม่มีส่งครั้งเดียว มีแต่ต้องส่ง 2 ครั้ง

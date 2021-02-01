@@ -1,0 +1,7 @@
+@base = http://localhost:7070
+
+
+### REGSITER
+POST {{base}}/compilecode
+Content-Type: application/json
+
