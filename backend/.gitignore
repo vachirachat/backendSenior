@@ -12,3 +12,6 @@ exper
 
 # for windows user
 *.exe
+
+# intellij
+.idea/**
