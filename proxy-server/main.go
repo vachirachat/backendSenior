@@ -75,6 +75,7 @@ func main() {
 	keyService.InitKeyPair()
 
 	messageService := service.NewMessageService(msgRepo)
+	fileService := service.NewFileService("localhost:8080")
 
 	// create router from service
 	router := (&route.RouterDeps{
@@ -83,6 +84,7 @@ func main() {
 		AuthService:       delegateAuth,
 		MessageService:    messageService,
 		KeyService:        keyService,
+		FileService:       fileService,
 	}).NewRouter()
 
 	// websocket messasge handler

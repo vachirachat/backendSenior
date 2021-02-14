@@ -62,7 +62,7 @@ func (a *RoomProxyAPI) GetProxyMasterRooms(proxyID string) ([]string, error) {
 	var r struct { // see backend/proxy_route_handler
 		RoomIDs []string `json:"roomIds"`
 	}
-	err := utils.HTTPGet(u, &r)
+	err := utils.HTTPGet(u.String(), &r)
 	if err != nil {
 		return nil, fmt.Errorf("get proxy master rooms: %w", err)
 	}
@@ -79,7 +79,7 @@ func (a *RoomProxyAPI) GetProxyByID(proxyID string) (model.Proxy, error) {
 	}
 
 	var p model.Proxy
-	err := utils.HTTPGet(u, &p)
+	err := utils.HTTPGet(u.String(), &p)
 	if err != nil {
 		return model.Proxy{}, fmt.Errorf("get proxy by id: %w", err)
 	}

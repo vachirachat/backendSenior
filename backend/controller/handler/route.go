@@ -20,6 +20,7 @@ type RouterDeps struct {
 	OraganizeService    *service.OrganizeService
 	NotificationService *service.NotificationService
 	KeyExchangeService  *service.KeyExchangeService
+	FileService         *service.FileService
 }
 
 // NewRouter create new router (gin server) with various handler
@@ -38,6 +39,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
 	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService)
+	fileRouteHandler := NewFileRouteHandler(deps.FileService)
 	r := gin.Default()
 
 	subgroup := r.Group("/api/v1")
@@ -51,5 +53,6 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	fcmTokenRouteHandler.Mount(subgroup.Group("/fcm"))
 	connStateRouteHandler.Mount(subgroup.Group("/conn"))
 	keyRouteHandler.Mount(subgroup.Group("/key"))
+	fileRouteHandler.Mount(subgroup.Group("/file"))
 	return r
 }

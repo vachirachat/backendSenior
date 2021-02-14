@@ -7,9 +7,11 @@ import (
 )
 
 type FileMeta struct {
-	FileID     bson.ObjectId `json:"id" bson:"_id"`
-	RoomID     bson.ObjectId `json:"roomId" bson:"roomId"`
-	BucketName string        `json:"bucketName" bson:"bucketName"`
+	FileID      bson.ObjectId `json:"id" bson:"_id"`
+	ThumbnailID bson.ObjectId `json:"thumbnailId" bson:"thumbnailId,omitempty"` // optional
+	UserID      bson.ObjectId `json:"userId" bson:"userId"`
+	RoomID      bson.ObjectId `json:"roomId" bson:"roomId"`
+	BucketName  string        `json:"bucketName" bson:"bucketName"`
 	// meta
 	FileName  string    `json:"fileName" bson:"fileName"`
 	Size      int       `json:"size" bson:"size"`
@@ -17,9 +19,11 @@ type FileMeta struct {
 }
 
 type FileMetaFilter struct {
-	FileID     interface{} `bson:"_id,omitempty"`
-	RoomID     interface{} `bson:"roomId,omitempty"`
-	BucketName interface{} `bson:"bucketName,omitempty"`
+	FileID      interface{} `bson:"_id,omitempty"`
+	ThumbnailID interface{} `bson:"thumbnailId,omitempty"` // optional
+	UserID      interface{} `bson:"userId,omitempty"`
+	RoomID      interface{} `bson:"roomId,omitempty"`
+	BucketName  interface{} `bson:"bucketName,omitempty"`
 	// meta
 	FileName  interface{} `bson:"fileName,omitempty"`
 	Size      interface{} `bson:"size,omitempty"`

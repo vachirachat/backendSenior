@@ -3,6 +3,7 @@ package main
 import (
 	route "backendSenior/controller/handler"
 	"backendSenior/data/repository/chatsocket"
+	"backendSenior/data/repository/file"
 	"backendSenior/data/repository/mongo_repository"
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/service"
@@ -83,6 +84,22 @@ func main() {
 	fcmTokenRepo := mongo_repository.NewFCMTokenRepository(connectionDB)
 	fcmUserRepo := mongo_repository.NewFCMUserRepository(connectionDB)
 
+	fileStore, err := file.NewFileStore(&file.MinioConfig{
+		Endpoint:  "localhost:9000",
+		AccessID:  "minioadmin",
+		SecretKey: "minioadmin",
+		UseSSL:    false,
+	})
+
+	if err != nil {
+		log.Fatal("error creating fileStore:", err)
+	}
+	if err = fileStore.Init(); err != nil {
+		log.Fatal("error init fileStore:", err)
+	}
+
+	fileMetaRepo := mongo_repository.NewFileMetaRepositoryMongo(connectionDB)
+
 	clnt, err := app.Messaging(context.Background())
 	if err != nil {
 		log.Fatalln("Error getting messaging instance", err)
@@ -106,6 +123,8 @@ func main() {
 	proxyAuthSvc := auth.NewProxyAuth(proxyRepo)
 	keyExSvc := service.NewKeyExchangeService(mongo_repository.KeyVersionCollection(connectionDB))
 
+	fileSvc := service.NewFileService(fileStore, fileMetaRepo)
+
 	routerDeps := route.RouterDeps{
 		RoomService:         roomSvc,
 		MessageService:      msgSvc,
@@ -117,6 +136,7 @@ func main() {
 		OraganizeService:    organizeSvc,
 		NotificationService: notifSvc,
 		KeyExchangeService:  keyExSvc,
+		FileService:         fileSvc,
 	}
 
 	router := routerDeps.NewRouter()
