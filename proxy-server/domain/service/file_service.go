@@ -150,7 +150,7 @@ func (s *FileService) UploadFile(roomID string, userID string, filename string, 
 			"name":      filename, // name of file
 			"roomId":    roomID,   // room to associate file
 			"userId":    userID,   // file owner
-			"size":      -1,
+			"size":      len(allFileData),
 			"createdAt": timestamp,
 		}).
 		SetHeader("Content-Type", "application/json").

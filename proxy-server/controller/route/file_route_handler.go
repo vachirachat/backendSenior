@@ -79,7 +79,8 @@ func (h *FileRouteHandler) getFile(c *gin.Context) {
 	}
 
 	c.Header("Content-Type", "application/octet-stream")
-	c.Status(400)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", meta.FileName))
+	c.Status(200)
 	c.Writer.Write(fileData)
 
 }
