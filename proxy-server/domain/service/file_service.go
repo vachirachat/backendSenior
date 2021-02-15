@@ -1,10 +1,10 @@
 package service
 
 import (
+	"backendSenior/domain/model"
 	file_payload "backendSenior/domain/payload/file"
 	"bytes"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
 	"github.com/go-resty/resty/v2"
 	"io"
 	"io/ioutil"
@@ -13,6 +13,7 @@ import (
 	_ "net/http/httputil"
 	"net/url"
 	"proxySenior/utils"
+	"time"
 )
 
 type FileService struct {
@@ -30,7 +31,7 @@ func NewFileService(controllerHost string) *FileService {
 // GetAnyFile
 // fileType: image or file
 // fileID: Id of file or thumbnail (it's objectid)
-func (s *FileService) GetAnyFile(fileType string, fileID string) (file io.Reader, err error) {
+func (s *FileService) GetAnyFile(fileType string, fileID string) (file []byte, err error) {
 	u := url.URL{
 		Scheme: "http",
 		Host:   s.host,
@@ -66,33 +67,47 @@ func (s *FileService) GetAnyFile(fileType string, fileID string) (file io.Reader
 		return nil, fmt.Errorf("get file: read error: %w", err)
 	}
 
-	return bytes.NewReader(data), nil
+	return data, nil
 }
 
-// func (s *FileService) ListRoomFiles(roomID bson.ObjectId) ([]model.FileMeta, error) {
-// 	u := url.URL{
-// 		Scheme: "http",
-// 		Host:   s.host,
-// 		Path:   fmt.Sprintf("/api/v1/file/room/%s/files", roomID.Hex()),
-// 	}
-// 	var fileMetas []model.FileMeta
-// 	err := utils.HTTPGet(u.String(), &fileMetas)
-// 	return fileMetas, utils.WrapError("list room file: request error: %w", err)
-// }
+func (s *FileService) GetAnyFileMeta(fileID string) (meta model.FileMeta, err error) {
+	res, err := s.clnt.R().
+		SetResult(&meta).
+		Get(fmt.Sprintf("http://%s/api/v1/file/by-id/%s", s.host, fileID))
+	if !res.IsSuccess() {
+		return meta, fmt.Errorf("server response with status: %d\n%s", res.StatusCode(), res.String())
+	}
+	if err != nil {
+		return meta, fmt.Errorf("request failed: %w", err)
+	}
+	return meta, nil
 
-// func (s *FileService) ListRoomImages(roomID bson.ObjectId) ([]model.FileMeta, error) {
-// 	u := url.URL{
-// 		Scheme: "http",
-// 		Host:   s.host,
-// 		Path:   fmt.Sprintf("/api/v1/file/room/%s/files", roomID.Hex()),
-// 	}
-// 	var fileMetas []model.FileMeta
-// 	err := utils.HTTPGet(u.String(), &fileMetas)
-// 	return fileMetas, utils.WrapError("list room file: request error: %w", err)
+}
 
-// }
+func (s *FileService) ListRoomFiles(roomID string) ([]model.FileMeta, error) {
+	u := url.URL{
+		Scheme: "http",
+		Host:   s.host,
+		Path:   fmt.Sprintf("/api/v1/file/room/%s/files", roomID),
+	}
+	var fileMetas []model.FileMeta
+	err := utils.HTTPGet(u.String(), &fileMetas)
+	return fileMetas, utils.WrapError("list room file: request error: %w", err)
+}
 
-func (s *FileService) UploadFile(roomID bson.ObjectId, userID bson.ObjectId, filename string, file io.ReadCloser) error {
+func (s *FileService) ListRoomImages(roomID string) ([]model.FileMeta, error) {
+	u := url.URL{
+		Scheme: "http",
+		Host:   s.host,
+		Path:   fmt.Sprintf("/api/v1/file/room/%s/files", roomID),
+	}
+	var fileMetas []model.FileMeta
+	err := utils.HTTPGet(u.String(), &fileMetas)
+	return fileMetas, utils.WrapError("list room file: request error: %w", err)
+
+}
+
+func (s *FileService) UploadFile(roomID string, userID string, filename string, timestamp time.Time, file io.Reader) (fileID string, err error) {
 	// ---- get upload URL
 	u := url.URL{
 		Scheme: "http",
@@ -100,13 +115,12 @@ func (s *FileService) UploadFile(roomID bson.ObjectId, userID bson.ObjectId, fil
 		Path:   "/api/v1/file/before-upload",
 	}
 	var uploadFileRes file_payload.BeforeUploadFileResponse
-	err := utils.HTTPPost(u.String(), "application/json", "", &uploadFileRes)
+	err = utils.HTTPPost(u.String(), "application/json", "", &uploadFileRes)
 	if err != nil {
-		return fmt.Errorf("upload file: get url: %w", err)
+		return "", fmt.Errorf("upload file: get url: %w", err)
 	}
 
 	allFileData, _ := ioutil.ReadAll(file)
-
 
 	req := s.clnt.R().
 		SetFormData(uploadFileRes.FormData).
@@ -119,40 +133,34 @@ func (s *FileService) UploadFile(roomID bson.ObjectId, userID bson.ObjectId, fil
 
 	if err != nil {
 		fmt.Println("resty req error:", err)
-		return err
+		return "", err
 	}
-	fmt.Println("res:", res.String())
+	if !res.IsSuccess() {
+		return "", fmt.Errorf("response status: %d\n%s", res.StatusCode(), res.String())
+	}
 
-	//if err != nil {
-	//	return fmt.Errorf("upload file: upload to minio: %w", err)
-	//}
-	//fmt.Println(uploadRes.Request.Header)
-	//defer uploadRes.Body.Close()
-	//
-	//if uploadRes.StatusCode >= 400 {
-	//	body, err := ioutil.ReadAll(uploadRes.Body)
-	//	if err != nil {
-	//		return fmt.Errorf("upload file: upload to minio: non ok %d: read error: %w", uploadRes.StatusCode, err)
-	//	}
-	//	return fmt.Errorf("upload file: upload to minio: request status: %d body: %s", uploadRes.StatusCode, body)
-	//}
-	//
-	//afterUploadUrl := url.URL{
-	//	Scheme: "http",
-	//	Host:   s.host,
-	//	Path:   fmt.Sprintf("/api/v1/file/room/%s/after-upload/%s", roomID.Hex(), uploadFileRes.FileID),
-	//}
-	//
-	//var res interface{}
-	//err = utils.HTTPPost(afterUploadUrl.String(), "application/json", map[string]interface{}{ // TODO: refactor
-	//	"name":   filename, // name of file
-	//	"roomId": roomID,   // room to associate file
-	//	"userId": userID,   // file owner
-	//	"size":   -1,
-	//}, &res)
+	afterUploadUrl := url.URL{
+		Scheme: "http",
+		Host:   s.host,
+		Path:   fmt.Sprintf("/api/v1/file/room/%s/after-upload/%s", roomID, uploadFileRes.FileID),
+	}
 
+	res, err = s.clnt.R().
+		SetBody(map[string]interface{}{ // TODO: refactor
+			"name":      filename, // name of file
+			"roomId":    roomID,   // room to associate file
+			"userId":    userID,   // file owner
+			"size":      -1,
+			"createdAt": timestamp,
+		}).
+		SetHeader("Content-Type", "application/json").
+		Post(afterUploadUrl.String())
 
-	return utils.WrapError("upload file: after upload: %w", err)
+	if !res.IsSuccess() {
+		return "", fmt.Errorf("response status: %d\n%s", res.StatusCode(), res.String())
+	}
+
+	return uploadFileRes.FileID, utils.WrapError("upload file: after upload: %w", err)
 }
 
 func (s *FileService) UploadImage() {

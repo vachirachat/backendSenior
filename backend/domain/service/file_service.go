@@ -26,6 +26,7 @@ type UploadFileMeta struct {
 	RoomID bson.ObjectId // room to associate file
 	UserID bson.ObjectId // file owner
 	Size   int
+	CreatedAt time.Time // time that file is encrypted at proxy
 }
 
 type UploadImageMeta struct {
@@ -59,15 +60,13 @@ func (s *FileService) BeforeUploadFilePOST() (fileID string, presignedURL string
 
 // AfterUploadFile should be used after uploading file to set meta data to database
 func (s *FileService) AfterUploadFile(fileID string, meta UploadFileMeta) error {
-	now := time.Now()
-
 	err := s.meta.InsertFile(model.FileMeta{
 		FileID:     bson.ObjectIdHex(fileID),
 		RoomID:     meta.RoomID,
 		BucketName: "file",
 		FileName:   meta.Name,
 		Size:       meta.Size,
-		CreatedAt:  now,
+		CreatedAt:  meta.CreatedAt,
 		UserID:     meta.UserID,
 	})
 	if err != nil {

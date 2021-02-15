@@ -1,24 +1,31 @@
 package route
 
 import (
-	"io"
-	"log"
-	"proxySenior/controller/middleware"
-	"proxySenior/domain/service"
-
+	"bytes"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
+	"io/ioutil"
+	"log"
+	"proxySenior/controller/middleware"
+	"proxySenior/domain/encryption"
+	model_proxy "proxySenior/domain/model"
+	"proxySenior/domain/service"
+	"proxySenior/domain/service/key_service"
+	"time"
 )
 
 type FileRouteHandler struct {
 	fs     *service.FileService
 	authMw *middleware.AuthMiddleware
+	key    *key_service.KeyService
 }
 
-func NewFileRouteHandler(fs *service.FileService, authMw *middleware.AuthMiddleware) *FileRouteHandler {
+func NewFileRouteHandler(fs *service.FileService, authMw *middleware.AuthMiddleware, key *key_service.KeyService) *FileRouteHandler {
 	return &FileRouteHandler{
 		fs:     fs,
 		authMw: authMw,
+		key:    key,
 	}
 }
 
@@ -42,28 +49,39 @@ func (h *FileRouteHandler) getFile(c *gin.Context) {
 		return
 	}
 
-	file, err := h.fs.GetAnyFile(fileType, fileID)
+	meta, err := h.fs.GetAnyFileMeta(fileID)
+	if err != nil {
+		log.Println("get file: get meta:", err)
+		c.JSON(500, gin.H{"status": "error", "message": "error"})
+		return
+	}
+
+	fileData, err := h.fs.GetAnyFile(fileType, fileID)
 	if err != nil {
 		log.Println("get file: service:", err)
 		c.JSON(500, gin.H{"status": "error", "message": "error"})
 		return
 	}
 
-	c.Header("Content-Type", "application/octet-stream")
-	c.Status(200)
-	buf := make([]byte, 2<<10) // 2KB ?
-	for {
-		n, err := file.Read(buf)
-		c.Writer.Write(buf[:n])
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
-				c.Status(500)
-				return
-			}
-		}
+	log.Printf("[v] file meta %+v\n", meta)
+	keys, err := h.getKeyFromRoom(meta.RoomID.Hex())
+	if err != nil {
+		log.Println("get file: get key for decrypt:", err)
+		c.JSON(500, gin.H{"status": "error", "message": "error"})
+		return
 	}
+	key := keyFor(keys, meta.CreatedAt)
+	fileData, err = encryption.AESDecrypt(fileData, key)
+	if err != nil {
+		log.Println("get file: decrypt error:", err)
+		c.JSON(500, gin.H{"status": "error", "message": "error"})
+		return
+	}
+
+	c.Header("Content-Type", "application/octet-stream")
+	c.Status(400)
+	c.Writer.Write(fileData)
+
 }
 
 func (h *FileRouteHandler) uploadFile(c *gin.Context) {
@@ -86,13 +104,62 @@ func (h *FileRouteHandler) uploadFile(c *gin.Context) {
 		c.JSON(500, err)
 		return
 	}
-
-	err = h.fs.UploadFile(bson.ObjectIdHex(roomID), bson.ObjectIdHex(userID), header.Filename, file)
+	defer file.Close()
+	fileData, err := ioutil.ReadAll(file)
 	if err != nil {
-		log.Println("upload file", err)
-		c.JSON(500, err)
+		log.Println("read file", err)
+		c.JSON(500, fmt.Errorf("read file: %w", err))
 		return
 	}
 
-	c.JSON(200, "OK")
+	now := time.Now()
+
+	keys, err := h.getKeyFromRoom(roomID)
+	if err != nil {
+		log.Println("get key for room", err)
+		c.JSON(500, fmt.Errorf("get key for room: %w", err))
+		return
+	}
+	key := keyFor(keys, now)
+	fileData, err = encryption.AESEncrypt(fileData, key)
+	if err != nil {
+		log.Println("encrypt file", err)
+		c.JSON(500, fmt.Errorf("encrypt file: %w", err))
+		return
+	}
+	fileID, err := h.fs.UploadFile(roomID, userID, header.Filename, now, bytes.NewReader(fileData))
+	if err != nil {
+		log.Println("upload file", err)
+		c.JSON(500, fmt.Errorf("upload file: %w", err))
+		return
+	}
+	c.JSON(200, gin.H{
+		"fileId": fileID,
+	})
+}
+
+// TODO: duplicated code
+//getKeyFromRoom determine where to get key and get the key
+func (h *FileRouteHandler) getKeyFromRoom(roomID string) ([]model_proxy.KeyRecord, error) {
+	local, err := h.key.IsLocal(roomID)
+	if err != nil {
+		return nil, fmt.Errorf("error deftermining locality ok key %v", err)
+	}
+
+	var keys []model_proxy.KeyRecord
+	if local {
+		fmt.Println("[message] use LOCAL key for", roomID)
+		keys, err = h.key.GetKeyLocal(roomID)
+		if err != nil {
+			return nil, fmt.Errorf("error getting key locally %v", err)
+		}
+	} else {
+		fmt.Println("[message] use REMOTE key for room", roomID)
+		keys, err = h.key.GetKeyRemote(roomID)
+		if err != nil {
+			return nil, fmt.Errorf("error getting key remotely %v", err)
+		}
+	}
+
+	return keys, nil
 }
