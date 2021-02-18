@@ -28,7 +28,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.KeyService)
 	pingRouteHandler := NewPingRouteHandler()
 	keyRouteHandler := NewKeyRouteHandler(deps.KeyService)
-	fileRouteHandler := NewFileRouteHandler(deps.FileService, authMiddleware, deps.KeyService)
+	fileRouteHandler := NewFileRouteHandler(deps.FileService, authMiddleware, deps.KeyService, deps.UpstreamService)
 
 	pingRouteHandler.Mount(r.Group("/ping"))
 
