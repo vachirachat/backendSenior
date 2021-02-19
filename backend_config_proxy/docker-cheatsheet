@@ -1,0 +1,41 @@
+--> Code pattern 
+// must install to run mac-go/build in docker
+docker pull karalabe/xgo-latest
+
+docker build -t [name-image] .
+
+docker run --publish 2020:2020 --name [name-container] --rm [name-image]
+
+--> Build go 
+
+env GOOS=target-OS GOARCH=target-architecture go build package-import-path
+
+// Docker go-build use linux / arm64
+env GOOS=linux GOARCH=arm64 go build ...
+
+--> name-image
+ #upload-server
+ # 2020 is upload 
+ # 5050 is plugin-link
+
+ docker build -t upload-server .
+  docker build -t proxy-execable .
+ docker run --publish 2020:2020 --name test-upload --rm upload-server
+
+ chmod +x /Users/waritphon/code-fast-test/golang-upload-exec/file-upload/upload
+
+--> Connect mutiple port to docker 
+docker run -p 5005:5005 -p 5050:5050 -p 6000:6000 -d  -t --name proxy-execable --rm proxy-execable
+
+// Start mongoDB
+// docker run --rm -itd -p 27017:27017 -v /Users/waritphon/Downloads/Senior:/data/db mongo
+
+//docker network list
+docker network inspect bridge
+
+// Run exec- in docker
+docker exec -ti 4ff36ae35dbd sh -c "cat /app/go_server/docker-cheatsheet"
+
+#####
+-->Demo Connect mutiple port to docker Demo 
+docker run -p 5555:5555 -p 5005:5005 -p 5050:5050  -d  -t --name docker_upload --rm docker_upload

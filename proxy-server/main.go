@@ -42,6 +42,7 @@ func main() {
 	// Add port to communicate with RPC
 	enablePlugin := true
 	pluginPort := os.Getenv("PLUGIN_PORT")
+	log.Println(pluginPort)
 	if pluginPort == "" {
 		enablePlugin = false
 		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PATH is not set")

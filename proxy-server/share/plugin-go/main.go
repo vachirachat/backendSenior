@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"proxySenior/share/proto"
@@ -77,12 +76,12 @@ func main() {
 	}()
 
 	flag.Parse()
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 5005))
+	lis, err := net.Listen("tcp", "localhost:5005")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	var opts []grpc.ServerOption
-	opts = []grpc.ServerOption{}
+	opts = []grpc.ServerOption{}w
 
 	grpcServer := grpc.NewServer(opts...)
 	proto.RegisterBackupServer(grpcServer, NewBackupServer())

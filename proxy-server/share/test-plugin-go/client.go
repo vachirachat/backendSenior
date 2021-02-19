@@ -25,7 +25,6 @@ package main
 
 import (
 	context "context"
-	"flag"
 	"log"
 	"proxySenior/share/proto"
 	"time"
@@ -34,7 +33,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var serverAddr = flag.String("server_addr", "localhost:5005", "The server address in the format of host:port")
+// var serverAddr = flag.String("server_addr", "localhost:5005", "The server address in the format of host:port")
 
 // RawMessage is message received over GRPC
 type RawMessage struct {
@@ -56,6 +55,7 @@ func onMessage(client proto.BackupClient, msg RawMessage) {
 	feature, err := client.OnMessageIn(ctx, &proto.Chat{
 		MessageId: msg.MessageID,
 		RoomId:    msg.RoomID,
+		UserId:    msg.UserID,
 		Timestamp: msg.TimeStamp,
 		Type:      msg.Type,
 		ClientUid: msg.ClientUID,
@@ -80,13 +80,17 @@ func isReady(client proto.BackupClient) *proto.Status {
 }
 
 func main() {
-	flag.Parse()
 	var opts []grpc.DialOption
 
 	opts = append(opts, grpc.WithInsecure())
 	opts = append(opts, grpc.WithBlock())
 
-	conn, err := grpc.Dial(*serverAddr, opts...)
+	// log.Println("Connect Port localhost:7000")
+	// conn, err := grpc.Dial(":6000", opts...)
+
+	log.Println("Connect Port localhost:5005")
+	conn, err := grpc.Dial("localhost:5005", opts...)
+
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	}
@@ -95,22 +99,18 @@ func main() {
 	log.Println(client)
 
 	msg := RawMessage{
-		MessageID: bson.ObjectId("60001d1cf0a50a974cee376d").Hex(),
+		MessageID: bson.NewObjectId().Hex(),
 		TimeStamp: time.Now().Unix(),
 		RoomID:    bson.ObjectIdHex("60001d1cf0a50a974cee376d").Hex(),
 		UserID:    bson.ObjectIdHex("60001e33584cb6da2059f5b7").Hex(),
 		ClientUID: "60001d1cf0a50a974cee376d",
-		Data:      "Test-message-1",
-		Type:      "CHAT",
+		// Data:      "Test GO Plugin Server",
+		Data: ">>> Hello docker Server",
+		// Data: "Test Python Plugin Server",
+		// Data: "Test JS Plugin Server",
+		Type: "CHAT",
 	}
-	// msg := RawMessage{
-	// 	TimeStamp: 150000,
-	// 	RoomID:    bson.ObjectIdHex("60001d1cf0a50a974cee376d").Hex(),
-	// 	UserID:    bson.ObjectIdHex("60001e33584cb6da2059f5b7").Hex(),
-	// 	ClientUID: "60001d1cf0a50a974cee376d",
-	// 	Data:      "Test-message-1",
-	// 	Type:      "CHAT",
-	// }
+
 	defer conn.Close()
 
 	ok := isReady(client)
