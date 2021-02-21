@@ -3,29 +3,65 @@ package service
 import (
 	"backendSenior/domain/model"
 	file_payload "backendSenior/domain/payload/file"
-	"bytes"
+	"common/rmq"
+	"encoding/json"
 	"fmt"
+	"github.com/globalsign/mgo/bson"
 	"github.com/go-resty/resty/v2"
-	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	_ "net/http/httputil"
 	"net/url"
 	"proxySenior/utils"
-	"time"
 )
 
 type FileService struct {
-	host string
-	clnt *resty.Client
+	host        string
+	clnt        *resty.Client
+	rabbit      *rmq.RMQClient
+	pendingTask map[int]chan bool
 }
 
-func NewFileService(controllerHost string) *FileService {
+// NewFileService create new file service, utilizing rabbitMQ
+// rabbit MQ must be ready (initailized)
+func NewFileService(controllerHost string, rabbit *rmq.RMQClient) *FileService {
 	return &FileService{
-		host: controllerHost,
-		clnt: resty.New(),
+		host:        controllerHost,
+		clnt:        resty.New(),
+		rabbit:      rabbit,
+		pendingTask: make(map[int]chan bool),
 	}
+}
+
+func (s *FileService) Run() error {
+	msgs, err := s.rabbit.Consume("upload_result")
+	if err != nil {
+		return fmt.Errorf("consume error: %w", err)
+	}
+
+	for {
+		m := <-msgs
+		var res struct {
+			TaskID int
+		}
+		m.Ack(true)
+		err := json.Unmarshal(m.Body, &res)
+		if err != nil {
+			fmt.Printf("[mq] handle message error: %s\nmessage was: %s\n", err, m.Body)
+			continue
+		}
+		c, ok := s.pendingTask[res.TaskID]
+		if !ok {
+			fmt.Printf("[mq] WARN: received finish taskID %d but task doesn't exist!", res.TaskID)
+			continue
+		}
+		fmt.Printf("[mq] DONE task %d\n", res.TaskID)
+		close(c)
+	}
+
+	return nil
 }
 
 // GetAnyFile
@@ -107,60 +143,99 @@ func (s *FileService) ListRoomImages(roomID string) ([]model.FileMeta, error) {
 
 }
 
-func (s *FileService) UploadFile(roomID string, userID string, filename string, timestamp time.Time, file io.Reader) (fileID string, err error) {
-	// ---- get upload URL
+func (s *FileService) BeforeUpload() (file_payload.BeforeUploadFileResponse, error) {
 	u := url.URL{
 		Scheme: "http",
 		Host:   s.host,
 		Path:   "/api/v1/file/before-upload",
 	}
-	var uploadFileRes file_payload.BeforeUploadFileResponse
-	err = utils.HTTPPost(u.String(), "application/json", "", &uploadFileRes)
+
+	var res file_payload.BeforeUploadFileResponse
+	_, err := s.clnt.R().
+		SetResult(&res).
+		Post(u.String())
 	if err != nil {
-		return "", fmt.Errorf("upload file: get url: %w", err)
+		return file_payload.BeforeUploadFileResponse{}, fmt.Errorf("prepare to upload: %w", err)
 	}
+	return res, nil
+}
 
-	allFileData, _ := ioutil.ReadAll(file)
+func (s *FileService) waitTaskComplete(taskId int) chan bool {
+	s.pendingTask[taskId] = make(chan bool)
+	return s.pendingTask[taskId]
+}
 
-	req := s.clnt.R().
-		SetFormData(uploadFileRes.FormData).
-		SetFileReader("file", "foo.txt", bytes.NewReader(allFileData)).
-		SetHeader("Content-Type", "multipart/form-data")
-	//
-	//req.Header["host"] = []string{"localhost:9000"}
+// FileDetail is detail of file to be send to worker to upload
 
-	res, err := req.Post(uploadFileRes.URL)
+// UploadFile for handling upload file at specific path
+// return file id of new file, <async> fileMeta of uploadFile, error
+// error nil if get meta success
+// it can still fail
+func (s *FileService) UploadFile(roomID string, userID string, key []byte, fileDetail model.FileDetail) (string, chan model.FileMeta, error) {
+	// ---- get upload URL
+	metaAsync := make(chan model.FileMeta, 1)
+	uploadFileRes, err := s.BeforeUpload()
+	taskID := rand.Int()
 
+	payload, err := json.Marshal(model.UploadFileTask{
+		TaskID:         taskID,
+		FilePath:       fileDetail.Path,
+		EncryptKey:     key,
+		UploadPostForm: uploadFileRes.FormData,
+		URL:            uploadFileRes.URL,
+	})
 	if err != nil {
-		fmt.Println("resty req error:", err)
-		return "", err
+		close(metaAsync)
+		return "", metaAsync, fmt.Errorf("marshal message to send: %w", err)
 	}
-	if !res.IsSuccess() {
-		return "", fmt.Errorf("response status: %d\n%s", res.StatusCode(), res.String())
-	}
+	w := s.waitTaskComplete(taskID)
 
-	afterUploadUrl := url.URL{
-		Scheme: "http",
-		Host:   s.host,
-		Path:   fmt.Sprintf("/api/v1/file/room/%s/after-upload/%s", roomID, uploadFileRes.FileID),
-	}
-
-	res, err = s.clnt.R().
-		SetBody(map[string]interface{}{ // TODO: refactor
-			"name":      filename, // name of file
-			"roomId":    roomID,   // room to associate file
-			"userId":    userID,   // file owner
-			"size":      len(allFileData),
-			"createdAt": timestamp,
-		}).
-		SetHeader("Content-Type", "application/json").
-		Post(afterUploadUrl.String())
-
-	if !res.IsSuccess() {
-		return "", fmt.Errorf("response status: %d\n%s", res.StatusCode(), res.String())
+	// send task
+	err = s.rabbit.Publish("upload_task", payload)
+	if err != nil {
+		close(metaAsync)
+		return "", metaAsync, fmt.Errorf("publish message: %w", err)
 	}
 
-	return uploadFileRes.FileID, utils.WrapError("upload file: after upload: %w", err)
+	// wait for task done
+	go func() {
+		defer close(metaAsync)
+		<-w
+		meta := model.FileMeta{
+			FileID:      bson.ObjectIdHex(uploadFileRes.FileID),
+			ThumbnailID: "",
+			UserID:      bson.ObjectIdHex(userID),
+			RoomID:      bson.ObjectIdHex(roomID),
+			BucketName:  "file",
+			FileName:    fileDetail.Name,
+			Size:        fileDetail.Size,
+			CreatedAt:   fileDetail.CreatedTime,
+		}
+		afterUploadUrl := url.URL{
+			Scheme: "http",
+			Host:   s.host,
+			Path:   fmt.Sprintf("/api/v1/file/room/%s/after-upload/%s", roomID, uploadFileRes.FileID),
+		}
+
+		res, err := s.clnt.R().
+			SetBody(meta).
+			SetHeader("Content-Type", "application/json").
+			Post(afterUploadUrl.String())
+
+		if !res.IsSuccess() {
+			fmt.Printf("[UPLOAD ERROR] after upload: server responded with status %d", res.StatusCode())
+			return
+			//return metaAsync,
+		}
+		if err != nil {
+			fmt.Printf("[UPLOAD ERROR] request error: %s", err)
+			return
+		}
+
+		metaAsync <- meta
+	}()
+
+	return uploadFileRes.FileID, metaAsync, nil
 }
 
 func (s *FileService) UploadImage() {

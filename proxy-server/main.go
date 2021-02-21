@@ -2,6 +2,7 @@ package main
 
 import (
 	"backendSenior/data/repository/chatsocket"
+	"common/rmq"
 	"log"
 	"proxySenior/controller/chat"
 	"proxySenior/controller/route"
@@ -69,13 +70,25 @@ func main() {
 		log.Fatalln("Wait for onMessagePlugin Error")
 	}
 
+	rabbit := rmq.New("amqp://guest:guest@localhost:5672/")
+	if err := rabbit.Connect(); err != nil {
+		log.Fatalf("can't connect to rabbitmq %s\n", err)
+	}
+	for _, q := range []string{"upload_task", "upload_result"} {
+		if err := rabbit.EnsureQueue(q); err != nil {
+			log.Fatalf("error ensuring queue %s: %s\n", q, err)
+		}
+	}
+
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
 	delegateAuth := service.NewDelegateAuthService(utils.ControllerOrigin)
 	keyService := key_service.New(keystore, keyAPI, proxyMasterAPI, clientID)
 	keyService.InitKeyPair()
 
 	messageService := service.NewMessageService(msgRepo)
-	fileService := service.NewFileService("localhost:8080")
+	fileService := service.NewFileService("localhost:8080", rabbit)
+
+	go fileService.Run() // go routing waiting for message
 
 	// create router from service
 	router := (&route.RouterDeps{

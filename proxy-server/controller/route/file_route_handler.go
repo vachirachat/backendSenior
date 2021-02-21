@@ -2,13 +2,12 @@ package route
 
 import (
 	"backendSenior/domain/model"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
-	"io/ioutil"
 	"log"
+	"math/rand"
 	"proxySenior/controller/middleware"
 	"proxySenior/domain/encryption"
 	model_proxy "proxySenior/domain/model"
@@ -105,23 +104,15 @@ func (h *FileRouteHandler) uploadFile(c *gin.Context) {
 		c.JSON(500, err)
 		return
 	}
-	file, err := header.Open()
-	if err != nil {
-		log.Println("open file", err)
-		c.JSON(500, err)
-		return
-	}
-	// TODO: filename shouldn't be trusted
-	defer file.Close()
-	fileData, err := ioutil.ReadAll(file)
-	if err != nil {
-		log.Println("read file", err)
-		c.JSON(500, fmt.Errorf("read file: %w", err))
-		return
-	}
 
+	tempPath := fmt.Sprintf("/tmp/upload_%d", rand.Int31())
+
+	err = c.SaveUploadedFile(header, tempPath)
+	if err != nil {
+		c.JSON(500, gin.H{"status": "couldn't save uploaded file"})
+		return
+	}
 	now := time.Now()
-
 	keys, err := h.getKeyFromRoom(roomID)
 	if err != nil {
 		log.Println("get key for room", err)
@@ -129,48 +120,61 @@ func (h *FileRouteHandler) uploadFile(c *gin.Context) {
 		return
 	}
 	key := keyFor(keys, now)
-	fileData, err = encryption.AESEncrypt(fileData, key)
-	if err != nil {
-		log.Println("encrypt file", err)
-		c.JSON(500, fmt.Errorf("encrypt file: %w", err))
-		return
-	}
-	fileID, err := h.fs.UploadFile(roomID, userID, header.Filename, now, bytes.NewReader(fileData))
-	if err != nil {
-		log.Println("upload file", err)
-		c.JSON(500, fmt.Errorf("upload file: %w", err))
-		return
-	}
 
-	meta, _ := json.Marshal(model.FileMeta{
-		FileID:      bson.ObjectIdHex(fileID),
-		ThumbnailID: "",
-		UserID:      bson.ObjectIdHex(userID),
-		RoomID:      bson.ObjectIdHex(roomID),
-		BucketName:  "file",
-		FileName:    header.Filename, // TODO
-		Size:        len(fileData),
-		CreatedAt:   now,
+	fileID, metaAsync, err := h.fs.UploadFile(roomID, userID, key, model.FileDetail{
+		Path:        tempPath,
+		Name:        header.Filename,
+		Size:        int(header.Size),
+		CreatedTime: now,
 	})
 
-	meta, err = encryption.AESEncrypt(meta, key)
-	if err != nil {
-		log.Println("upload file: encrypt meta: %w\n", err)
-		c.JSON(500, err)
-		return
-	}
-	meta = encryption.B64Encode(meta)
+	//fileData, err = encryption.AESEncrypt(fileData, key)
+	//if err != nil {
+	//	log.Println("encrypt file", err)
+	//	c.JSON(500, fmt.Errorf("encrypt file: %w", err))
+	//	return
+	//}
+	//fileID, err := h.fs.UploadFile(roomID, userID, header.Filename, now, bytes.NewReader(fileData))
+	//if err != nil {
+	//	log.Println("upload file", err)
+	//	c.JSON(500, fmt.Errorf("upload file: %w", err))
+	//	return
+	//}
 
-	h.upstreamChat.SendMessage(model.Message{
-		TimeStamp: now,
-		RoomID:    bson.ObjectIdHex(roomID),
-		UserID:    bson.ObjectIdHex(userID),
-		ClientUID: "foo",        // TODO: this isn't needed?
-		Data:      string(meta), // tell client the meta
-		Type:      "FILE",
-	})
+	// TOOD: remove these
 
-	c.JSON(200, gin.H{
+	// send message to room
+	go func() {
+		meta := <-metaAsync
+		if meta.FileID == "" {
+			log.Println("[upload file handler] task failed")
+			return
+		}
+		metaBytes, err := json.Marshal(meta)
+		if err != nil {
+			fmt.Printf("error marshal: %s\n", err)
+			return
+		}
+
+		metaBytes, err = encryption.AESEncrypt(metaBytes, key)
+		if err != nil {
+			log.Println("upload file: encrypt meta: %w\n", err)
+			c.JSON(500, err)
+			return
+		}
+
+		metaBytes = encryption.B64Encode(metaBytes)
+		h.upstreamChat.SendMessage(model.Message{
+			TimeStamp: now,
+			RoomID:    bson.ObjectIdHex(roomID),
+			UserID:    bson.ObjectIdHex(userID),
+			ClientUID: "foo",             // TODO: this isn't needed?
+			Data:      string(metaBytes), // tell client the meta
+			Type:      "FILE",
+		})
+	}()
+
+	c.JSON(202, gin.H{
 		"fileId": fileID,
 	})
 }
