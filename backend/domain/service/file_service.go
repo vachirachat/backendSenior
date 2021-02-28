@@ -3,6 +3,7 @@ package service
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	file_payload "backendSenior/domain/payload/file"
 	"fmt"
 	"time"
 
@@ -22,10 +23,10 @@ func NewFileService(file repository.ObjectStore, meta repository.FileMetaReposit
 }
 
 type UploadFileMeta struct {
-	Name   string        // name of file
-	RoomID bson.ObjectId // room to associate file
-	UserID bson.ObjectId // file owner
-	Size   int
+	Name      string        // name of file
+	RoomID    bson.ObjectId // room to associate file
+	UserID    bson.ObjectId // file owner
+	Size      int
 	CreatedAt time.Time // time that file is encrypted at proxy
 }
 
@@ -37,25 +38,25 @@ type UploadImageMeta struct {
 	ThumbnailID bson.ObjectId
 }
 
-// BeforeUploadFile should be used before uploading file to get URL
-func (s *FileService) BeforeUploadFile() (fileID string, presignedURL string, err error) {
-	oid := bson.NewObjectId().Hex()
-	url, err := s.file.PutPresignedURL("file", oid)
-	fmt.Println("get url!")
-	if err != nil {
-		return "", "", err
-	}
-	return oid, url, nil
-}
+//// BeforeUploadFile should be used before uploading file to get URL
+//func (s *FileService) BeforeUploadFile() (fileID string, presignedURL string, err error) {
+//	oid := bson.NewObjectId().Hex()
+//	url, err := s.file.PutPresignedURL("file", oid)
+//	fmt.Println("get url!")
+//	if err != nil {
+//		return "", "", err
+//	}
+//	return oid, url, nil
+//}
 
-func (s *FileService) BeforeUploadFilePOST() (fileID string, presignedURL string, formData map[string]string, err error) {
+func (s *FileService) BeforeUploadFilePOST() (fileID string, endpoint string, formData map[string]string, err error) {
 	oid := bson.NewObjectId().Hex()
-	presignedURL, formData, err = s.file.PostPresignedURL("file", oid)
+	endpoint, formData, err = s.file.PostPresignedURL("file", oid)
 	fmt.Println("get url!")
 	if err != nil {
 		return "", "", nil, err
 	}
-	return oid, presignedURL, formData, err
+	return oid, endpoint, formData, err
 }
 
 // AfterUploadFile should be used after uploading file to set meta data to database
@@ -117,16 +118,39 @@ func (s *FileService) GetRoomFileMetas(roomID bson.ObjectId) ([]model.FileMeta, 
 // ==================== IMAGE
 
 // BeforeUploadImage should be used before uploading file to get URL
-func (s *FileService) BeforeUploadImage() (imgID, imgURL, thumbID, thumbURL string, err error) {
-	imgID = bson.NewObjectId().Hex()
-	thumbID = bson.NewObjectId().Hex()
-	imgURL, err = s.file.PutPresignedURL("image", imgID)
-	if err != nil {
-		return
-	}
-	thumbURL, err = s.file.PutPresignedURL("image", thumbID)
+//func (s *FileService) BeforeUploadImage() (imgID, imgURL, thumbID, thumbURL string, err error) {
+//	imgID = bson.NewObjectId().Hex()
+//	thumbID = bson.NewObjectId().Hex()
+//	imgURL, err = s.file.PutPresignedURL("image", imgID)
+//	if err != nil {
+//		return
+//	}
+//	thumbURL, err = s.file.PutPresignedURL("image", thumbID)
+//
+//	return
+//}
 
-	return
+func (s *FileService) BeforeUploadImagePOST() (file_payload.BeforeUploadImageResponse, error) {
+	res := file_payload.BeforeUploadImageResponse{}
+
+	oid := bson.NewObjectId().Hex()
+	endpoint, formData, err := s.file.PostPresignedURL("image", oid)
+	res.URL = endpoint
+	res.ImageFormData = formData
+	res.ImageID = oid
+	if err != nil {
+		return file_payload.BeforeUploadImageResponse{}, fmt.Errorf("generate presigned post: %w", err)
+	}
+
+	oid = bson.NewObjectId().Hex()
+	endpoint, formData, err = s.file.PostPresignedURL("image", oid)
+	res.ThumbFormData = formData
+	res.ThumbID = oid
+	if err != nil {
+		return file_payload.BeforeUploadImageResponse{}, fmt.Errorf("generate presigned post thumbnail: %w", err)
+	}
+
+	return res, nil
 }
 
 // AfterUploadImage should be used after uploading file to set meta data to database

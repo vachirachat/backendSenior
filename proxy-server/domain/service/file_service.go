@@ -160,6 +160,23 @@ func (s *FileService) BeforeUpload() (file_payload.BeforeUploadFileResponse, err
 	return res, nil
 }
 
+func (s *FileService) BeforeUploadImage() (file_payload.BeforeUploadImageResponse, error) {
+	u := url.URL{
+		Scheme: "http",
+		Host:   s.host,
+		Path:   "/api/v1/file/before-upload-image",
+	}
+
+	var res file_payload.BeforeUploadImageResponse
+	_, err := s.clnt.R().
+		SetResult(&res).
+		Post(u.String())
+	if err != nil {
+		return file_payload.BeforeUploadImageResponse{}, fmt.Errorf("prepare to upload: %w", err)
+	}
+	return res, nil
+}
+
 func (s *FileService) waitTaskComplete(taskId int) chan bool {
 	s.pendingTask[taskId] = make(chan bool)
 	return s.pendingTask[taskId]
@@ -178,11 +195,13 @@ func (s *FileService) UploadFile(roomID string, userID string, key []byte, fileD
 	taskID := rand.Int()
 
 	payload, err := json.Marshal(model.UploadFileTask{
-		TaskID:         taskID,
-		FilePath:       fileDetail.Path,
-		EncryptKey:     key,
-		UploadPostForm: uploadFileRes.FormData,
-		URL:            uploadFileRes.URL,
+		TaskID:          taskID,
+		Type:            model.File,
+		FilePath:        fileDetail.Path,
+		EncryptKey:      key,
+		URL:             uploadFileRes.URL,
+		UploadPostForm:  uploadFileRes.FormData,
+		UploadPostForm2: nil,
 	})
 	if err != nil {
 		close(metaAsync)
@@ -238,6 +257,71 @@ func (s *FileService) UploadFile(roomID string, userID string, key []byte, fileD
 	return uploadFileRes.FileID, metaAsync, nil
 }
 
-func (s *FileService) UploadImage() {
-	// TODO: this require making thumbnail
+func (s *FileService) UploadImage(roomID string, userID string, key []byte, fileDetail model.FileDetail) (string, chan model.FileMeta, error) {
+	// ---- get upload URL
+	metaAsync := make(chan model.FileMeta, 1)
+	uploadImageRes, err := s.BeforeUploadImage()
+	taskID := rand.Int()
+
+	payload, err := json.Marshal(model.UploadFileTask{
+		TaskID:          taskID,
+		Type:            model.Image,
+		FilePath:        fileDetail.Path,
+		EncryptKey:      key,
+		URL:             uploadImageRes.URL,
+		UploadPostForm:  uploadImageRes.ImageFormData,
+		UploadPostForm2: uploadImageRes.ThumbFormData,
+	})
+	if err != nil {
+		close(metaAsync)
+		return "", metaAsync, fmt.Errorf("marshal message to send: %w", err)
+	}
+	w := s.waitTaskComplete(taskID)
+
+	// send task
+	err = s.rabbit.Publish("upload_task", payload)
+	if err != nil {
+		close(metaAsync)
+		return "", metaAsync, fmt.Errorf("publish message: %w", err)
+	}
+
+	// wait for task done
+	go func() {
+		defer close(metaAsync)
+		<-w
+		meta := model.FileMeta{
+			FileID:      bson.ObjectIdHex(uploadImageRes.ImageID),
+			ThumbnailID: bson.ObjectIdHex(uploadImageRes.ThumbID),
+			UserID:      bson.ObjectIdHex(userID),
+			RoomID:      bson.ObjectIdHex(roomID),
+			BucketName:  "image",
+			FileName:    fileDetail.Name,
+			Size:        fileDetail.Size,
+			CreatedAt:   fileDetail.CreatedTime,
+		}
+		afterUploadUrl := url.URL{
+			Scheme: "http",
+			Host:   s.host,
+			Path:   fmt.Sprintf("/api/v1/file/room/%s/after-upload-image/%s", roomID, uploadImageRes.ImageID),
+		}
+
+		res, err := s.clnt.R().
+			SetBody(meta).
+			SetHeader("Content-Type", "application/json").
+			Post(afterUploadUrl.String())
+
+		if !res.IsSuccess() {
+			fmt.Printf("[UPLOAD ERROR] after upload: server responded with status %d", res.StatusCode())
+			return
+			//return metaAsync,
+		}
+		if err != nil {
+			fmt.Printf("[UPLOAD ERROR] request error: %s", err)
+			return
+		}
+
+		metaAsync <- meta
+	}()
+
+	return uploadImageRes.ImageID, metaAsync, nil
 }

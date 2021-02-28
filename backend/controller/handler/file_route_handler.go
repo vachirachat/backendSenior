@@ -130,19 +130,14 @@ func (h *FileRouteHandler) getAnyFileURL(c *gin.Context) {
 
 // Image
 func (h *FileRouteHandler) beforeUploadImage(c *gin.Context) {
-	imgID, imgURL, thumbID, thumbURL, err := h.fs.BeforeUploadImage()
+	res, err := h.fs.BeforeUploadImagePOST()
 	if err != nil {
 		log.Println("before upload file:", err)
 		c.JSON(500, gin.H{"status": "error"})
 		return
 	}
 
-	c.JSON(200, file_payload.BeforeUploadImageResponse{
-		ImageID:  imgID,
-		ImageURL: imgURL,
-		ThumbID:  thumbID,
-		ThumbURL: thumbURL,
-	})
+	c.JSON(200, res)
 }
 
 func (h *FileRouteHandler) afterUploadImage(c *gin.Context) {

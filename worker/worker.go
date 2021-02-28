@@ -6,7 +6,11 @@ import (
 	"common/rmq"
 	"encoding/json"
 	"fmt"
+	"github.com/disintegration/imaging"
 	"github.com/go-resty/resty/v2"
+	"github.com/streadway/amqp"
+	"image"
+	"io"
 	"io/ioutil"
 	"log"
 	"proxySenior/domain/encryption"
@@ -34,6 +38,244 @@ func (t *Timer) Lap(msg string) {
 	fmt.Printf("%s: %d ns (%d ns since start)\n", msg, now.Sub(t.last).Nanoseconds(), now.Sub(t.start).Nanoseconds())
 }
 
+type Worker struct {
+	clnt   *resty.Client
+	rabbit *rmq.RMQClient
+}
+
+func (w *Worker) handleFileTask(d amqp.Delivery, task model.UploadFileTask, t *Timer) { // timer is for bug only
+	t.Reset()
+	fileData, err := ioutil.ReadFile(task.FilePath)
+	if err != nil {
+		log.Printf("error reading file: %s\n", err)
+		d.Nack(false, true)
+		return
+	}
+	t.Lap("read file")
+
+	if task.EncryptKey == nil {
+		log.Printf("error encrypting file: key is nil\n")
+		d.Nack(false, false)
+		return
+	}
+	fileData, err = encryption.AESEncrypt(fileData, task.EncryptKey)
+	if err != nil {
+		log.Printf("error encrypting file: %s\n", err)
+		d.Nack(false, true)
+		return
+	}
+	t.Lap("encrypt")
+
+	fmt.Println("posting to url", task.URL)
+	res, err := w.clnt.R().
+		SetFormData(task.UploadPostForm).
+		SetFileReader("file", "dontcare", bytes.NewReader(fileData)).
+		SetHeader("Content-Type", "multipart/form-data").
+		Post(task.URL)
+	t.Lap("post url")
+
+	if err != nil {
+		fmt.Println("resty req error:", err)
+		d.Nack(false, true)
+		return
+	}
+	if !res.IsSuccess() {
+		fmt.Printf("resty status: %d\nbody: %s\n", res.StatusCode(), res.String())
+		d.Nack(false, true)
+		return
+	}
+	data, _ := json.Marshal(map[string]interface{}{
+		"taskId": task.TaskID,
+	})
+	t.Lap("marshal message to send")
+
+	if err := w.rabbit.Publish("upload_result", data); err != nil {
+		fmt.Printf("publish result error %s\n", err)
+		return
+	}
+	fmt.Println("task", task.TaskID, "success!")
+	d.Ack(false)
+}
+
+var mapFormat = map[string]imaging.Format{
+	"jpg":  imaging.JPEG,
+	"jpeg": imaging.JPEG,
+	"png":  imaging.PNG,
+	"bmp":  imaging.BMP,
+	"gif":  imaging.GIF,
+	"tif":  imaging.TIFF,
+	"tiff": imaging.TIFF,
+}
+
+// handleImageTask: read image, generate thumbnail, then encrypt both of them and upload
+func (w *Worker) handleImageTask(d amqp.Delivery, task model.UploadFileTask, t *Timer) {
+
+	// read file
+	fileData, err := ioutil.ReadFile(task.FilePath)
+	if err != nil {
+		log.Printf("error opening image: %s\n", err)
+		d.Nack(false, false)
+		return
+	}
+	r := bytes.NewReader(fileData)
+
+	// determine type
+	_, format, err := image.DecodeConfig(r)
+	if err != nil {
+		log.Printf("image: error determining image type: %s, is it corrupt?", err)
+		d.Nack(false, false)
+		return
+	}
+
+	// decode & process
+	r.Seek(0, io.SeekStart) // reset seek
+	src, err := imaging.Decode(r)
+	if err != nil {
+		log.Printf("imaging: error decoing image: %s, is it corrupt?", err)
+		d.Nack(false, false)
+		return
+	}
+
+	size := src.Bounds().Size()
+	width := size.X
+	height := size.Y
+	var img *image.NRGBA
+	if width > height {
+		img = imaging.Resize(src, 400, 0, imaging.Lanczos)
+	} else {
+		img = imaging.Resize(src, 0, 400, imaging.Lanczos)
+	}
+
+	buf := new(bytes.Buffer)
+	err = imaging.Encode(buf, img, mapFormat[format])
+	if err != nil {
+		log.Printf("error encoding to %s:%s\n", format, err)
+		d.Nack(false, false)
+		return
+	}
+
+	// upload orig
+	r.Seek(0, io.SeekStart)
+	orig, _ := ioutil.ReadAll(r)
+	orig, err = encryption.AESEncrypt(orig, task.EncryptKey)
+	if err != nil {
+		log.Printf("error encrypting to %s\nkey was: %s\n", err, task.EncryptKey)
+		d.Nack(false, false)
+		return
+	}
+
+	res, err := w.clnt.R().
+		SetFormData(task.UploadPostForm).
+		SetFileReader("file", "dontcare", bytes.NewReader(orig)).
+		SetHeader("Content-Type", "multipart/form-data").
+		Post(task.URL)
+	t.Lap("post url")
+
+	if err != nil {
+		fmt.Println("resty req error:", err)
+		d.Nack(false, true)
+		return
+	}
+	if !res.IsSuccess() {
+		fmt.Printf("resty status: %d\nbody: %s\n", res.StatusCode(), res.String())
+		d.Nack(false, true)
+		return
+	}
+
+	// upload thumb
+	thumb := buf.Bytes()
+	thumb, err = encryption.AESEncrypt(thumb, task.EncryptKey)
+	if err != nil {
+		log.Printf("error encrypting to %s\nkey was: %s\n", err, task.EncryptKey)
+		d.Nack(false, false)
+		return
+	}
+
+	res, err = w.clnt.R().
+		SetFormData(task.UploadPostForm2).
+		SetFileReader("file", "dontcare", bytes.NewReader(thumb)).
+		SetHeader("Content-Type", "multipart/form-data").
+		Post(task.URL)
+
+	if err != nil {
+		fmt.Println("resty req error:", err)
+		d.Nack(false, true)
+		return
+	}
+	if !res.IsSuccess() {
+		fmt.Printf("resty status: %d\nbody: %s\n", res.StatusCode(), res.String())
+		d.Nack(false, true)
+		return
+	}
+
+	// report result
+	data, _ := json.Marshal(map[string]interface{}{
+		"taskId": task.TaskID,
+	})
+	t.Lap("marshal message to send")
+
+	if err := w.rabbit.Publish("upload_result", data); err != nil {
+		fmt.Printf("publish result error %s\n", err)
+		return
+	}
+	fmt.Println("task image", task.TaskID, "success!")
+	d.Ack(false)
+
+	//src, err := imaging.Open(task.FilePath)
+	//if err != nil {
+	//	log.Printf("error reading file: %s\n", err)
+	//	d.Nack(false, true)
+	//	return
+	//}
+	//
+	//
+	//
+	//t.Lap("read file")
+	//
+	//if task.EncryptKey == nil {
+	//	log.Printf("error encrypting file: key is nil\n")
+	//	d.Nack(false, false)
+	//	return
+	//}
+	//fileData, err = encryption.AESEncrypt(fileData, task.EncryptKey)
+	//if err != nil {
+	//	log.Printf("error encrypting file: %s\n", err)
+	//	d.Nack(false, true)
+	//	return
+	//}
+	//t.Lap("encrypt")
+	//
+	//fmt.Println("posting to url", task.URL)
+	//res, err := w.clnt.R().
+	//	SetFormData(task.UploadPostForm).
+	//	SetFileReader("file", "dontcare", bytes.NewReader(fileData)).
+	//	SetHeader("Content-Type", "multipart/form-data").
+	//	Post(task.URL)
+	//t.Lap("post url")
+	//
+	//if err != nil {
+	//	fmt.Println("resty req error:", err)
+	//	d.Nack(false, true)
+	//	return
+	//}
+	//if !res.IsSuccess() {
+	//	fmt.Printf("resty status: %d\nbody: %s\n", res.StatusCode(), res.String())
+	//	d.Nack(false, true)
+	//	return
+	//}
+	//data, _ := json.Marshal(map[string]interface{}{
+	//	"taskId": task.TaskID,
+	//})
+	//t.Lap("marshal message to send")
+	//
+	//if err := w.rabbit.Publish("upload_result", data); err != nil {
+	//	fmt.Printf("publish result error %s\n", err)
+	//	return
+	//}
+	//fmt.Println("task", task.TaskID, "success!")
+	//d.Ack(false)
+}
+
 func main() {
 
 	rabbit := rmq.New("amqp://guest:guest@localhost:5672/")
@@ -56,71 +298,31 @@ func main() {
 
 	fmt.Println("successfully connected to rabbitmq")
 	clnt := resty.New()
-	t := Timer{}
+
+	w := Worker{
+		clnt:   clnt,
+		rabbit: rabbit,
+	}
+
+	t := new(Timer)
 
 	// TODO: multithread
 	go func() {
 		for d := range msgs {
 			fmt.Printf("recv message %s\n", d.Body)
 			var task model.UploadFileTask
-			err := json.Unmarshal(d.Body, &task)
-			if err != nil {
-				log.Printf("error parsing task: %s\nmessage was: %s\n", err, d.Body)
+			if err := json.Unmarshal(d.Body, &task); err != nil {
+				d.Ack(false) // ack anyway, to discard malform message
 				continue
+			} else {
+				if task.Type == model.Image {
+					log.Println("type image")
+					w.handleImageTask(d, task, t)
+				} else {
+					log.Println("type file")
+					w.handleFileTask(d, task, t)
+				}
 			}
-
-			t.Reset()
-			fileData, err := ioutil.ReadFile(task.FilePath)
-			if err != nil {
-				log.Printf("error reading file: %s\n", err)
-				d.Nack(false, true)
-				continue
-			}
-			t.Lap("read file")
-
-			if task.EncryptKey == nil {
-				log.Printf("error encrypting file: key is nil\n")
-				d.Nack(false, false)
-				continue
-			}
-			fileData, err = encryption.AESEncrypt(fileData, task.EncryptKey)
-			if err != nil {
-				log.Printf("error encrypting file: %s\n", err)
-				d.Nack(false, true)
-				continue
-			}
-			t.Lap("encrypt")
-
-			fmt.Println("posting to url", task.URL)
-			res, err := clnt.R().
-				SetFormData(task.UploadPostForm).
-				SetFileReader("file", "foo.txt", bytes.NewReader(fileData)).
-				SetHeader("Content-Type", "multipart/form-data").
-				Post(task.URL)
-			t.Lap("post url")
-
-			if err != nil {
-				fmt.Println("resty req error:", err)
-				d.Nack(false, true)
-				continue
-			}
-			if !res.IsSuccess() {
-				fmt.Printf("resty status: %d\nbody: %s\n", res.StatusCode(), res.String())
-				d.Nack(false, true)
-				continue
-			}
-			data, _ := json.Marshal(map[string]interface{}{
-				"taskId": task.TaskID,
-			})
-			t.Lap("marshal message to send")
-
-			if err := rabbit.Publish("upload_result", data); err != nil {
-				fmt.Printf("publish result error %s\n", err)
-				continue
-			}
-			fmt.Println("task", task.TaskID, "success!")
-			d.Ack(false)
-
 		}
 	}()
 

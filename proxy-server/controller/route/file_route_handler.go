@@ -35,7 +35,8 @@ func NewFileRouteHandler(fs *service.FileService, authMw *middleware.AuthMiddlew
 func (h *FileRouteHandler) Mount(rg *gin.RouterGroup) {
 
 	rg.GET("/file/:fileId", h.getFile)
-	rg.POST("/room/:roomId", h.authMw.AuthRequired(), h.uploadFile)
+	rg.POST("/room/:roomId/files", h.authMw.AuthRequired(), h.uploadFile)
+	rg.POST("/room/:roomId/images", h.authMw.AuthRequired(), h.uploadImage)
 
 }
 
@@ -46,12 +47,14 @@ func (h *FileRouteHandler) getFile(c *gin.Context) {
 		return
 	}
 
-	fileID := c.Param("fileId")
-	if !bson.IsObjectIdHex(fileID) {
+	fileID := c.Param("fileId")                // ID for lookup meta
+	overrideID := c.DefaultQuery("id", fileID) // ID for actual file, it'll be different if it's thumbnail
+	if !bson.IsObjectIdHex(fileID) || !bson.IsObjectIdHex(overrideID) {
 		c.JSON(400, gin.H{"status": "error", "message": "bad fileId param"})
 		return
 	}
 
+	// get meta for fileID
 	meta, err := h.fs.GetAnyFileMeta(fileID)
 	if err != nil {
 		log.Println("get file: get meta:", err)
@@ -59,7 +62,8 @@ func (h *FileRouteHandler) getFile(c *gin.Context) {
 		return
 	}
 
-	fileData, err := h.fs.GetAnyFile(fileType, fileID)
+	// get data for overrideID
+	fileData, err := h.fs.GetAnyFile(fileType, overrideID)
 	if err != nil {
 		log.Println("get file: service:", err)
 		c.JSON(500, gin.H{"status": "error", "message": "error"})
@@ -176,6 +180,95 @@ func (h *FileRouteHandler) uploadFile(c *gin.Context) {
 
 	c.JSON(202, gin.H{
 		"fileId": fileID,
+	})
+}
+
+func (h *FileRouteHandler) uploadImage(c *gin.Context) {
+	userID := c.GetString(middleware.UserIdField)
+	roomID := c.Param("roomId")
+	if !bson.IsObjectIdHex(roomID) {
+		c.JSON(400, gin.H{"status": "error", "message": "bad roomId param"})
+		return
+	}
+
+	header, err := c.FormFile("file")
+	if err != nil {
+		log.Println("get file in form", err)
+		c.JSON(500, err)
+		return
+	}
+
+	tempPath := fmt.Sprintf("/tmp/upload_%d", rand.Int31())
+
+	err = c.SaveUploadedFile(header, tempPath)
+	if err != nil {
+		c.JSON(500, gin.H{"status": "couldn't save uploaded file"})
+		return
+	}
+	now := time.Now()
+	keys, err := h.getKeyFromRoom(roomID)
+	if err != nil {
+		log.Println("get key for room", err)
+		c.JSON(500, fmt.Errorf("get key for room: %w", err))
+		return
+	}
+	key := keyFor(keys, now)
+
+	imageID, metaAsync, err := h.fs.UploadImage(roomID, userID, key, model.FileDetail{
+		Path:        tempPath,
+		Name:        header.Filename,
+		Size:        int(header.Size),
+		CreatedTime: now,
+	})
+
+	//fileData, err = encryption.AESEncrypt(fileData, key)
+	//if err != nil {
+	//	log.Println("encrypt file", err)
+	//	c.JSON(500, fmt.Errorf("encrypt file: %w", err))
+	//	return
+	//}
+	//fileID, err := h.fs.UploadFile(roomID, userID, header.Filename, now, bytes.NewReader(fileData))
+	//if err != nil {
+	//	log.Println("upload file", err)
+	//	c.JSON(500, fmt.Errorf("upload file: %w", err))
+	//	return
+	//}
+
+	// TOOD: remove these
+
+	// send message to room
+	go func() {
+		meta := <-metaAsync
+		if meta.FileID == "" {
+			log.Println("[upload image handler] task failed")
+			return
+		}
+		metaBytes, err := json.Marshal(meta)
+		if err != nil {
+			fmt.Printf("error marshal: %s\n", err)
+			return
+		}
+
+		metaBytes, err = encryption.AESEncrypt(metaBytes, key)
+		if err != nil {
+			log.Println("upload image: encrypt meta: %w\n", err)
+			c.JSON(500, err)
+			return
+		}
+
+		metaBytes = encryption.B64Encode(metaBytes)
+		h.upstreamChat.SendMessage(model.Message{
+			TimeStamp: now,
+			RoomID:    bson.ObjectIdHex(roomID),
+			UserID:    bson.ObjectIdHex(userID),
+			ClientUID: "foo",             // TODO: this isn't needed?
+			Data:      string(metaBytes), // tell client the meta
+			Type:      "IMAGE",
+		})
+	}()
+
+	c.JSON(202, gin.H{
+		"fileId": imageID,
 	})
 }
 

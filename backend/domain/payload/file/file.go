@@ -7,8 +7,9 @@ type BeforeUploadFileResponse struct {
 }
 
 type BeforeUploadImageResponse struct {
-	ImageID  string `json:"imgId"`
-	ImageURL string `json:"imgUrl"`
-	ThumbID  string `json:"thumbId"`
-	ThumbURL string `json:"thumbUrl"`
+	URL           string
+	ImageID       string            `json:"imgId"`
+	ImageFormData map[string]string `json:"imgForm"`
+	ThumbID       string            `json:"thumbId"`
+	ThumbFormData map[string]string `json:"thumbForm"`
 }
