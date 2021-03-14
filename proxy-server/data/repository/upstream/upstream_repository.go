@@ -15,8 +15,17 @@ import (
 )
 
 const (
-	writeWait  = 10 * time.Second
-	pingPeriod = 20 * time.Second // NOTE: must be set according to server expectation
+	// Time allowed to write a message to the peer.
+	writeWait = 10 * time.Second
+
+	// Time allowed to read the next pong message from the peer.
+	pongWait = 60 * time.Second
+
+	// Send pings to peer with this period. Must be less than pongWait.
+	pingPeriod = (pongWait * 9) / 10
+
+	// Maximum message size allowed from peer.
+	maxMessageSize = 4096
 )
 
 // UpstreamRepository is the client to upstream (controller)
@@ -90,9 +99,10 @@ loop:
 		// is used to signal close of connection
 		connCloseChan := make(chan struct{})
 
-		go readPump(c, connCloseChan, upstream.receivers)
-		go writePump(c, connCloseChan, upstream.sendChannel)
+		go upstream.readPump(c, connCloseChan)
+		go upstream.writePump(c, connCloseChan)
 
+		// wait for go routing to stop us
 		select {
 		case <-connCloseChan:
 			fmt.Print("conncetion closed")
@@ -110,12 +120,16 @@ loop:
 	}
 }
 
-func readPump(conn *websocket.Conn, closeChan chan struct{}, receivers []chan []byte) {
+func (upstream *UpstreamRepository) readPump(conn *websocket.Conn, closeChan chan struct{}) {
 	defer func() {
 		conn.Close()
 		close(closeChan)
 		log.Printf("upstream-repo: stop read pump\n")
 	}()
+
+	conn.SetReadLimit(maxMessageSize)
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
 	log.Printf("upstream-repo: start read pump\n")
 	for {
@@ -128,7 +142,7 @@ func readPump(conn *websocket.Conn, closeChan chan struct{}, receivers []chan []
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, []byte{'\n'}, []byte{' '}, -1))
-		for _, recv := range receivers {
+		for _, recv := range upstream.receivers {
 			fmt.Printf("receiver %v", recv)
 			select {
 			case recv <- message:
@@ -140,7 +154,7 @@ func readPump(conn *websocket.Conn, closeChan chan struct{}, receivers []chan []
 	}
 }
 
-func writePump(conn *websocket.Conn, cloesChannel chan struct{}, sendChannel chan []byte) {
+func (upstream *UpstreamRepository) writePump(conn *websocket.Conn, cloesChannel chan struct{}) {
 	t := time.NewTicker(pingPeriod)
 	defer func() {
 		conn.Close()
@@ -156,14 +170,14 @@ func writePump(conn *websocket.Conn, cloesChannel chan struct{}, sendChannel cha
 				conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-		case message := <-sendChannel:
+		case message := <-upstream.sendChannel:
 			conn.SetWriteDeadline(time.Now().Add(writeWait))
 			conn.WriteMessage(websocket.TextMessage, message)
 
 			// Add queued chat messages to the current websocket message.
-			n := len(sendChannel)
+			n := len(upstream.sendChannel)
 			for i := 0; i < n; i++ {
-				conn.WriteMessage(websocket.TextMessage, <-sendChannel)
+				conn.WriteMessage(websocket.TextMessage, <-upstream.sendChannel)
 			}
 
 		case <-t.C: // ping
