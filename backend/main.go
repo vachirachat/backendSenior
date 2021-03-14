@@ -20,7 +20,7 @@ import (
 var app *firebase.App
 
 func initFirebase() {
-	opt := option.WithCredentialsFile("./account-secret-key.json")
+	opt := option.WithCredentialsFile("../../account-secret-key.json")
 	config := &firebase.Config{ProjectID: "senior-project-mychat"}
 	var err error
 	app, err = firebase.NewApp(context.Background(), config, opt)

@@ -3,12 +3,16 @@ package main
 import (
 	"backendSenior/data/repository/chatsocket"
 	"common/rmq"
+	"context"
+	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/joho/godotenv"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"proxySenior/controller/chat"
 	"proxySenior/controller/route"
 	"proxySenior/data/repository/delegate"
@@ -18,6 +22,8 @@ import (
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
 	"proxySenior/utils"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -123,7 +129,31 @@ func main() {
 		}
 	}()
 
-	router.Run(utils.ListenAddress)
+	httpSrv := &http.Server{
+		Addr:    utils.ListenAddress,
+		Handler: router,
+	}
 
-	defer onMessagePlugin.CloseConnection()
+	go func() {
+		if err := httpSrv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+			log.Printf("Listen: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	// The context is used to inform the server it has 5 seconds to finish
+	// the request it is currently handling
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := httpSrv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server exiting")
+
 }

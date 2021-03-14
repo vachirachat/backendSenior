@@ -5,6 +5,8 @@ import (
 	"backendSenior/domain/model"
 	"backendSenior/domain/model/chatsocket"
 	"fmt"
+	"log"
+	"os"
 	"sync"
 	"time"
 )
@@ -17,6 +19,7 @@ type ChatService struct {
 	mapConn      repository.SocketConnectionRepository
 	msgRepo      repository.MessageRepository
 	notifService *NotificationService
+	log          *log.Logger
 }
 
 // NewChatService create new instance of chat service
@@ -28,6 +31,7 @@ func NewChatService(roomProxyRepo repository.RoomProxyRepository, roomUserRepo r
 		mapConn:      userConnRepo,
 		msgRepo:      msgRepo,
 		notifService: notifService,
+		log:          log.New(os.Stdout, "ChatService:", log.Ldate|log.Lshortfile),
 	}
 }
 
@@ -66,20 +70,23 @@ func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{})
 		return fmt.Errorf("getting room's users: %s", err)
 	}
 
-	fmt.Println("room", roomID, "has users", userIDs)
+	chat.log.Println("room", roomID, "has users", userIDs)
 
 	var allWg sync.WaitGroup
 
 	for _, uid := range userIDs {
 		connIDs, err := chat.mapConn.GetConnectionByUser(uid)
+		//chat.log.Println("user", uid, "has connections", connIDs)
+
 		if err != nil {
-			fmt.Println("error getting user connection", err)
+			chat.log.Println("error getting user connection", err)
 			return err
 		}
 		for _, connID := range connIDs {
 			allWg.Add(1)
 			go func(connID string, wg *sync.WaitGroup) {
 				defer wg.Done()
+				chat.log.Println("sending message to conn", connID)
 				// loop to all connection of user
 				err := chat.send.SendMessage(connID, data)
 				if err != nil {
@@ -152,24 +159,23 @@ func (chat *ChatService) SendNotificationToRoomExceptUser(roomID string, userID 
 func (chat *ChatService) OnConnect(conn *chatsocket.Connection) (connID string, err error) {
 	connID, err = chat.mapConn.AddConnection(conn)
 	rooms, err := chat.mapRoomProxy.GetProxyRooms(conn.UserID)
+	chat.log.Printf("client %s connected, connection id %s\n", conn.UserID, conn.ConnID)
 
 	for _, roomID := range rooms {
 		go chat.BroadcastMessageToRoom(roomID, chatsocket.InvalidateRoomMasterMessage(roomID))
 	}
-	fmt.Printf("[chat] user %s connected id = %s\n", conn.UserID, connID)
 	return
 }
 
 // OnDisconnect should be called when client disconnect, connID should be obtained fron OnConnect
 func (chat *ChatService) OnDisconnect(conn *chatsocket.Connection) error {
 	err := chat.mapConn.RemoveConnection(conn.ConnID)
-
 	rooms, err := chat.mapRoomProxy.GetProxyRooms(conn.UserID)
+	chat.log.Printf("client %s dis-connected, connection id %s\n", conn.UserID, conn.ConnID)
 
 	for _, roomID := range rooms {
 		go chat.BroadcastMessageToRoom(roomID, chatsocket.InvalidateRoomMasterMessage(roomID))
 	}
 
-	fmt.Printf("[chat] disconnected id = %s\n", conn.ConnID)
 	return err
 }

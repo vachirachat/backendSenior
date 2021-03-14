@@ -6,6 +6,7 @@ import (
 	"backendSenior/domain/model/chatsocket/message_types"
 	"encoding/json"
 	"fmt"
+	"log"
 	"proxySenior/domain/interface/repository"
 )
 
@@ -47,6 +48,7 @@ func (service *ChatUpstreamService) UnRegsiterHandler(channel chan []byte) error
 
 // OnConnect register channel to be notified when upstream is connected
 func (service *ChatUpstreamService) OnConnect(channel chan struct{}) {
+	log.Println("upstream service: connected")
 	service.upstream.OnConnect(channel)
 	// service.up = append(upstream.onConnectRecv, channel)
 }
@@ -58,6 +60,7 @@ func (service *ChatUpstreamService) OffConnect(channel chan struct{}) {
 
 // OnDisconnect register channel to be notified when upstream is disconnected
 func (service *ChatUpstreamService) OnDisconnect(channel chan struct{}) {
+	log.Println("upstream service: disconnected")
 	service.upstream.OnDisconnect(channel)
 }
 

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -44,6 +45,7 @@ type ChatRouteHandler struct {
 	proxyMw     *auth.ProxyMiddleware
 	keyEx       *service.KeyExchangeService
 	roomService *service.RoomService // for mapping
+	log         *log.Logger
 }
 
 // NewChatRouteHandler create new `ChatRouteHandler`
@@ -53,6 +55,7 @@ func NewChatRouteHandler(chatService *service.ChatService, proxyMw *auth.ProxyMi
 		proxyMw:     proxyMw,
 		roomService: roomSvc,
 		keyEx:       keyEx,
+		log:         log.New(os.Stdout, "[chat-route-handler]", log.Ldate|log.Lshortfile),
 	}
 }
 
@@ -113,6 +116,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 // for more information about read/writePump, see https://github.com/gorilla/websocket/tree/master/examples/chat
 func (c *client) readPump() {
 	defer func() {
+
 		c.handler.chatService.OnDisconnect(c.chatsocket)
 		// here we assume that proxy has ONLY ONE connection
 		c.handler.keyEx.SetOnline(c.proxyID, false)
