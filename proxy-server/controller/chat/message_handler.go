@@ -109,6 +109,8 @@ func (h *MessageHandler) Start() {
 				fmt.Println("[handle room event] unkown event type", event.Type)
 			}
 		} else if rawMessage.Type == message_types.InvalidateMaster {
+			// TODO: this is work around to wait master to disconnect, ensuring that master is changed
+			time.Sleep(100 * time.Millisecond)
 			var roomID string
 			err := json.Unmarshal(rawMessage.Payload, &roomID)
 			if err != nil {
