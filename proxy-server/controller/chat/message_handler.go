@@ -11,7 +11,6 @@ import (
 	"log"
 	"proxySenior/domain/encryption"
 	model_proxy "proxySenior/domain/model"
-	"log"
 	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
@@ -21,21 +20,21 @@ import (
 // MessageHandler handle message from controller
 // ex. broadcasting to users, updating room-user repo
 type MessageHandler struct {
-	upstreamService   *service.ChatUpstreamService   // recv message from controlller
-	downstreamService *service.ChatDownstreamService // bcast message to user
-	roomUserRepo      repository.RoomUserRepository  // update room on event from controller
-	key               *key_service.KeyService        // for getting key to decrypt the messages
+	upstreamService     *service.ChatUpstreamService   // recv message from controlller
+	downstreamService   *service.ChatDownstreamService // bcast message to user
+	roomUserRepo        repository.RoomUserRepository  // update room on event from controller
+	key                 *key_service.KeyService        // for getting key to decrypt the messages
 	onMessagePortPlugin *plugin.OnMessagePortPlugin
 }
 
 // NewMessageHandler creates new MessageHandler
 func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository, key *key_service.KeyService, onMessagePortPlugin *plugin.OnMessagePortPlugin) *MessageHandler {
 	return &MessageHandler{
-		upstreamService:   upstream,
-		downstreamService: downstream,
-		roomUserRepo:      roomUserRepo,
+		upstreamService:     upstream,
+		downstreamService:   downstream,
+		roomUserRepo:        roomUserRepo,
 		onMessagePortPlugin: onMessagePortPlugin,
-		key:               key,
+		key:                 key,
 	}
 }
 

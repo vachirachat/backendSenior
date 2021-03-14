@@ -3,6 +3,10 @@ package main
 import (
 	"backendSenior/data/repository/chatsocket"
 	"common/rmq"
+	"fmt"
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"proxySenior/controller/chat"
@@ -14,11 +18,6 @@ import (
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
 	"proxySenior/utils"
-
-	"github.com/joho/godotenv"
-
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 )
 
 func main() {
@@ -56,12 +55,12 @@ func main() {
 	// Add port to communicate with RPC
 	enablePlugin := true
 	pluginPort := os.Getenv("PLUGIN_PORT")
-	log.Println(pluginPort)
+	log.Println("pluginPort =", pluginPort)
 	if pluginPort == "" {
 		enablePlugin = false
-		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PATH is not set")
+		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PORT is not set")
 	}
-	log.Println("Connect to Plugin-Server")
+
 	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, pluginPort)
 
 	upstream := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)
@@ -72,9 +71,13 @@ func main() {
 	upstreamService.OnConnect(conn)
 	defer upstreamService.OffConnect(conn)
 
-	err = onMessagePlugin.Wait()
-	if err != nil {
-		log.Fatalln("Wait for onMessagePlugin Error")
+	if enablePlugin {
+		log.Println("waiting plugin")
+		err = onMessagePlugin.Wait()
+		if err != nil {
+			log.Fatalln("Wait for onMessagePlugin Error")
+		}
+
 	}
 
 	rabbit := rmq.New("amqp://guest:guest@localhost:5672/")

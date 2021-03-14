@@ -1,10 +1,8 @@
 package model_proxy
 
 import (
-	"time"
-)
-
 	"github.com/globalsign/mgo/bson"
+	"time"
 )
 
 // KeyRecord represent single key for a room for specific time range
