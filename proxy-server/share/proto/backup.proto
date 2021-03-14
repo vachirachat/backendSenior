@@ -13,11 +13,14 @@ message Chat {
 
 message Empty {}
 
+
+
 message Status {
 	bool ok = 1;
 }
 
 service Backup {
     rpc OnMessageIn(Chat) returns (Empty);
-		rpc IsReady(Empty) returns (Status);
+	rpc IsReady(Empty) returns (Status);
+
 }

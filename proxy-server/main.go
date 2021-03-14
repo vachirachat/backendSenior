@@ -4,6 +4,7 @@ import (
 	"backendSenior/data/repository/chatsocket"
 	"common/rmq"
 	"log"
+	"os"
 	"proxySenior/controller/chat"
 	"proxySenior/controller/route"
 	"proxySenior/data/repository/delegate"
@@ -52,8 +53,16 @@ func main() {
 		log.Fatalln("error: please set client secret")
 	}
 
+	// Add port to communicate with RPC
 	enablePlugin := true
-	pluginPath := utils.PluginPath
+	pluginPort := os.Getenv("PLUGIN_PORT")
+	log.Println(pluginPort)
+	if pluginPort == "" {
+		enablePlugin = false
+		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PATH is not set")
+	}
+	log.Println("Connect to Plugin-Server")
+	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, pluginPort)
 
 	upstream := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)
 	defer upstream.Stop()
@@ -62,8 +71,6 @@ func main() {
 	conn := make(chan struct{}, 10)
 	upstreamService.OnConnect(conn)
 	defer upstreamService.OffConnect(conn)
-
-	onMessagePlugin := plugin.NewOnMessagePlugin(enablePlugin, pluginPath)
 
 	err = onMessagePlugin.Wait()
 	if err != nil {
@@ -115,4 +122,5 @@ func main() {
 
 	router.Run(utils.ListenAddress)
 
+	defer onMessagePlugin.CloseConnection()
 }

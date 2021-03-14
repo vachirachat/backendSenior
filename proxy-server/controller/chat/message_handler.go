@@ -11,6 +11,7 @@ import (
 	"log"
 	"proxySenior/domain/encryption"
 	model_proxy "proxySenior/domain/model"
+	"log"
 	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
@@ -24,16 +25,16 @@ type MessageHandler struct {
 	downstreamService *service.ChatDownstreamService // bcast message to user
 	roomUserRepo      repository.RoomUserRepository  // update room on event from controller
 	key               *key_service.KeyService        // for getting key to decrypt the messages
-	onMessagePlugin   *plugin.OnMessagePlugin
+	onMessagePortPlugin *plugin.OnMessagePortPlugin
 }
 
 // NewMessageHandler creates new MessageHandler
-func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository, key *key_service.KeyService, onMessagePlugin *plugin.OnMessagePlugin) *MessageHandler {
+func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository, key *key_service.KeyService, onMessagePortPlugin *plugin.OnMessagePortPlugin) *MessageHandler {
 	return &MessageHandler{
 		upstreamService:   upstream,
 		downstreamService: downstream,
 		roomUserRepo:      roomUserRepo,
-		onMessagePlugin:   onMessagePlugin,
+		onMessagePortPlugin: onMessagePortPlugin,
 		key:               key,
 	}
 }
@@ -80,11 +81,10 @@ func (h *MessageHandler) Start() {
 			msg.Data = string(msgData)
 			fmt.Println("The decrypted message is", msg)
 
-			if h.onMessagePlugin != nil && h.onMessagePlugin.IsEnabled() {
-				err := h.onMessagePlugin.OnMessageIn(msg)
-				if err != nil {
-					fmt.Println("[plugin] call returned", err)
-				}
+			fmt.Println("try call on message", h.onMessagePortPlugin, h.onMessagePortPlugin.IsEnabled())
+			if h.onMessagePortPlugin != nil && h.onMessagePortPlugin.IsEnabled() {
+				err := h.onMessagePortPlugin.OnMessagePortPlugin(msg)
+				fmt.Println("[plugin] called on message", err)
 			}
 			err = h.downstreamService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
 			if err != nil {

@@ -1,0 +1,30 @@
+@base = http://localhost:7070
+
+
+### Run code -file
+POST {{base}}/config/runcode
+Content-Type: application/json
+
+{
+    "Filename":"file",
+    "Lang" : "py"
+}
+
+### Run Execfile
+GET {{base}}/config/run?file=docker_exec
+
+
+### Kill Process
+GET {{base}}/config/kill?process_name=docker_exec
+
+#js -> node
+#python -> python3
+#go -> go / file
+
+### REGSITER
+POST {{base}}/docker/getip
+Content-Type: application/json
+
+{
+    "server":"docker_upload"
+}

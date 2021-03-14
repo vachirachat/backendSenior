@@ -41,6 +41,9 @@ func (service *UserService) GetUserByID(userID string) (model.User, error) {
 // GetUsersByIDs return multiple user
 func (service *UserService) GetUsersByIDs(userIDs []string) ([]model.User, error) {
 	users, err := service.userRepository.GetUsersByIDs(userIDs)
+
+	// FIX :
+	log.Println(users)
 	return users, err
 }
 
