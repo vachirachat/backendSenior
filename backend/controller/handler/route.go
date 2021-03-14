@@ -40,7 +40,8 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
 	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService)
 	fileRouteHandler := NewFileRouteHandler(deps.FileService)
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
 
 	subgroup := r.Group("/api/v1")
 
