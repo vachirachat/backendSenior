@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log"
 	"proxySenior/share/proto"
+	"strconv"
 	"time"
 
+	"github.com/globalsign/mgo/bson"
 	"google.golang.org/grpc"
 )
 
@@ -21,7 +23,7 @@ func NewGRPCOnPortMessagePlugin(serverPort string) *GRPCOnPortMessagePlugin {
 	opts = append(opts, grpc.WithInsecure())
 	opts = append(opts, grpc.WithBlock())
 
-	conn, err := grpc.Dial("localhost:5005", opts...)
+	conn, err := grpc.Dial(serverPort, opts...)
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
 	}
@@ -65,8 +67,9 @@ func (obp *GRPCOnPortMessagePlugin) Wait() error {
 func (obp *GRPCOnPortMessagePlugin) OnMessageIn(msg model.Message) error {
 	log.Println("Getting onMessage for point", msg.Data)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	temp := *obp.client
-	feature, err := temp.OnMessageIn(ctx, &proto.Chat{
+	// Create sending Messasge Format
+	client := *obp.client
+	_, err := client.OnMessageIn(ctx, &proto.Chat{
 		MessageId: msg.MessageID.Hex(),
 		RoomId:    msg.RoomID.Hex(),
 		Timestamp: msg.TimeStamp.Unix(),
@@ -77,9 +80,86 @@ func (obp *GRPCOnPortMessagePlugin) OnMessageIn(msg model.Message) error {
 	})
 
 	if err != nil {
-		log.Fatalf("%v.onMessage(_) = _, %v: ", obp.client, err)
+		log.Fatalf("%v.onMessageIn %v: ", obp.client, err)
 	}
-	log.Println(feature)
 	defer cancel()
 	return err
+}
+
+// CustomEncryption convert message from model.Message then send over GRPC >> to Manage encryption
+func (obp *GRPCOnPortMessagePlugin) CustomEncryption(msg model.Message) (model.Message, error) {
+	log.Println("Getting ForwardEncrypt for point", msg.Data)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client := *obp.client
+	message, err := client.EncryptedMessage(ctx, &proto.Chat{
+		MessageId: msg.MessageID.Hex(),
+		RoomId:    msg.RoomID.Hex(),
+		UserId:    msg.UserID.Hex(),
+		// Timestamp: msg.TimeStamp.UnixNano() / int64(time.Millisecond),
+		Timestamp: msg.TimeStamp.Unix(),
+		Type:      msg.Type,
+		ClientUid: msg.ClientUID,
+		Data:      msg.Data,
+	})
+
+	if err != nil {
+		log.Fatalf("%v.Encryption(_) = _, %v: ", client, err)
+	}
+	log.Println("\n EncryptedMessage >>", message)
+
+	// REFACTOR : Temp Chat.timestamp -> Message.Timestamp
+	i, err := strconv.ParseInt(fmt.Sprint(message.Timestamp), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	tm := time.Unix(i, 0)
+	return model.Message{
+		MessageID: bson.ObjectIdHex(message.MessageId),
+		TimeStamp: tm,
+		RoomID:    bson.ObjectIdHex(message.RoomId),
+		UserID:    bson.ObjectIdHex(message.UserId),
+		ClientUID: message.ClientUid,
+		Data:      message.Data,
+		Type:      message.Type,
+	}, nil
+}
+
+func (obp *GRPCOnPortMessagePlugin) CustomDecryption(msg model.Message) (model.Message, error) {
+	log.Println("Getting ForwardDecrypt for point", msg.Data)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client := *obp.client
+	// REFACTOR : Temp Chat.timestamp -> Message.Timestamp
+
+	message, err := client.DecryptedMessage(ctx, &proto.Chat{
+		MessageId: msg.MessageID.Hex(),
+		RoomId:    msg.RoomID.Hex(),
+		UserId:    msg.UserID.Hex(),
+		// Timestamp: msg.TimeStamp.UnixNano() / int64(time.Millisecond),
+		Timestamp: msg.TimeStamp.Unix(),
+		Type:      msg.Type,
+		ClientUid: msg.ClientUID,
+		Data:      msg.Data,
+	})
+	if err != nil {
+		log.Fatalf("%v.Encryption(_) = _, %v: ", client, err)
+	}
+
+	i, err := strconv.ParseInt(fmt.Sprint(message.Timestamp), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	tm := time.Unix(i, 0)
+
+	log.Println("\n DecryptedMessage >>", message)
+	return model.Message{
+		MessageID: bson.ObjectIdHex(message.MessageId),
+		TimeStamp: tm,
+		RoomID:    bson.ObjectIdHex(message.RoomId),
+		UserID:    bson.ObjectIdHex(message.UserId),
+		ClientUID: message.ClientUid,
+		Data:      message.Data,
+		Type:      message.Type,
+	}, nil
 }

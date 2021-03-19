@@ -6,6 +6,7 @@ import (
 	"backendSenior/domain/model/chatsocket/message_types"
 	"encoding/json"
 	"fmt"
+	"log"
 	"proxySenior/domain/interface/repository"
 )
 
@@ -24,12 +25,14 @@ func NewChatUpstreamService(controller repository.UpstreamMessageRepository, enc
 }
 
 // SendMessage encrypt mesasge and forward to upstream
+// Task: Plugin-Encryption :: Forward to custom proxy
 func (service *ChatUpstreamService) SendMessage(message model.Message) error {
-	encryptedMessage, err := service.encryption.Encrypt(message)
+	encryptedMessage, err := service.encryption.EncryptController(message)
 	if err != nil {
 		fmt.Printf("send error: can't encrypt: %s\n", err.Error())
 		return err
 	}
+	log.Println("SendMessage >> encryptedMessage", encryptedMessage)
 	data, err := json.Marshal(chatsocket.Message{
 		Type:    message_types.Chat,
 		Payload: encryptedMessage,
@@ -41,6 +44,8 @@ func (service *ChatUpstreamService) SendMessage(message model.Message) error {
 	err = service.upstream.SendMessage(data)
 	return err
 }
+
+// Task: Plugin-Encryption
 
 // RegsiterHandler add channel to be notified when message is received
 func (service *ChatUpstreamService) RegsiterHandler(channel chan []byte) error {

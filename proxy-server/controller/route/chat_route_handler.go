@@ -63,8 +63,8 @@ type client struct {
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	// routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
-	routerGroup.GET("/ws" /*, handler.authMiddleware.AuthRequired()*/, func(context *gin.Context) {
+	routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
+		// routerGroup.GET("/ws" /*, handler.authMiddleware.AuthRequired()*/, func(context *gin.Context) {
 		// fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
@@ -76,8 +76,8 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			},
 		}
 
-		// userID := context.GetString(middleware.UserIdField)
-		userID := "60001d1cf0a50a974cee376d"
+		userID := context.GetString(middleware.UserIdField)
+		// userID := "60001260f0a50a974cee2f95"
 		// Proxy use no auth ?
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -178,11 +178,14 @@ func (c *client) readPump() {
 				continue
 			}
 
-			// Saving messag
+			// Saving message
 			msg.TimeStamp = time.Now()
 			msg.UserID = bson.ObjectIdHex(c.userID)
-
+			msg.MessageID = bson.NewObjectId()
+			// Task: Plugin-Encryption : Check Flag to Forward
 			err = c.handlerRef.upstream.SendMessage(msg)
+			// Task: Plugin-Encryption : Check Flag to Forward
+
 			if err != nil {
 				fmt.Println("error sending")
 				c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{

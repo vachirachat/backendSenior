@@ -10,28 +10,54 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 
 	"github.com/mergermarket/go-pkcs7"
 
 	"proxySenior/domain/interface/repository"
+	"proxySenior/domain/plugin"
 )
 
 // EncryptionService is service for encrpyting and decrypting message
 type EncryptionService struct {
 	keystore repository.Keystore
+	plugin   *plugin.OnMessagePortPlugin
 }
 
 // NewEncryptionService create instance of encryption service
-func NewEncryptionService(keystore repository.Keystore) *EncryptionService {
+func NewEncryptionService(keystore repository.Keystore, onMessagePortPlugin *plugin.OnMessagePortPlugin) *EncryptionService {
 	return &EncryptionService{
 		keystore: keystore,
+		plugin:   onMessagePortPlugin,
 	}
 }
 
 // source: https://gist.github.com/brettscott/2ac58ab7cb1c66e2b4a32d6c1c3908a7
 
+func (enc *EncryptionService) EncryptController(message model.Message) (model.Message, error) {
+
+	if enc.plugin.IsEnabledEncryption() {
+		log.Println("Test IsEnabledEncryption Select", "True")
+		return enc.plugin.CustomEncryptionPlugin(message)
+	} else {
+		log.Println("Test Select", "False")
+		return enc.EncryptBase(message)
+	}
+}
+
+func (enc *EncryptionService) DecryptController(message model.Message) (model.Message, error) {
+	if enc.plugin.IsEnabledEncryption() {
+		log.Println("Test DecryptController Select", "True")
+		return enc.plugin.CustomDecryptionPlugin(message)
+	} else {
+		log.Println("Test Select", "False")
+		return enc.DecryptBase(message)
+	}
+}
+
 // Encrypt takes a message, then return message with data encrypted
-func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, error) {
+// Task: Plugin-Encryption :: Use As base Encryption
+func (enc *EncryptionService) EncryptBase(message model.Message) (model.Message, error) {
 	keyRec, err := enc.keystore.GetKeyForMessage(message.RoomID.Hex(), message.TimeStamp)
 	if err != nil {
 		return message, fmt.Errorf("getting key: %s", err.Error())
@@ -75,7 +101,7 @@ func (enc *EncryptionService) Encrypt(message model.Message) (model.Message, err
 }
 
 // Decrypt takes a message, then return message with data decrypted with appropiate key
-func (enc *EncryptionService) Decrypt(message model.Message) (model.Message, error) {
+func (enc *EncryptionService) DecryptBase(message model.Message) (model.Message, error) {
 	// fmt.Printf("[Decode] original message text is [%s]\n", message.Data)
 	// decoder := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))
 	// decoded, err := ioutil.ReadAll(decoder)

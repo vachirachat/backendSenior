@@ -24,9 +24,16 @@ var dockerFilePath string
 var PORT string
 
 func main() {
-	containerID = "4b63a66c4bd1"
-	localFilePath = "/Users/waritphon/code-fast-test/backend_config_proxy/file_upload/"
-	localPlainFilePath = "/Users/waritphon/code-fast-test/backend_config_proxy/temporary-code"
+	containerID = "8108a7bfb5a0"
+	absPath, err := os.Getwd()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Println(absPath)
+
+	localFilePath = absPath + "/file_upload/"
+	localPlainFilePath = absPath + "/temporary-code"
 	dockerFilePath = "/app/go_server"
 	PORT = "localhost:7070"
 	r := setupRoutes()

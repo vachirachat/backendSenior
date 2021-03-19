@@ -107,65 +107,10 @@ func main() {
 		Data:      "Python *** Test-message-1 >>>>>>>> client",
 		Type:      "CHAT",
 	}
-	// msg := RawMessage{
-	// 	TimeStamp: 150000,
-	// 	RoomID:    bson.ObjectIdHex("60001d1cf0a50a974cee376d").Hex(),
-	// 	UserID:    bson.ObjectIdHex("60001e33584cb6da2059f5b7").Hex(),
-	// 	ClientUID: "60001d1cf0a50a974cee376d",
-	// 	Data:      "Test-message-1",
-	// 	Type:      "CHAT",
-	// }
+
 	defer conn.Close()
 
 	ok := isReady(client)
 	log.Print("Return from isReady", ok)
 	onMessage(client, msg)
 }
-
-// docker run --rm -itd -p 27017:27017 -v /Users/waritphon/Downloads/Senior:/data/db mongo
-
-// chat-route-handler
-// userID := "60001d1cf0a50a974cee376d"
-// routerGroup.GET("/ws" /*, handler.authMiddleware.AuthRequired() */, func(context *gin.Context) {
-
-// // Prin
-// var message []BackupMessage
-// conn.DB("backup").C("message").Find(nil).All(&message)
-// for _, v := range message {
-// 	log.Println(v, "\n")
-// }
-// return &proto.Empty{}, nil
-
-// IN main client-> proxy
-// // TO TEST must DELETE : TEST Message
-// Message := backup.RawMessage{
-// 	MessageID: bson.ObjectId("60001d1cf0a50a974cee376d").Hex(),
-// 	TimeStamp: time.Now().Unix(),
-// 	RoomID:    bson.ObjectIdHex("60001d1cf0a50a974cee376d").Hex(),
-// 	UserID:    bson.ObjectIdHex("60001e33584cb6da2059f5b7").Hex(),
-// 	ClientUID: "60001d1cf0a50a974cee376d",
-// 	Data:      "Test-message-1",
-// 	Type:      "CHAT",
-// }
-
-// User in OnMessageIn on_message_plugin_port
-// feature, err := temp.OnMessageIn(ctx, &proto.Chat{
-// 	MessageId: msg.MessageID,
-// 	RoomId:    msg.RoomID,
-// 	Timestamp: msg.TimeStamp,
-// 	UserId:    msg.UserID,
-// 	Type:      msg.Type,
-// 	ClientUid: msg.ClientUID,
-// 	Data:      msg.Data,
-// })
-
-// -> simple websocket-check
-// ws://localhost:8090/api/v1/chat/ws?userId=60001d1cf0a50a974cee376d
-// {"type":"CHAT",
-// "payload":{
-// "data":"hi 1149 --> Test in DB -> TO javascript new",
-// "uid":"60007606000000000400a304",
-// "roomId":"60001e33584cb6da2059f5b7",
-// "userId":"60001d1cf0a50a974cee376d",
-// "type":"TEXT"}
-// }

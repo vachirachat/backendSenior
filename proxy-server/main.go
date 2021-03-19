@@ -38,27 +38,39 @@ func main() {
 	if clientSecret == "" {
 		log.Fatalln("error: please set client secret")
 	}
-
+	// Refactor :
+	// Task: Plugin-Encryption : Check Flag to Forward
 	// Add port to communicate with RPC
-	enablePlugin := true
+	enablePlugin := false
+	if os.Getenv("PLUGIN_ACTIVE") == "True" {
+		enablePlugin = true
+	}
+
+	enablePluginEnc := false
+	if os.Getenv("PLUGIN_Encryption") == "True" {
+		enablePluginEnc = true
+	}
+
 	pluginPort := os.Getenv("PLUGIN_PORT")
-	log.Println(pluginPort)
 	if pluginPort == "" {
 		enablePlugin = false
 		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PATH is not set")
 	}
-	log.Println("Connect to Plugin-Server")
-	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, pluginPort)
 
+	log.Println("Plugin Config >>>", "enablePlugin", enablePlugin, "enablePluginEnc", enablePluginEnc)
+	log.Println("pluginPort", pluginPort)
+
+	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, enablePluginEnc, pluginPort)
 	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN, clientID, clientSecret)
 	keystore := &mongo_repository.KeyRepository{}
 
-	err = onMessagePlugin.Wait()
-	if err != nil {
-		log.Fatalln("Wait for onMessagePlugin Error")
-	}
+	// err = onMessagePlugin.Wait()
+	// if err != nil {
+	// 	log.Fatalln("Wait for onMessagePlugin Error")
+	// }
+	// Task: Plugin-Encryption : Check Flag to Forward
 
-	enc := service.NewEncryptionService(keystore)
+	enc := service.NewEncryptionService(keystore, onMessagePlugin)
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
 	upstreamService := service.NewChatUpstreamService(upstream, enc)
 	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)

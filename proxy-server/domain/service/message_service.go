@@ -27,7 +27,7 @@ func (service *MessageService) GetMessageForRoom(roomID string, timeRange *model
 
 	decrypted := make([]model.Message, len(messages))
 	for i := 0; i < len(messages); i++ {
-		m, err := service.encryption.Decrypt(messages[i])
+		m, err := service.encryption.DecryptController(messages[i])
 		if err != nil {
 			decrypted = decrypted[:i]
 			return decrypted, err

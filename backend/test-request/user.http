@@ -7,7 +7,7 @@ POST {{base}}/signup
 Content-Type: application/json
 
 {
-  "email": "top@gmail.com",
+  "email": "top555@gmail.com",
   "password": "12345678"
 }
 ### GET all users
@@ -18,7 +18,7 @@ POST {{base}}/login
 Content-Type: application/json
 
 {
-  "email": "top@gmail.com",
+  "email": "top555@gmail.com",
   "password": "12345678"
 }
 

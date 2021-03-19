@@ -60,8 +60,8 @@ func (h *MessageHandler) Start() {
 				fmt.Printf("the message was [%s]\n", data)
 				continue
 			}
-
-			msg, err = h.encryption.Decrypt(msg)
+			//  Task: Plugin-Encryption : Forward to Decryption
+			msg, err = h.encryption.DecryptController(msg)
 			if err != nil {
 				fmt.Println("Error decrpyting", err)
 				continue
