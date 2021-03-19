@@ -1,6 +1,7 @@
 package file
 
 import (
+	"backendSenior/domain/interface/repository"
 	"fmt"
 	"github.com/minio/minio-go/pkg/credentials"
 	"net/url"
@@ -12,6 +13,8 @@ import (
 type MinioStore struct {
 	clnt *minio.Client
 }
+
+var _ repository.ObjectStore = (*MinioStore)(nil)
 
 const defaultRegion = "us-east-1"
 
@@ -138,17 +141,7 @@ func (s *MinioStore) PostPresignedURL(bucketName string, objectName string) (str
 	return url.String(), formData, nil
 }
 
-//func (s *MinioStore) PutFile(bucketName string, objectName string, file io.Reader) error {
-//	_, err := s.clnt.PutObject(bucketName, objectName, file, -1, minio.PutObjectOptions{})
-//	return err
-//}
-//
-//func (s *MinioStore) GetFile(bucketName string, objectName string) (*minio.Object, error) {
-//	obj, err := s.clnt.GetObject(bucketName, objectName, minio.GetObjectOptions{})
-//	return obj, err
-//}
-//
-//func (s *MinioStore) DeleteFile(bucketName string, objectName string) error {
-//	err := s.clnt.RemoveObject(bucketName, objectName)
-//	return err
-//}
+func (s *MinioStore) DeleteObject(bucketName string, objectName string) (err error) {
+	err = s.clnt.RemoveObject(bucketName, objectName)
+	return err
+}

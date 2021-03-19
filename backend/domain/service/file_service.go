@@ -4,6 +4,7 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	file_payload "backendSenior/domain/payload/file"
+	"errors"
 	"fmt"
 	"time"
 
@@ -37,17 +38,6 @@ type UploadImageMeta struct {
 	Size        int
 	ThumbnailID bson.ObjectId
 }
-
-//// BeforeUploadFile should be used before uploading file to get URL
-//func (s *FileService) BeforeUploadFile() (fileID string, presignedURL string, err error) {
-//	oid := bson.NewObjectId().Hex()
-//	url, err := s.file.PutPresignedURL("file", oid)
-//	fmt.Println("get url!")
-//	if err != nil {
-//		return "", "", err
-//	}
-//	return oid, url, nil
-//}
 
 func (s *FileService) BeforeUploadFilePOST() (fileID string, endpoint string, formData map[string]string, err error) {
 	oid := bson.NewObjectId().Hex()
@@ -117,19 +107,6 @@ func (s *FileService) GetRoomFileMetas(roomID bson.ObjectId) ([]model.FileMeta, 
 
 // ==================== IMAGE
 
-// BeforeUploadImage should be used before uploading file to get URL
-//func (s *FileService) BeforeUploadImage() (imgID, imgURL, thumbID, thumbURL string, err error) {
-//	imgID = bson.NewObjectId().Hex()
-//	thumbID = bson.NewObjectId().Hex()
-//	imgURL, err = s.file.PutPresignedURL("image", imgID)
-//	if err != nil {
-//		return
-//	}
-//	thumbURL, err = s.file.PutPresignedURL("image", thumbID)
-//
-//	return
-//}
-
 func (s *FileService) BeforeUploadImagePOST() (file_payload.BeforeUploadImageResponse, error) {
 	res := file_payload.BeforeUploadImageResponse{}
 
@@ -182,18 +159,6 @@ func (s *FileService) GetAnyFileURL(fileType string, fileID string) (string, err
 	return url, nil
 }
 
-// func (s *FileService) GetImageFileMeta(imageFileID bson.ObjectId) (model.FileMeta, error) {
-// 	metas, err := s.meta.FindFile(model.FileMetaFilter{
-// 		FileID:     imageFileID,
-// 		BucketName: "image",
-// 	})
-// 	if err != nil {
-// 		return model.FileMeta{}, fmt.Errorf("error getting image file meta: %w", err)
-// 	}
-// 	// TODO: assume if not error then there's result, check to see if this is true
-// 	return metas[0], nil
-// }
-
 // GetImageURLs return URL for image and it's thumbnail
 func (s *FileService) GetImageURLs(fileID bson.ObjectId) (img, thumb string, err error) {
 	metas, err := s.meta.FindFile(model.FileMetaFilter{FileID: fileID})
@@ -218,4 +183,20 @@ func (s *FileService) GetRoomImageMetas(roomID bson.ObjectId) ([]model.FileMeta,
 		BucketName: "image",
 	})
 	return metas, err
+}
+
+func (s *FileService) DeleteFile(fileID bson.ObjectId) error {
+	if metas, err := s.meta.FindFile(model.FileMetaFilter{
+		FileID: fileID,
+	}); err != nil {
+		return fmt.Errorf("finding meta: %w", err)
+	} else if len(metas) == 0 {
+		return errors.New("file not found")
+	} else {
+		m := metas[0]
+		if err := s.file.DeleteObject(m.BucketName, m.FileID.Hex()); err != nil {
+			return fmt.Errorf("deleting file: %w", err)
+		}
+		return nil
+	}
 }

@@ -7,7 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
-)
+
+	"common/utils/ginutils"
+	)
 
 type FileRouteHandler struct {
 	fs *service.FileService
@@ -31,6 +33,10 @@ func (h *FileRouteHandler) Mount(rg *gin.RouterGroup) {
 	rg.POST("/before-upload-image", h.beforeUploadImage)
 	rg.POST("/room/:roomId/after-upload-image/:fileId", h.afterUploadImage)
 	rg.GET("/room/:roomId/images", h.getRoomImages)
+
+	// POST can be used for actuin
+	rg.POST("/delete-file", ginutils.InjectGin(h.deleteFile))
+	rg.POST("/delete-image")
 }
 
 func (h *FileRouteHandler) beforeUploadFile(c *gin.Context) {
@@ -176,4 +182,17 @@ func (h *FileRouteHandler) getRoomImages(c *gin.Context) {
 	}
 
 	c.JSON(200, metas)
+}
+
+
+func (h *FileRouteHandler) deleteFile(c *gin.Context, input struct {
+	Body struct {
+		FileID bson.ObjectId
+	}
+}) {
+	c.JSON(200, gin.H{
+		"status": "OK",
+		"fileID": input.Body.FileID,
+	})
+
 }
