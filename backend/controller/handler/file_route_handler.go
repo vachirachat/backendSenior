@@ -220,8 +220,12 @@ func (h *FileRouteHandler) deleteFile(c *gin.Context, input struct {
 		}
 
 		if !found {
-			return g.NewError(403, errors.New("Forbidden"))
+			return g.NewError(403, errors.New("forbidden: not in room"))
 		} else {
+			if meta.UserID.Hex() != userID {
+				return g.NewError(403, errors.New("forbidden: not your file"))
+			}
+
 			if err := h.fs.DeleteFile(b.FileID); err != nil {
 				return g.NewError(500, fmt.Errorf("error deleting file: %s", err))
 			} else {
