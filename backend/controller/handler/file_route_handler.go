@@ -1,23 +1,31 @@
 package route
 
 import (
+	"backendSenior/controller/middleware/auth"
 	file_payload "backendSenior/domain/payload/file"
 	"backendSenior/domain/service"
+	"errors"
+	"fmt"
+	"github.com/globalsign/mgo"
 	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
 
-	"common/utils/ginutils"
-	)
+	g "common/utils/ginutils"
+)
 
 type FileRouteHandler struct {
-	fs *service.FileService
+	fs   *service.FileService
+	room *service.RoomService
+	mw   *auth.JWTMiddleware
 }
 
-func NewFileRouteHandler(fs *service.FileService) *FileRouteHandler {
+func NewFileRouteHandler(fs *service.FileService, room *service.RoomService, mw *auth.JWTMiddleware) *FileRouteHandler {
 	return &FileRouteHandler{
-		fs: fs,
+		fs:   fs,
+		room: room,
+		mw:   mw,
 	}
 }
 
@@ -35,7 +43,7 @@ func (h *FileRouteHandler) Mount(rg *gin.RouterGroup) {
 	rg.GET("/room/:roomId/images", h.getRoomImages)
 
 	// POST can be used for actuin
-	rg.POST("/delete-file", ginutils.InjectGin(h.deleteFile))
+	rg.POST("/delete-file", h.mw.AuthRequired(), g.InjectGin(h.deleteFile))
 	rg.POST("/delete-image")
 }
 
@@ -184,15 +192,43 @@ func (h *FileRouteHandler) getRoomImages(c *gin.Context) {
 	c.JSON(200, metas)
 }
 
-
 func (h *FileRouteHandler) deleteFile(c *gin.Context, input struct {
+	// define body here
 	Body struct {
-		FileID bson.ObjectId
+		FileID bson.ObjectId `validate:"required"`
 	}
-}) {
-	c.JSON(200, gin.H{
-		"status": "OK",
-		"fileID": input.Body.FileID,
-	})
+}) error {
+	b := input.Body
+
+	meta, err := h.fs.GetAnyFileMeta(b.FileID)
+	if err != nil {
+		if errors.Is(err, mgo.ErrNotFound) {
+			return g.NewError(404, err)
+		}
+		return g.NewError(500, err)
+	}
+
+	userID := c.GetString(auth.UserIdField)
+	if rooms, err := h.room.GetUserRooms(userID); err != nil {
+		return g.NewError(500, fmt.Errorf("error checking user in room: %s", err))
+	} else {
+		found := false
+		for _, roomID := range rooms {
+			if roomID.RoomID == meta.RoomID {
+				found = true
+			}
+		}
+
+		if !found {
+			return g.NewError(403, errors.New("Forbidden"))
+		} else {
+			if err := h.fs.DeleteFile(b.FileID); err != nil {
+				return g.NewError(500, fmt.Errorf("error deleting file: %s", err))
+			} else {
+				c.JSON(200, g.Response{true, "deleted file", nil})
+				return nil
+			}
+		}
+	}
 
 }

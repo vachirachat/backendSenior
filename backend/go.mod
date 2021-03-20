@@ -2,7 +2,7 @@ module backendSenior
 
 go 1.15
 
-replace proxySenior => ../proxy-server
+//replace proxySenior => ../proxy-server
 
 replace common => ../common
 
@@ -24,5 +24,5 @@ require (
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	google.golang.org/api v0.30.0
 	gopkg.in/ini.v1 v1.62.0 // indirect
-	proxySenior v0.0.0-00010101000000-000000000000
+	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
 )

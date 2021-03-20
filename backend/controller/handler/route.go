@@ -39,7 +39,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
 	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService)
-	fileRouteHandler := NewFileRouteHandler(deps.FileService)
+	fileRouteHandler := NewFileRouteHandler(deps.FileService, deps.RoomService, authMiddleware)
 	r := gin.New()
 	r.Use(gin.Recovery())
 

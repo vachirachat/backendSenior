@@ -6,6 +6,7 @@ import (
 	file_payload "backendSenior/domain/payload/file"
 	"errors"
 	"fmt"
+	"github.com/globalsign/mgo"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -73,6 +74,9 @@ func (s *FileService) GetAnyFileMeta(fileID bson.ObjectId) (model.FileMeta, erro
 	})
 	if err != nil {
 		return model.FileMeta{}, fmt.Errorf("error getting file meta: %w", err)
+	}
+	if len(metas) == 0 {
+		return model.FileMeta{}, mgo.ErrNotFound
 	}
 	// TODO: assume if not error then there's result, check to see if this is true
 	return metas[0], nil
@@ -196,6 +200,9 @@ func (s *FileService) DeleteFile(fileID bson.ObjectId) error {
 		m := metas[0]
 		if err := s.file.DeleteObject(m.BucketName, m.FileID.Hex()); err != nil {
 			return fmt.Errorf("deleting file: %w", err)
+		}
+		if err := s.meta.DeleteByID(fileID); err != nil {
+			return fmt.Errorf("deleting file meta: %w", err)
 		}
 		return nil
 	}
