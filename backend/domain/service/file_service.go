@@ -104,7 +104,8 @@ func (s *FileService) GetFileURL(fileID bson.ObjectId) (string, error) {
 // GetFile return file by ID, only valid for type = file
 func (s *FileService) GetRoomFileMetas(roomID bson.ObjectId) ([]model.FileMeta, error) {
 	metas, err := s.meta.FindFile(model.FileMetaFilter{
-		RoomID: roomID,
+		RoomID:     roomID,
+		BucketName: "file",
 	})
 	return metas, err
 }
@@ -191,7 +192,8 @@ func (s *FileService) GetRoomImageMetas(roomID bson.ObjectId) ([]model.FileMeta,
 
 func (s *FileService) DeleteFile(fileID bson.ObjectId) error {
 	if metas, err := s.meta.FindFile(model.FileMetaFilter{
-		FileID: fileID,
+		FileID:     fileID,
+		BucketName: "file",
 	}); err != nil {
 		return fmt.Errorf("finding meta: %w", err)
 	} else if len(metas) == 0 {
