@@ -209,3 +209,26 @@ func (s *FileService) DeleteFile(fileID bson.ObjectId) error {
 		return nil
 	}
 }
+
+func (s *FileService) DeleteImage(imageFileID bson.ObjectId) error {
+	if metas, err := s.meta.FindFile(model.FileMetaFilter{
+		FileID:     imageFileID,
+		BucketName: "image",
+	}); err != nil {
+		return fmt.Errorf("finding meta: %w", err)
+	} else if len(metas) == 0 {
+		return errors.New("file not found")
+	} else {
+		m := metas[0]
+		if err := s.file.DeleteObject(m.BucketName, m.FileID.Hex()); err != nil {
+			return fmt.Errorf("deleting main image: %w", err)
+		}
+		if err := s.file.DeleteObject(m.BucketName, m.ThumbnailID.Hex()); err != nil {
+			return fmt.Errorf("deleting thumbnail image: %w", err)
+		}
+		if err := s.meta.DeleteByID(imageFileID); err != nil {
+			return fmt.Errorf("deleting file meta: %w", err)
+		}
+		return nil
+	}
+}

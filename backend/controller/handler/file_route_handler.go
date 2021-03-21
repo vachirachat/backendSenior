@@ -44,7 +44,7 @@ func (h *FileRouteHandler) Mount(rg *gin.RouterGroup) {
 
 	// POST can be used for actuin
 	rg.POST("/delete-file", h.mw.AuthRequired(), g.InjectGin(h.deleteFile))
-	rg.POST("/delete-image")
+	rg.POST("/delete-image", h.mw.AuthRequired(), g.InjectGin(h.deleteImage))
 }
 
 func (h *FileRouteHandler) beforeUploadFile(c *gin.Context) {
@@ -230,6 +230,51 @@ func (h *FileRouteHandler) deleteFile(c *gin.Context, input struct {
 				return g.NewError(500, fmt.Errorf("error deleting file: %s", err))
 			} else {
 				c.JSON(200, g.Response{true, "deleted file", nil})
+				return nil
+			}
+		}
+	}
+
+}
+
+func (h *FileRouteHandler) deleteImage(c *gin.Context, input struct {
+	// define body here
+	Body struct {
+		FileID bson.ObjectId `validate:"required"`
+	}
+}) error {
+	b := input.Body
+
+	meta, err := h.fs.GetAnyFileMeta(b.FileID)
+	if err != nil {
+		if errors.Is(err, mgo.ErrNotFound) {
+			return g.NewError(404, err)
+		}
+		return g.NewError(500, err)
+	}
+
+	userID := c.GetString(auth.UserIdField)
+	if rooms, err := h.room.GetUserRooms(userID); err != nil {
+		return g.NewError(500, fmt.Errorf("error checking user in room: %s", err))
+	} else {
+		found := false
+		for _, roomID := range rooms {
+			if roomID.RoomID == meta.RoomID {
+				found = true
+			}
+		}
+
+		if !found {
+			return g.NewError(403, errors.New("forbidden: not in room"))
+		} else {
+			if meta.UserID.Hex() != userID {
+				return g.NewError(403, errors.New("forbidden: not your image"))
+			}
+
+			if err := h.fs.DeleteImage(b.FileID); err != nil {
+				return g.NewError(500, fmt.Errorf("error deleting image: %s", err))
+			} else {
+				c.JSON(200, g.Response{true, "deleted image", nil})
 				return nil
 			}
 		}
