@@ -64,10 +64,13 @@ func (h *MessageHandler) Start() {
 				continue
 			}
 
+			// TODO!: fix ME!!
 			keys, err := h.getKeyFromRoom(msg.RoomID.Hex())
 			key := keyFor(keys, msg.TimeStamp)
 
 			encrypted, err := encryption.B64Decode([]byte(msg.Data))
+			//  Task: Plugin-Encryption : Forward to Decryption
+			msg, err = h.encryption.DecryptController(msg)
 			if err != nil {
 				log.Println("error b64 decode message:", err)
 				continue

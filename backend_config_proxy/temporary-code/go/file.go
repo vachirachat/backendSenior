@@ -68,10 +68,10 @@ func NewBackupServer() proto.BackupServer {
 
 func main() {
 	//connect mongo Server
-	log.Println("Start-go Server with PORT", "5005")
+
 	go func() {
 		var err error
-		conn, err = mgo.Dial("mongodb://172.17.0.2:27017")
+		conn, err = mgo.Dial("172.17.0.2:27017")
 		if err != nil {
 			log.Fatal("error running", err)
 		}
@@ -84,7 +84,7 @@ func main() {
 	}
 	var opts []grpc.ServerOption
 	opts = []grpc.ServerOption{}
-
+	log.Println("Start-go Server with PORT", "5005")
 	grpcServer := grpc.NewServer(opts...)
 	proto.RegisterBackupServer(grpcServer, NewBackupServer())
 	grpcServer.Serve(lis)

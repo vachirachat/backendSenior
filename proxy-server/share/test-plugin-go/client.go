@@ -25,8 +25,10 @@ package main
 
 import (
 	context "context"
+	"fmt"
 	"log"
 	"proxySenior/share/proto"
+	"strconv"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -44,6 +46,15 @@ type RawMessage struct {
 	ClientUID string `bson:"clientUID"`
 	Data      string `bson:"data"`
 	Type      string `bson:"type"`
+}
+type Message struct {
+	MessageID bson.ObjectId `json:"messageId" bson:"_id,omitempty"`
+	TimeStamp time.Time     `json:"timestamp" bson:"timestamp"`
+	RoomID    bson.ObjectId `json:"roomId" bson:"roomId"`
+	UserID    bson.ObjectId `json:"userId" bson:"userId"`
+	ClientUID string        `json:"uid" bson:"uid"`
+	Data      string        `json:"data" bson:"data"`
+	Type      string        `json:"type" bson:"type"`
 }
 
 // onMessage
@@ -79,6 +90,66 @@ func isReady(client proto.BackupClient) *proto.Status {
 	return ok
 }
 
+func Encryption(client proto.BackupClient, msg RawMessage) {
+	log.Println("Getting Encryption for point", msg.Data)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	feature, err := client.EncryptedMessage(ctx, &proto.Chat{
+		MessageId: msg.MessageID,
+		RoomId:    msg.RoomID,
+		UserId:    msg.UserID,
+		Timestamp: msg.TimeStamp,
+		Type:      msg.Type,
+		ClientUid: msg.ClientUID,
+		Data:      msg.Data,
+	})
+	if err != nil {
+		log.Fatalf("%v.Encryption(_) = _, %v: ", client, err)
+	}
+	log.Println("\n EncryptedMessage >>", feature)
+
+	feature, err = client.DecryptedMessage(ctx, feature)
+	if err != nil {
+		log.Fatalf("%v.Decrypted(_) = _, %v: ", client, err)
+	}
+
+	log.Println(feature.Timestamp)
+
+	i, err := strconv.ParseInt(fmt.Sprint(feature.Timestamp), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	tm := time.Unix(i, 0)
+
+	msgDe := Message{
+		MessageID: bson.ObjectIdHex(feature.MessageId),
+		TimeStamp: tm,
+		RoomID:    bson.ObjectIdHex("60001d1cf0a50a974cee376d"),
+		UserID:    bson.ObjectIdHex("60001e33584cb6da2059f5b7"),
+		ClientUID: "60001d1cf0a50a974cee376d",
+		// Data:      "Test GO Plugin Server",
+		Data: ">>> Hello docker Server",
+		// Data: "Test Python Plugin Server",
+		// Data: "Test JS Plugin Server",
+		Type: "CHAT",
+	}
+
+	log.Println("\n DecryptedMessage >>", msgDe)
+
+}
+
+func getKey(client proto.BackupClient) {
+	log.Println("Getting Encryption for point getKey")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	feature, err := client.GetKey(ctx, &proto.Empty{})
+	if err != nil {
+		log.Fatalf("%v.getKey(_) = _, %v: ", client, err)
+	}
+	log.Println("\n GetKey >>", feature)
+}
+
 func main() {
 	var opts []grpc.DialOption
 
@@ -88,8 +159,8 @@ func main() {
 	// log.Println("Connect Port localhost:7000")
 	// conn, err := grpc.Dial(":6000", opts...)
 
-	log.Println("Connect Port localhost:5005")
-	conn, err := grpc.Dial("localhost:5005", opts...)
+	log.Println("Connect Port localhost:3333")
+	conn, err := grpc.Dial("localhost:3333", opts...)
 
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
@@ -115,7 +186,9 @@ func main() {
 
 	ok := isReady(client)
 	log.Print("Return from isReady", ok)
-	onMessage(client, msg)
+	// onMessage(client, msg)
+	Encryption(client, msg)
+	getKey(client)
 }
 
 // docker run --rm -itd -p 27017:27017 -v /Users/waritphon/Downloads/Senior:/data/db mongo

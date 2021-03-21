@@ -1,4 +1,96 @@
 --> Code pattern 
+
+--> Run Procedure 
+// Start mongoDB
+docker run --rm -itd -p 27016:27017 --name mongo_proxy -v /Users/waritphon/Downloads/Senior/mongo_proxy:/data/db mongo
+docker run --rm -itd -p 27017:27017 --name mongo_controller -v /Users/waritphon/Downloads/Senior:/data/db mongo
+docker run -p 5555:5555 -p 5005:5005 -p 5050:5050  -d  -t --name docker_upload --rm docker_upload
+
+env GOOS=linux GOARCH=arm64 go build ...
+
+//docker network list
+docker network inspect bridge
+
+
+// docker run --rm -itd -p 27017:27017 -v /Users/waritphon/Downloads/Senior:/data/db mongo
+
+// chat-route-handler
+// userID := "60001d1cf0a50a974cee376d"
+// routerGroup.GET("/ws" /*, handler.authMiddleware.AuthRequired() */, func(context *gin.Context) {
+
+// // Prin
+// var message []BackupMessage
+// conn.DB("backup").C("message").Find(nil).All(&message)
+// for _, v := range message {
+// 	log.Println(v, "\n")
+// }
+// return &proto.Empty{}, nil
+
+// IN main client-> proxy
+// // TO TEST must DELETE : TEST Message
+// Message := backup.RawMessage{
+// 	MessageID: bson.ObjectId("60001d1cf0a50a974cee376d").Hex(),
+// 	TimeStamp: time.Now().Unix(),
+// 	RoomID:    bson.ObjectIdHex("60001d1cf0a50a974cee376d").Hex(),
+// 	UserID:    bson.ObjectIdHex("60001e33584cb6da2059f5b7").Hex(),
+// 	ClientUID: "60001d1cf0a50a974cee376d",
+// 	Data:      "Test-message-1",
+// 	Type:      "CHAT",
+// }
+
+// User in OnMessageIn on_message_plugin_port
+// feature, err := temp.OnMessageIn(ctx, &proto.Chat{
+// 	MessageId: msg.MessageID,
+// 	RoomId:    msg.RoomID,
+// 	Timestamp: msg.TimeStamp,
+// 	UserId:    msg.UserID,
+// 	Type:      msg.Type,
+// 	ClientUid: msg.ClientUID,
+// 	Data:      msg.Data,
+// })
+
+// -> simple websocket-check
+// ws://localhost:8090/api/v1/chat/ws?userId=60001260f0a50a974cee2f95
+// {"type":"CHAT",
+// "payload":{
+// "data":"hi 1149 --> Test in DB -> TO javascript new",
+// "uid":"60007606000000000400a304",
+// "roomId":"60001e33584cb6da2059f5b7",
+// "userId":"60001d1cf0a50a974cee376d",
+// "type":"TEXT"}
+// }
+
+ ws://localhost:8090/api/v1/chat/ws?userId=60001260f0a50a974cee2f95
+ {"type":"CHAT",
+ "payload":{
+ "data":"Test in Client",
+ "uid":"60007606000000000400a304",
+ "roomId":"60001e33584cb6da2059f5b7",
+ "userId":"60001260f0a50a974cee2f95",
+ "type":"TEXT"}
+ }
+
+{
+  "status": "success",
+  "token": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImYyNmFiYjFkLWVmMDYtNDM1YS1iYmUxLWIzZWI0YzMzMGU5OSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNDIxMzE1OSwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjAzNmYwNTc5OWEwNWJiYzE4MGJkM2NiIn0.u5s30RypgKMrnpEixHiStbjLejVVQMUH9GakiowoIF8",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MTQ4MTgwMTksInJlZnJlc2hfdXVpZCI6IjBkZTVkMmJlLTE5MGItNGExMi05Y2ZmLWY3NTRkNjBjYzllNyIsInVzZXJfaWQiOiI2MDM2ZjA1Nzk5YTA1YmJjMTgwYmQzY2IifQ.CG6HIrrK35HA1EI-PqxDINa6XjZ-tP73LXWnxpJZLFs",
+    "expiresAt": 2214213159,
+    "refreshExpiresAt": 1614818019
+  }
+}
+
+// Run Protoc GO.
+in path share/
+protoc --go_out=. --go_opt=paths=source_relative \
+--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+backup.proto
+
+
+
+
+--> Helper <--
+
 // must install to run mac-go/build in docker
 docker pull karalabe/xgo-latest
 
@@ -7,7 +99,6 @@ docker build -t [name-image] .
 docker run --publish 2020:2020 --name [name-container] --rm [name-image]
 
 --> Build go 
-
 env GOOS=target-OS GOARCH=target-architecture go build package-import-path
 
 // Docker go-build use linux / arm64
@@ -19,7 +110,7 @@ env GOOS=linux GOARCH=arm64 go build ...
  # 5050 is plugin-link
 
  docker build -t upload-server .
-  docker build -t proxy-execable .
+docker build -t proxy-execable .
  docker run --publish 2020:2020 --name test-upload --rm upload-server
 
  chmod +x /Users/waritphon/code-fast-test/golang-upload-exec/file-upload/upload
@@ -27,11 +118,9 @@ env GOOS=linux GOARCH=arm64 go build ...
 --> Connect mutiple port to docker 
 docker run -p 5005:5005 -p 5050:5050 -p 6000:6000 -d  -t --name proxy-execable --rm proxy-execable
 
-// Start mongoDB
-// docker run --rm -itd -p 27017:27017 -v /Users/waritphon/Downloads/Senior:/data/db mongo
 
-//docker network list
-docker network inspect bridge
+
+
 
 // Run exec- in docker
 docker exec -ti 4ff36ae35dbd sh -c "cat /app/go_server/docker-cheatsheet"
@@ -39,3 +128,5 @@ docker exec -ti 4ff36ae35dbd sh -c "cat /app/go_server/docker-cheatsheet"
 #####
 -->Demo Connect mutiple port to docker Demo 
 docker run -p 5555:5555 -p 5005:5005 -p 5050:5050  -d  -t --name docker_upload --rm docker_upload
+
+

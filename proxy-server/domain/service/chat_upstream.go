@@ -36,6 +36,8 @@ func (service *ChatUpstreamService) SendMessage(message model.Message) error {
 	return err
 }
 
+// Task: Plugin-Encryption
+
 // RegsiterHandler add channel to be notified when message is received
 func (service *ChatUpstreamService) RegsiterHandler(channel chan []byte) error {
 	return service.upstream.RegisterHandler(channel)

@@ -7,7 +7,7 @@ Content-Type: application/json
 
 {
     "Filename":"file",
-    "Lang" : "py"
+    "Lang" : "go"
 }
 
 ### Run Execfile

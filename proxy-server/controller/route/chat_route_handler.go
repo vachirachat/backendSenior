@@ -108,7 +108,7 @@ func (handler *ChatRouteHandler) websocketHandler(context *gin.Context) {
 	go clnt.readPump()
 }
 
-// TODO: some how move this to connection pool so it's centralized
+// TODO!: some how move this to connection pool so it's centralized
 // readPump is for reading message and call handler
 // write pump code is in connection pool
 // for more information about read/writePump, see https://github.com/gorilla/websocket/tree/master/examples/chat
@@ -182,6 +182,7 @@ func (c *client) readPump() {
 				continue
 			}
 
+			// TODO!: I think something missing
 			keys, err := c.handlerRef.getKeyFromRoom(msg.RoomID.Hex())
 			if err != nil {
 				fmt.Println("can't get key for room:", msg.RoomID.Hex(), err)
@@ -213,6 +214,8 @@ func (c *client) readPump() {
 			msg.TimeStamp = now
 			msg.UserID = bson.ObjectIdHex(c.userID)
 			err = c.handlerRef.upstream.SendMessage(msg)
+			// Task: Plugin-Encryption : Check Flag to Forward
+
 			if err != nil {
 				fmt.Println("error sending")
 				c.handlerRef.downstream.SendMessageToConnection(c.connID, chatsocket.Message{

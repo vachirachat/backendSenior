@@ -6,9 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
@@ -24,6 +21,10 @@ import (
 	"proxySenior/utils"
 	"syscall"
 	"time"
+
+	"github.com/globalsign/mgo"
+	"github.com/globalsign/mgo/bson"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -57,17 +58,31 @@ func main() {
 	if clientSecret == "" {
 		log.Fatalln("error: please set client secret")
 	}
-
+	// Refactor :
+	// Task: Plugin-Encryption : Check Flag to Forward
 	// Add port to communicate with RPC
-	enablePlugin := true
+	enablePlugin := false
+	if os.Getenv("PLUGIN_ACTIVE") == "True" {
+		enablePlugin = true
+	}
+
+	enablePluginEnc := false
+	if os.Getenv("PLUGIN_Encryption") == "True" {
+		enablePluginEnc = true
+	}
+
 	pluginPort := os.Getenv("PLUGIN_PORT")
 	log.Println("pluginPort =", pluginPort)
+
 	if pluginPort == "" {
 		enablePlugin = false
 		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PORT is not set")
 	}
 
-	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, pluginPort)
+	log.Println("Plugin Config >>>", "enablePlugin", enablePlugin, "enablePluginEnc", enablePluginEnc)
+	log.Println("pluginPort", pluginPort)
+
+	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, enablePluginEnc, pluginPort)
 
 	upstream := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)
 	defer upstream.Stop()
@@ -95,6 +110,7 @@ func main() {
 			log.Fatalf("error ensuring queue %s: %s\n", q, err)
 		}
 	}
+	enc := service.NewEncryptionService(keystore, onMessagePlugin)
 
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
 	delegateAuth := service.NewDelegateAuthService(utils.ControllerOrigin)

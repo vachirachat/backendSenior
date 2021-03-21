@@ -11,6 +11,10 @@ message Chat {
 	string data = 7;
 }
 
+message key {
+	string key = 1;
+}
+
 message Empty {}
 
 
@@ -22,5 +26,7 @@ message Status {
 service Backup {
     rpc OnMessageIn(Chat) returns (Empty);
 	rpc IsReady(Empty) returns (Status);
-
+	rpc GetKey(Empty) returns (key);
+	rpc EncryptedMessage(Chat) returns (Chat);
+	rpc DecryptedMessage(Chat) returns (Chat);
 }
