@@ -110,12 +110,13 @@ func main() {
 			log.Fatalf("error ensuring queue %s: %s\n", q, err)
 		}
 	}
-	enc := service.NewEncryptionService(keystore, onMessagePlugin)
+	keyService := key_service.New(keystore, keyAPI, proxyMasterAPI, clientID)
+	keyService.InitKeyPair()
+
+	enc := service.NewEncryptionService(keyService, onMessagePlugin)
 
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
 	delegateAuth := service.NewDelegateAuthService(utils.ControllerOrigin)
-	keyService := key_service.New(keystore, keyAPI, proxyMasterAPI, clientID)
-	keyService.InitKeyPair()
 
 	messageService := service.NewMessageService(msgRepo)
 	fileService := service.NewFileService("localhost:8080", rabbit)
@@ -130,10 +131,11 @@ func main() {
 		MessageService:    messageService,
 		KeyService:        keyService,
 		FileService:       fileService,
+		Encrpytion:        enc,
 	}).NewRouter()
 
 	// websocket messasge handler
-	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, keyService, onMessagePlugin)
+	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, keyService, onMessagePlugin, enc)
 	go messageHandler.Start()
 
 	// TODO; refactor
