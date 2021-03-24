@@ -95,7 +95,7 @@ func (enc *EncryptionService) decryptBase(msg *model.Message) error {
 	if err != nil {
 		return fmt.Errorf("b64decode error: %w", err)
 	}
-	decrypted, err := encryption.AESEncrypt(cipherText, key)
+	decrypted, err := encryption.AESDecrypt(cipherText, key)
 	if err != nil {
 		return fmt.Errorf("encrypting message: %w", err)
 	}
