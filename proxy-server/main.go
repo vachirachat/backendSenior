@@ -84,9 +84,9 @@ func main() {
 
 	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, enablePluginEnc, pluginPort)
 
-	upstream := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)
-	defer upstream.Stop()
-	upstreamService := service.NewChatUpstreamService(upstream)
+	upStreamController := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)
+	defer upStreamController.Stop()
+	upstreamService := service.NewChatUpstreamService(upStreamController)
 
 	conn := make(chan struct{}, 10)
 	upstreamService.OnConnect(conn)
@@ -121,7 +121,12 @@ func main() {
 	messageService := service.NewMessageService(msgRepo)
 	fileService := service.NewFileService("localhost:8080", rabbit)
 
-	go fileService.Run() // go routing waiting for message
+	go func() {
+		err := fileService.Run() // go routing waiting for message
+		if err != nil {
+			log.Println("file service: ", err)
+		}
+	}()
 
 	// create router from service
 	router := (&route.RouterDeps{
