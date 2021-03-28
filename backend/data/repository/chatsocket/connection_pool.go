@@ -173,20 +173,7 @@ func writePump(conn *websocket.Conn, sendChan <-chan []byte) {
 				return
 			}
 
-			w, err := conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
-			w.Write(message)
-
-			// Add queued chat messages to the current websocket message.
-			n := len(sendChan)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-sendChan)
-			}
-
-			if err := w.Close(); err != nil {
+			if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				return
 			}
 		case <-ticker.C:
