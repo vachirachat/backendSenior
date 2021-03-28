@@ -94,7 +94,7 @@ func (repo *DelegateRoomUserRepository) GetRoomUsers(roomID string) (userIDs []s
 		url := url.URL{
 			Scheme: "http",
 			Host:   repo.controllerOrigin,
-			Path:   "/api/v1/room/" + roomID + "/member",
+			Path:   "/api/v1/room/id/" + roomID + "/member",
 		}
 		res, err := http.Get(url.String())
 		if err != nil {
