@@ -24,16 +24,25 @@ GET {{base}}?me=true
 Authorization: Bearer {{token}}
 
 ### CREATE ROOM
-POST {{base}}/
+POST {{base}}/create-group
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
   "roomName": "Last group",
-  "roomType": "GROUP",
   "orgId": "{{org}}"
 }
 
+### CREATE ROOM
+POST {{base}}/create-private-chat
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "roomName": "Last group",
+  "orgId": "{{org}}",
+  "userId": "{{userB}}"
+}
 
 ### GET room by ID
 GET {{base}}/id/{{roomA}}
@@ -46,7 +55,7 @@ POST {{base}}/id/{{roomA}}/name
 Content-Type: application/json
 
 {
-  "roomName": "EDIT ROOM"
+  "roomName": "Test room"
 }
 
 ### Get Member
