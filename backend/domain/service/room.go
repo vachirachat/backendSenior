@@ -2,6 +2,7 @@ package service
 
 import (
 	"backendSenior/domain/interface/repository"
+	"time"
 
 	"backendSenior/domain/model"
 
@@ -56,6 +57,7 @@ func (s *RoomService) GetUserRooms(userID string) ([]model.Room, error) {
 func (s *RoomService) AddRoom(room model.Room) (string, error) {
 	room.ListUser = []bson.ObjectId{}
 	room.ListProxy = []bson.ObjectId{}
+	room.CreatedTimeStamp = time.Now()
 	roomID, err := s.roomRepository.AddRoom(room)
 	return roomID, err
 }
