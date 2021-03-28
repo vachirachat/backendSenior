@@ -45,7 +45,7 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/id/:id/proxy", handler.addProxiesToRoom)
 	routerGroup.DELETE("/id/:id/proxy", handler.removeProxiesFromRoom)
 
-	routerGroup.POST("/create-group" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.createGroupHandler)
+	routerGroup.POST("/create-group", handler.authMw.AuthRequired(), g.InjectGin(handler.createGroupHandler))
 	routerGroup.POST("/create-private-chat", handler.authMw.AuthRequired(), g.InjectGin(handler.createPrivateChatHandler))
 	routerGroup.POST("/id/:id/name" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editRoomNameHandler)
 	routerGroup.DELETE("/id/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteRoomByIDHandler)
