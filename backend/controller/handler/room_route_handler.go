@@ -39,7 +39,7 @@ func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddl
 func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	routerGroup.GET("/id/:id/member", handler.getRoomMember)
-	routerGroup.POST("/id/:id/member", handler.addMemberToRoom)
+	routerGroup.POST("/id/:id/member", g.InjectGin(handler.addMemberToRoom))
 	routerGroup.DELETE("/id/:id/member", handler.deleteMemberFromRoom)
 	routerGroup.GET("/id/:id/proxy", handler.getRoomProxies)
 	routerGroup.POST("/id/:id/proxy", handler.addProxiesToRoom)
@@ -249,28 +249,17 @@ func (handler *RoomRouteHandler) addMemberToRoom(c *gin.Context, input struct {
 }) error {
 	roomID := c.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
-		return
+		return g.NewError(400, errors.New("bad room ID"))
 	}
 
-	// use bson.ObjectID to validate when bind
-	var body struct {
-		UserIDs []bson.ObjectId `json:"userIDs"`
-	}
-
-	err := context.ShouldBindJSON(&body)
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-		return
-	}
-
-	err = handler.roomService.AddMembersToRoom(roomID, utills.ToStringArr(body.UserIDs))
+	body := input.Body
+	err := handler.roomService.AddMembersToRoom(roomID, utills.ToStringArr(body.UserIDs))
 	if err != nil {
 		log.Println("error AddMemberToRoom", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
+		return g.NewError(500, fmt.Errorf("error adding self to room: %s", err))
 	}
-	context.JSON(http.StatusOK, gin.H{"status": "success"})
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+	return nil
 }
 
 func (handler *RoomRouteHandler) deleteMemberFromRoom(context *gin.Context) {
