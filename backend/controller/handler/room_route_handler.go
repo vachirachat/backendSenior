@@ -4,7 +4,10 @@ import (
 	"backendSenior/controller/middleware/auth"
 	"backendSenior/domain/service"
 	"backendSenior/utills"
+	g "common/utils/ginutils"
+	"errors"
 	"fmt"
+	"time"
 
 	"backendSenior/domain/model"
 	"log"
@@ -35,19 +38,20 @@ func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddl
 //Mount make RoomRouteHandler handler request from specific `RouterGroup`
 func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/:id/member", handler.getRoomMember)
-	routerGroup.POST("/:id/member", handler.addMemberToRoom)
-	routerGroup.DELETE("/:id/member", handler.deleteMemberFromRoom)
-	routerGroup.GET("/:id/proxy", handler.getRoomProxies)
-	routerGroup.POST("/:id/proxy", handler.addProxiesToRoom)
-	routerGroup.DELETE("/:id/proxy", handler.removeProxiesFromRoom)
+	routerGroup.GET("/id/:id/member", handler.getRoomMember)
+	routerGroup.POST("/id/:id/member", handler.addMemberToRoom)
+	routerGroup.DELETE("/id/:id/member", handler.deleteMemberFromRoom)
+	routerGroup.GET("/id/:id/proxy", handler.getRoomProxies)
+	routerGroup.POST("/id/:id/proxy", handler.addProxiesToRoom)
+	routerGroup.DELETE("/id/:id/proxy", handler.removeProxiesFromRoom)
 
-	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addRoomHandler)
-	routerGroup.POST("/:id/name" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editRoomNameHandler)
-	routerGroup.DELETE("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteRoomByIDHandler)
+	routerGroup.POST("/create-group" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.createGroupHandler)
+	routerGroup.POST("/create-private-chat", handler.authMw.AuthRequired(), g.InjectGin(handler.createPrivateChatHandler))
+	routerGroup.POST("/id/:id/name" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editRoomNameHandler)
+	routerGroup.DELETE("/id/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteRoomByIDHandler)
 	// routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
 	// routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
-	routerGroup.GET("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomByIDHandler)
+	routerGroup.GET("/id/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomByIDHandler)
 	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.roomListHandler)
 }
 
@@ -91,22 +95,105 @@ func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context) {
 	context.JSON(http.StatusOK, room)
 }
 
-func (handler *RoomRouteHandler) addRoomHandler(context *gin.Context) {
-	var room model.Room
-	err := context.ShouldBindJSON(&room)
+// for room group, we invite later
+type createGroupDto struct {
+	RoomName string
+	OrgId    bson.ObjectId
+}
+
+const (
+	RoomTypeGroup   = "GROUP"
+	RoomTypePrivate = "PRIVATE"
+)
+
+func (d *createGroupDto) toRoom() model.Room {
+	return model.Room{
+		RoomName:         d.RoomName,
+		OrgID:            d.OrgId,
+		CreatedTimeStamp: time.Now(),
+		RoomType:         RoomTypeGroup,
+		ListUser:         []bson.ObjectId{},
+		ListProxy:        []bson.ObjectId{},
+	}
+}
+
+// createGroupHandler create room with only you
+// it's user responsibility to invite more user later
+func (handler *RoomRouteHandler) createGroupHandler(c *gin.Context, input struct{ Body createGroupDto }) error {
+	// TODO: should check org exists and is in org
+	b := input.Body
+
+	roomID, err := handler.roomService.AddRoom(b.toRoom())
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-		return
+		return g.NewError(500, fmt.Errorf("error creating room: %s", err))
 	}
 
-	roomID, err := handler.roomService.AddRoom(room)
-	if err != nil {
-		log.Println("error AddRoomHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
+	currentUserId := c.GetString(auth.UserIdField)
+	if err := handler.roomService.AddMembersToRoom(roomID, []string{currentUserId}); err != nil {
+		return g.NewError(500, fmt.Errorf("error adding self to room: %s", err))
 	}
-	context.JSON(http.StatusCreated, gin.H{"status": "success", "roomId": roomID})
+	c.JSON(http.StatusCreated, gin.H{"status": "success", "roomId": roomID})
+	return nil
+}
+
+type createPrivateChatDto struct {
+	RoomName string        `validate:"required"`
+	OrgId    bson.ObjectId `validate:"required"`
+	UserId   bson.ObjectId `validate:"required"`
+}
+
+func (d *createPrivateChatDto) toRoom() model.Room {
+	return model.Room{
+		RoomName:         d.RoomName,
+		OrgID:            d.OrgId,
+		CreatedTimeStamp: time.Now(),
+		RoomType:         RoomTypePrivate,
+		ListUser:         nil,
+		ListProxy:        nil,
+	}
+}
+
+// createPrivateChatHandler, create private chat with two person
+// don't need to invite later
+func (handler *RoomRouteHandler) createPrivateChatHandler(c *gin.Context, input struct {
+	Body createPrivateChatDto
+}) error {
+	// TODO: ensure that...
+	// - org exists
+	// - both are in that org
+	b := input.Body
+	// check user in org
+	currentUserId := c.GetString(auth.UserIdField)
+	userInfo, err := handler.userService.GetUserByID(currentUserId)
+	if err != nil {
+		return g.NewError(500, err)
+	}
+	// both user must be in the org
+	allowed := false
+	for _, org := range userInfo.Organize {
+		if org == b.OrgId {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return g.NewError(403, errors.New("you are not in specified org"))
+	}
+
+	roomID, err := handler.roomService.AddRoom(b.toRoom())
+	if err != nil {
+		return g.NewError(500, err)
+	}
+	if err := handler.roomService.AddMembersToRoom(roomID, []string{currentUserId, b.UserId.Hex()}); err != nil {
+		return g.NewError(500, err)
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"status": "success",
+		"roomId": roomID,
+	})
+	return nil
 }
 
 func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
@@ -155,8 +242,12 @@ func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context) {
 // Match with Socket-structure
 
 //// -- JoinAPI -> getSession(Topic+#ID) -> giveUserSession
-func (handler *RoomRouteHandler) addMemberToRoom(context *gin.Context) {
-	roomID := context.Param("id")
+func (handler *RoomRouteHandler) addMemberToRoom(c *gin.Context, input struct {
+	Body struct {
+		UserIDs []bson.ObjectId
+	}
+}) error {
+	roomID := c.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
 		return
