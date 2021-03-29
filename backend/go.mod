@@ -19,6 +19,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/minio/minio-go v6.0.14+incompatible
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/reactivex/rxgo/v2 v2.4.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
