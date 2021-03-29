@@ -2,15 +2,14 @@ package chatsocket
 
 import (
 	"backendSenior/domain/model/chatsocket/message_types"
+	"common/ws"
 	"encoding/json"
-
-	"github.com/gorilla/websocket"
 )
 
 // this defines model related to socket
 
 type Connection struct {
-	Conn   *websocket.Conn
+	Conn   *ws.Connection
 	ConnID string
 	// For query purpose
 	UserID string // or proxy ID

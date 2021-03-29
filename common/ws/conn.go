@@ -1,7 +1,9 @@
 package ws
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/reactivex/rxgo/v2"
 	"time"
@@ -71,7 +73,6 @@ func (c *Connection) readLoop() {
 func (c *Connection) writeLoop() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
-		close(c.writeChannel) // ensure it's closed when it's force close
 		ticker.Stop()
 		c.conn.Close()
 		c.closed = true
@@ -79,8 +80,8 @@ func (c *Connection) writeLoop() {
 
 	for {
 		select {
-		case cmd, ok := <-c.writeChannel:
-			if !ok || cmd.close { // manually closed, send close message, and bye
+		case cmd := <-c.writeChannel: // we never close the channel
+			if cmd.close { // manually closed, send close message, and bye
 				c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 				c.conn.WriteMessage(websocket.CloseMessage, nil)
 				break
@@ -102,6 +103,7 @@ func (c *Connection) writeLoop() {
 
 }
 
+// TODO: ensure no send to closed channel
 func (c *Connection) Send(message []byte) error {
 	respChan := make(chan bool, 1)
 	c.writeChannel <- writeCmd{data: message, resp: respChan}
@@ -109,6 +111,14 @@ func (c *Connection) Send(message []byte) error {
 		return nil
 	}
 	return errors.New("send error, connection closed")
+}
+
+func (c *Connection) SendJSON(data interface{}) error {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("marshal error: %w", err)
+	}
+	return c.Send(b)
 }
 
 // Close close the connection
