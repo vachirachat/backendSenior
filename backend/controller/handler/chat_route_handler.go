@@ -61,8 +61,8 @@ func NewChatRouteHandler(chatService *service.ChatService, proxyMw *auth.ProxyMi
 
 // client is like chat socket, but added handler field to allow access to handler related function
 type client struct {
-	chatsocket.Connection
-	handler *ChatRouteHandler // reference to handler to call
+	chatsocket *chatsocket.Connection
+	handler    *ChatRouteHandler // reference to handler to call
 }
 
 //Mount make the handler handle request from specfied routerGroup
@@ -83,22 +83,25 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 		proxyID := context.GetString(auth.UserIdField)
 
-		wsConn, err := upgrader.Upgrade(w, r, nil)
+		rawConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println(err)
 			return
 		}
+		wsConn := ws.FromConnection(rawConn)
+		wsConn.StartLoop()
 
 		var conn = &chatsocket.Connection{
-			Conn:   ws.FromConnection(wsConn),
+			Conn:   wsConn,
 			UserID: proxyID,
 		}
+		fmt.Printf("connection is %#v\n", conn)
 
 		_, err = handler.chatService.OnConnect(conn)
 		handler.keyEx.SetOnline(proxyID, true)
 
 		clnt := client{
-			Connection: chatsocket.Connection{},
+			chatsocket: conn,
 			handler:    handler,
 		}
 
@@ -132,12 +135,13 @@ func wsErrorMessage(reason string, data ...interface{}) chatsocket.Message {
 // write pump code is in connection pool
 // for more information about read/writePump, see https://github.com/gorilla/websocket/tree/master/examples/chat
 func (c *client) handleMessage() {
-	wsConn := c.Conn
-	proxyID := c.UserID
+	wsConn := c.chatsocket.Conn
+	proxyID := c.chatsocket.UserID
 	handler := c.handler
 
-	wsConn.Observable().DoOnNext(func(i interface{}) {
+	<-wsConn.Observable().DoOnNext(func(i interface{}) {
 		message := i.([]byte)
+		fmt.Printf("handler new message %s\n", message)
 
 		var rawMessage chatsocket.RawMessage
 		if err := json.Unmarshal(message, &rawMessage); err != nil {
@@ -174,6 +178,8 @@ func (c *client) handleMessage() {
 				wsConn.SendJSON(wsErrorMessage("send failed: error saving message"))
 				return
 			}
+
+			fmt.Println("sending message")
 			msg.MessageID = bson.ObjectIdHex(messageID)
 			if err = handler.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), chatsocket.Message{
 				Type:    message_types.Chat,
@@ -181,6 +187,7 @@ func (c *client) handleMessage() {
 			}); err != nil {
 				fmt.Printf("Error bcasting message: %s\n", err.Error())
 			}
+			fmt.Println("sent message")
 
 			handler.chatService.SendNotificationToRoomExceptUser(msg.RoomID.Hex(), msg.UserID.Hex(), &model.Notification{
 				// Title: "New Message in room " + msg.RoomID.Hex(),
@@ -192,7 +199,7 @@ func (c *client) handleMessage() {
 					"timestamp": msg.TimeStamp.Format("2006-01-02T15:04:05Z"),
 				},
 			}, 1*time.Second)
-
+			fmt.Println("end handling message")
 		default:
 			fmt.Printf("INFO: unrecognized message\n==\n%s\n==\n", message)
 		}

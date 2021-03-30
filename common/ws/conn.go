@@ -31,6 +31,7 @@ type writeCmd struct {
 type Connection struct {
 	conn         *websocket.Conn
 	closed       bool
+	isStarted    bool
 	writeChannel chan writeCmd
 	readChannel  chan rxgo.Item // convenient for rxgo
 	//
@@ -42,11 +43,22 @@ func FromConnection(conn *websocket.Conn) *Connection {
 	c := &Connection{
 		conn:         conn,
 		closed:       false,
+		isStarted:    false,
 		writeChannel: make(chan writeCmd, 100),
 		readChannel:  readChan,
 		obs:          rxgo.FromEventSource(readChan),
 	}
 	return c
+}
+
+func (c *Connection) StartLoop() {
+	if !c.isStarted {
+		c.isStarted = true
+		go c.readLoop()
+		go c.writeLoop()
+	} else {
+		panic("not allowed to start loop more than one time")
+	}
 }
 
 // readLoop read message and pipe to channel
@@ -66,6 +78,7 @@ func (c *Connection) readLoop() {
 		if err != nil || c.closed {
 			break
 		}
+		fmt.Printf("received message %s\n", data)
 		c.readChannel <- rxgo.Of(data)
 	}
 }
@@ -76,6 +89,17 @@ func (c *Connection) writeLoop() {
 		ticker.Stop()
 		c.conn.Close()
 		c.closed = true
+
+		n := len(c.writeChannel)
+		for i := 0; i < n; i++ {
+			cmd := <-c.writeChannel
+			if cmd.close { // close always success
+				cmd.resp <- true
+			} else { // send failed coz channel is closed
+				cmd.resp <- false
+			}
+
+		}
 	}()
 
 	for {
@@ -84,14 +108,17 @@ func (c *Connection) writeLoop() {
 			if cmd.close { // manually closed, send close message, and bye
 				c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 				c.conn.WriteMessage(websocket.CloseMessage, nil)
+				cmd.resp <- true
 				break
 			} else if c.closed { // force closed, just stop
 				break
 			}
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.TextMessage, cmd.data); err != nil {
+				cmd.resp <- false // error
 				break
 			}
+			cmd.resp <- true
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {

@@ -91,6 +91,8 @@ func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{})
 				err := chat.send.SendMessage(connID, data)
 				if err != nil {
 					fmt.Println("Error sending message", err)
+				} else {
+					fmt.Println("SENT message to conn")
 				}
 			}(connID, &allWg)
 		}

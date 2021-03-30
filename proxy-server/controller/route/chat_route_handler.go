@@ -63,27 +63,26 @@ func (handler *ChatRouteHandler) websocketHandler(context *gin.Context) {
 	userID := context.GetString(middleware.UserIdField)
 
 	// Proxy use no auth ?
-	wsConn, err := upgrader.Upgrade(w, r, nil)
+	rawConn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-
-	var conn = &chatsocket.Connection{
-		Conn:   ws.FromConnection(wsConn),
+	wsConn := ws.FromConnection(rawConn)
+	wsConn.StartLoop()
+	var chatSocket = &chatsocket.Connection{
+		Conn:   wsConn,
 		UserID: userID,
 	}
 
-	id, err := handler.downstream.OnConnect(conn)
-
+	id, err := handler.downstream.OnConnect(chatSocket)
 	clnt := client{
-		chatsocket: conn,
+		chatsocket: chatSocket,
 		handlerRef: handler,
 	}
 
 	clnt.readLoop()
-
-	conn.Conn.Observable().DoOnCompleted(func() {
+	chatSocket.Conn.Observable().DoOnCompleted(func() {
 		_ = handler.downstream.OnDisconnect(id)
 
 	})
@@ -109,8 +108,9 @@ func (c *client) readLoop() {
 	conn := c.chatsocket.Conn
 	userID := c.chatsocket.UserID
 	_ = userID // TODO: use to check permission
-	conn.Observable().DoOnNext(func(i interface{}) {
+	<-conn.Observable().DoOnNext(func(i interface{}) {
 		inMessage := i.([]byte)
+		fmt.Printf("handler new message %s\n", inMessage)
 		var rawMessage chatsocket.RawMessage
 
 		if err := json.Unmarshal(inMessage, &rawMessage); err != nil {
@@ -144,11 +144,13 @@ func (c *client) readLoop() {
 			}
 			msg.TimeStamp = now
 			msg.UserID = bson.ObjectIdHex(userID)
+			fmt.Println("SENDING MESSAGE")
 			if err := c.handlerRef.upstream.SendMessage(msg); err != nil {
 				fmt.Println("error sending", err)
 				conn.SendJSON(wsErrorMessage("error sending message to controller", err))
 				return
 			}
+			fmt.Println("SENT ALL MESSAGE")
 			// TODO: add send success here
 		default:
 			conn.SendJSON(wsErrorMessage("unsupported message format"))
