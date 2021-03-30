@@ -41,8 +41,8 @@ package service
 
 // func (s *WSRequestService) Start() {
 // 	pipe := make(chan []byte, 100)
-// 	s.up.RegsiterHandler(pipe)
-// 	defer s.up.UnRegsiterHandler(pipe)
+// 	s.up.RegisterHandler(pipe)
+// 	defer s.up.UnRegisterHandler(pipe)
 
 // 	for {
 // 		incData := <-pipe

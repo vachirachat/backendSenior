@@ -23,8 +23,8 @@ func NewKeyExhangeController(ctrl *service.ChatUpstreamService) *KeyExhangeContr
 
 func (c *KeyExhangeController) Start() {
 	pipe := make(chan []byte, 100)
-	c.ctrl.RegsiterHandler(pipe)
-	defer c.ctrl.UnRegsiterHandler(pipe)
+	c.ctrl.RegisterHandler(pipe)
+	defer c.ctrl.UnRegisterHandler(pipe)
 
 	for {
 		var msg chatsocket.RawMessage
