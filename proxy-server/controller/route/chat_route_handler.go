@@ -110,7 +110,6 @@ func (c *client) readLoop() {
 	_ = userID // TODO: use to check permission
 	<-conn.Observable().DoOnNext(func(i interface{}) {
 		inMessage := i.([]byte)
-		fmt.Printf("handler new message %s\n", inMessage)
 		var rawMessage chatsocket.RawMessage
 
 		if err := json.Unmarshal(inMessage, &rawMessage); err != nil {
@@ -144,13 +143,11 @@ func (c *client) readLoop() {
 			}
 			msg.TimeStamp = now
 			msg.UserID = bson.ObjectIdHex(userID)
-			fmt.Println("SENDING MESSAGE")
 			if err := c.handlerRef.upstream.SendMessage(msg); err != nil {
 				fmt.Println("error sending", err)
 				conn.SendJSON(wsErrorMessage("error sending message to controller", err))
 				return
 			}
-			fmt.Println("SENT ALL MESSAGE")
 			// TODO: add send success here
 		default:
 			conn.SendJSON(wsErrorMessage("unsupported message format"))

@@ -282,13 +282,13 @@ func (h *FileRouteHandler) getKeyFromRoom(roomID string) ([]model_proxy.KeyRecor
 
 	var keys []model_proxy.KeyRecord
 	if local {
-		fmt.Println("[message] use LOCAL key for", roomID)
+		//fmt.Println("[message] use LOCAL key for", roomID)
 		keys, err = h.key.GetKeyLocal(roomID)
 		if err != nil {
 			return nil, fmt.Errorf("error getting key locally %v", err)
 		}
 	} else {
-		fmt.Println("[message] use REMOTE key for room", roomID)
+		//fmt.Println("[message] use REMOTE key for room", roomID)
 		keys, err = h.key.GetKeyRemote(roomID)
 		if err != nil {
 			return nil, fmt.Errorf("error getting key remotely %v", err)

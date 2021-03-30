@@ -78,7 +78,6 @@ func (c *Connection) readLoop() {
 		if err != nil || c.closed {
 			break
 		}
-		fmt.Printf("received message %s\n", data)
 		c.readChannel <- rxgo.Of(data)
 	}
 }

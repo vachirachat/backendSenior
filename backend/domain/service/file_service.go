@@ -43,7 +43,6 @@ type UploadImageMeta struct {
 func (s *FileService) BeforeUploadFilePOST() (fileID string, endpoint string, formData map[string]string, err error) {
 	oid := bson.NewObjectId().Hex()
 	endpoint, formData, err = s.file.PostPresignedURL("file", oid)
-	fmt.Println("get url!")
 	if err != nil {
 		return "", "", nil, err
 	}

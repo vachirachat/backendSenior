@@ -5,7 +5,6 @@ import (
 	"backendSenior/domain/model/chatsocket/key_exchange"
 	"crypto/rand"
 	"crypto/rsa"
-	"encoding/json"
 	"fmt"
 	"proxySenior/domain/encryption"
 	"proxySenior/domain/interface/repository"
@@ -104,11 +103,7 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 		}
 	}
 
-	_respJSON, _ := json.Marshal(resp) // so we can see byte message easier
-	fmt.Printf("[get-key-remote] roomId: %s\ndecrypted keys: %s\n", roomID, _respJSON)
-
 	// if success we cache the key to DB and report to controller
-	fmt.Println(resp.Keys[0].RoomID.Hex())
 	err = s.local.ReplaceKey(roomID, resp.Keys)
 	if err != nil {
 		fmt.Println("update key error:", err)

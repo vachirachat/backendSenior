@@ -134,7 +134,6 @@ func (upstream *UpstreamRepository) readPump(conn *websocket.Conn, closeChan cha
 	log.Printf("upstream-repo: start read pump\n")
 	for {
 		_, message, err := conn.ReadMessage()
-		log.Printf("upstream-repo: recv message %s\n", message)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("Error reading: %v", err)
@@ -143,12 +142,9 @@ func (upstream *UpstreamRepository) readPump(conn *websocket.Conn, closeChan cha
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, []byte{'\n'}, []byte{' '}, -1))
 		for _, recv := range upstream.receivers {
-			fmt.Printf("receiver %v", recv)
 			select {
 			case recv <- message:
-				fmt.Printf("RECEIVED\n")
 			default:
-				fmt.Printf("FULL\n")
 			}
 		}
 	}

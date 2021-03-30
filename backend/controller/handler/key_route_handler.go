@@ -50,7 +50,6 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context) {
 		c.JSON(400, gin.H{"status": "bad room id"})
 		return
 	}
-	fmt.Println("[get key] incoming request for", roomID)
 
 	pid, err := r.keyEx.GetMaster(roomID)
 	if err != nil {

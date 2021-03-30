@@ -45,7 +45,6 @@ func (h *MessageHandler) Start() {
 
 	for {
 		incMessage := <-pipe
-		fmt.Printf("[upstream] <-- %s\n", incMessage)
 		var rawMessage chatmodel.RawMessage
 		err := json.Unmarshal(incMessage, &rawMessage)
 		if err != nil {
@@ -67,10 +66,9 @@ func (h *MessageHandler) Start() {
 				continue
 			}
 
-			fmt.Println("try call on message", h.onMessagePortPlugin, h.onMessagePortPlugin.IsEnabled())
 			if h.onMessagePortPlugin != nil && h.onMessagePortPlugin.IsEnabled() {
 				err := h.onMessagePortPlugin.OnMessagePortPlugin(msg)
-				fmt.Println("[plugin] called on message", err)
+				fmt.Println("[plugin] called on message error", err)
 			}
 			err = h.downstreamService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
 			if err != nil {
