@@ -39,14 +39,14 @@ type Connection struct {
 }
 
 func FromConnection(conn *websocket.Conn) *Connection {
-	readChan := make(chan rxgo.Item, 100)
+	readChan := make(chan rxgo.Item, 16)
 	c := &Connection{
 		conn:         conn,
 		closed:       false,
 		isStarted:    false,
-		writeChannel: make(chan writeCmd, 100),
+		writeChannel: make(chan writeCmd, 16),
 		readChannel:  readChan,
-		obs:          rxgo.FromEventSource(readChan),
+		obs:          rxgo.FromEventSource(readChan, rxgo.WithBufferedChannel(16)),
 	}
 	return c
 }
@@ -130,17 +130,25 @@ func (c *Connection) writeLoop() {
 
 }
 
+var ErrConnClosed = errors.New("send error, connection closed")
+
 // TODO: ensure no send to closed channel
 func (c *Connection) Send(message []byte) error {
+	if c.closed {
+		return ErrConnClosed
+	}
 	respChan := make(chan bool, 1)
 	c.writeChannel <- writeCmd{data: message, resp: respChan}
 	if ok := <-respChan; ok {
 		return nil
 	}
-	return errors.New("send error, connection closed")
+	return ErrConnClosed
 }
 
 func (c *Connection) SendJSON(data interface{}) error {
+	if c.closed {
+		return ErrConnClosed
+	}
 	b, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("marshal error: %w", err)
