@@ -9,7 +9,9 @@ type OrganizeRepository interface {
 	CreateOrganize(organize model.Organize) (string, error)
 	DeleteOrganize(organizeID string) error
 	GetOrganizeById(organizeID string) (model.Organize, error)
+	GetOrganizeByName(organizeName string) (model.Organize, error)
 	GetOrganizesByIDs(organizeIDs []string) ([]model.Organize, error)
+
 	UpdateOrganize(organizeID string, name string) error
 }
 

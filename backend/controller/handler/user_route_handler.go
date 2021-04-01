@@ -40,6 +40,7 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	//SignIN/UP API
 	// routerGroup.GET("/token", handler.userTokenListHandler)
 	routerGroup.POST("/login", handler.loginHandle)
+	routerGroup.POST("/login/:orgid/org", handler.loginOrgHandle)
 	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
 	routerGroup.GET("/me", handler.authMiddleware.AuthRequired(), handler.getMeHandler)
 
@@ -167,6 +168,39 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 	user, err := handler.userService.Login(credentials.Email, credentials.Password)
 	if err != nil {
 		context.JSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
+		return
+	}
+
+	tokenDetails, err := handler.jwtService.CreateToken(model.UserDetail{
+		Role:   utills.ROLEUSER, // TODO: placeholder, implement role later
+		UserId: user.UserID.Hex(),
+	})
+
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, gin.H{"status": "success", "token": tokenDetails})
+}
+
+func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
+	var credentials model.UserSecret
+	err := context.ShouldBindJSON(&credentials)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
+	}
+	user, err := handler.userService.Login(credentials.Email, credentials.Password)
+	if err != nil {
+		context.JSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
+		return
+	}
+
+	orgID := context.Param("orgid")
+	log.Println(orgID)
+	err = handler.userService.IsUserInOrg(user, orgID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 

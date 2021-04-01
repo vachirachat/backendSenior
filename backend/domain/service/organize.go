@@ -36,6 +36,11 @@ func (service *OrganizeService) GetOrganizeById(organizeID string) (model.Organi
 	return service.organizeRepo.GetOrganizeById(organizeID)
 }
 
+// GetOrganizeByName return Organize with specified NAME
+func (service *OrganizeService) GetOrganizeByName(organizeName string) (model.Organize, error) {
+	return service.organizeRepo.GetOrganizeByName(organizeName)
+}
+
 // GetOrganizeByID return Organize with specified ID
 func (service *OrganizeService) GetOrganizationsByIDs(organizeIDs []string) ([]model.Organize, error) {
 	return service.organizeRepo.GetOrganizesByIDs(organizeIDs)

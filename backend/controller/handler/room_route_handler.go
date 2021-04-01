@@ -46,7 +46,7 @@ func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddl
 func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	routerGroup.GET("/id/:id/member", handler.getRoomMember)
-	routerGroup.POST("/id/:id/member", g.InjectGin(handler.addMemberToRoom))
+	routerGroup.POST("/id/:id/member", handler.authMw.AuthRequired(), g.InjectGin(handler.addMemberToRoom))
 	routerGroup.DELETE("/id/:id/member", handler.deleteMemberFromRoom)
 	routerGroup.GET("/id/:id/proxy", handler.getRoomProxies)
 	routerGroup.POST("/id/:id/proxy", handler.addProxiesToRoom)

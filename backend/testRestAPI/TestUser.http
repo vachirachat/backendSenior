@@ -1,6 +1,6 @@
 
 
-POST http://localhost:8080/api/v1/signup
+POST http://localhost:8080/api/v1/user/signup
 Content-Type: application/json
 
 {
@@ -10,17 +10,29 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:8080/api/v1/login
+POST http://localhost:8080/api/v1/user/login
 Content-Type: application/json
 
 {
-  "Email": "rod8711@gmail.com",
+  "Email": "rod82722211@gmail.com",
+  "Password": "top"
+}
+
+@orgID = 6065876abc4da7c50b4b8494
+###
+POST http://localhost:8080/api/v1/user/login/{{orgID}}/org
+Content-Type: application/json
+
+{
+  "Email": "rod82722211@gmail.com",
   "Password": "top"
 }
 
 
+
+
 ###GET USER
-GET http://localhost:8080/api/v1/user
+GET http://localhost:8080/api/v1/user/user
 
 
 
