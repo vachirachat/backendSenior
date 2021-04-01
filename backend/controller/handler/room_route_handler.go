@@ -27,16 +27,18 @@ type RoomRouteHandler struct {
 	proxyService *service.ProxyService
 	authMw       *auth.JWTMiddleware
 	chatService  *service.ChatService
+	orgService   *service.OrganizeService
 }
 
 // NewRoomHandler create new handler for room
-func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware, userService *service.UserService, proxyService *service.ProxyService, chatService *service.ChatService) *RoomRouteHandler {
+func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddleware, userService *service.UserService, proxyService *service.ProxyService, chatService *service.ChatService, orgService *service.OrganizeService) *RoomRouteHandler {
 	return &RoomRouteHandler{
 		roomService:  roomService,
 		userService:  userService,
 		authMw:       authMw,
 		proxyService: proxyService,
 		chatService:  chatService,
+		orgService:   orgService,
 	}
 }
 
@@ -102,8 +104,8 @@ func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context) {
 
 // for room group, we invite later
 type createGroupDto struct {
-	RoomName string
-	OrgId    bson.ObjectId
+	RoomName string        `validate:"required"`
+	OrgId    bson.ObjectId `validate:"required"`
 }
 
 const (
@@ -113,8 +115,8 @@ const (
 
 func (d *createGroupDto) toRoom() model.Room {
 	return model.Room{
-		RoomName:         d.RoomName,
-		OrgID:            d.OrgId,
+		RoomName: d.RoomName,
+		// We dont have orgId here, since we want it to be set after room is "invited" to org
 		CreatedTimeStamp: time.Now(),
 		RoomType:         RoomTypeGroup,
 		ListUser:         []bson.ObjectId{},
@@ -138,6 +140,11 @@ func (handler *RoomRouteHandler) createGroupHandler(c *gin.Context, input struct
 	if err := handler.roomService.AddMembersToRoom(roomID, []string{currentUserId}); err != nil {
 		return g.NewError(500, fmt.Errorf("error adding self to room: %s", err))
 	}
+
+	if err := handler.orgService.AddRoomsToOrg(b.OrgId.Hex(), []string{roomID}); err != nil {
+		return g.NewError(500, fmt.Errorf("error adding room to org: %s", err))
+	}
+
 	c.JSON(http.StatusCreated, gin.H{"status": "success", "roomId": roomID})
 	return nil
 }
