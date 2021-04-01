@@ -148,3 +148,12 @@ func (service *UserService) Signup(user model.User) error {
 
 	return nil
 }
+
+func (service *UserService) IsUserInOrg(user model.User, orgID string) error {
+	for _, v := range user.Organize {
+		if v.Hex() == orgID {
+			return nil
+		}
+	}
+	return errors.New("User not exists in org")
+}

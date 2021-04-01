@@ -35,6 +35,7 @@ func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authMw *a
 func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	routerGroup.GET("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getOrganizeByIDHandler)
+	routerGroup.GET("/:id/org" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getOrganizeByNameHandler)
 	routerGroup.POST("/", handler.authMw.AuthRequired(), handler.addOrganizeHandler)
 	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.getOrganizations)
 	routerGroup.PUT("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editOrganizeNameHandler)
@@ -149,6 +150,17 @@ func (handler *OrganizeRouteHandler) getOrganizeByIDHandler(context *gin.Context
 		return
 	}
 	context.JSON(http.StatusOK, Organize)
+}
+
+func (handler *OrganizeRouteHandler) getOrganizeByNameHandler(context *gin.Context) {
+	OrganizeName := context.Param("id")
+	Organize, err := handler.organizeService.GetOrganizeByName(OrganizeName)
+	if err != nil {
+		log.Println("error GetOrganizeByNameHandler", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return
+	}
+	context.JSON(http.StatusOK, Organize.OrganizeID)
 }
 
 // create an empty org, then the creator of the org is automatically invited to the org

@@ -25,7 +25,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "name": "Road's org"
+  "name": "Test"
 }
 
 
@@ -80,3 +80,9 @@ Content-Type: application/json
 GET {{base}}/{{orgA}}/room
 
 ไม่มีส่งครั้งเดียว มีแต่ต้องส่ง 2 ครั้ง
+
+// TEST 
+@nameA = Road's org
+### GET rooms in organization
+GET {{base}}/{{nameA}}/org
+

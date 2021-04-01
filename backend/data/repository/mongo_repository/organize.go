@@ -61,6 +61,13 @@ func (organizeMongo OrganizeRepositoryMongo) GetOrganizeById(organizeID string) 
 	return organize, err
 }
 
+// GetOrganizeByName query Organization Name
+func (organizeMongo OrganizeRepositoryMongo) GetOrganizeByName(organizeName string) (model.Organize, error) {
+	var organize model.Organize
+	err := organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).Find(nameOrg(organizeName)).One(&organize)
+	return organize, err
+}
+
 // GetOrganizesByIds query multiple organizations by array of IDs
 func (organizeMongo OrganizeRepositoryMongo) GetOrganizesByIDs(organizeIDs []string) ([]model.Organize, error) {
 	var orgs []model.Organize

@@ -28,6 +28,13 @@ func idInArr(ids []string) interface{} {
 	}
 }
 
+// return filter of {_id: {$in: ... }}, query that match multiple ID
+func nameOrg(orgName string) interface{} {
+	return bson.M{
+		"name": orgName,
+	}
+}
+
 // return filter of {$in: ... }, query that match multiple ID
 func inArr(ids []string) interface{} {
 	return bson.M{
