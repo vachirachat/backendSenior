@@ -10,6 +10,9 @@ import (
 	g "common/utils/ginutils"
 	"errors"
 	"fmt"
+	"github.com/ahmetb/go-linq/v3"
+	"github.com/globalsign/mgo"
+	"os"
 	"time"
 
 	"backendSenior/domain/model"
@@ -28,6 +31,7 @@ type RoomRouteHandler struct {
 	authMw       *auth.JWTMiddleware
 	chatService  *service.ChatService
 	orgService   *service.OrganizeService
+	logger       *log.Logger
 }
 
 // NewRoomHandler create new handler for room
@@ -39,6 +43,7 @@ func NewRoomRouteHandler(roomService *service.RoomService, authMw *auth.JWTMiddl
 		proxyService: proxyService,
 		chatService:  chatService,
 		orgService:   orgService,
+		logger:       log.New(os.Stdout, "RoomRouteHandler ", log.LstdFlags|log.Lshortfile),
 	}
 }
 
@@ -48,6 +53,11 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("/id/:id/member", handler.getRoomMember)
 	routerGroup.POST("/id/:id/member", handler.authMw.AuthRequired(), g.InjectGin(handler.addMemberToRoom))
 	routerGroup.DELETE("/id/:id/member", handler.deleteMemberFromRoom)
+	// room admin API
+	routerGroup.GET("/id/:id/admin", g.InjectGin(handler.getRoomAdmins))
+	routerGroup.POST("/id/:id/admin", handler.authMw.AuthRequired(), g.InjectGin(handler.addAdminsToRoom))
+	routerGroup.DELETE("/id/:id/admin", handler.authMw.AuthRequired(), g.InjectGin(handler.removeAdminsFromRoom))
+
 	routerGroup.GET("/id/:id/proxy", handler.getRoomProxies)
 	routerGroup.POST("/id/:id/proxy", handler.addProxiesToRoom)
 	routerGroup.DELETE("/id/:id/proxy", handler.removeProxiesFromRoom)
@@ -133,16 +143,16 @@ func (handler *RoomRouteHandler) createGroupHandler(c *gin.Context, input struct
 	roomID, err := handler.roomService.AddRoom(b.toRoom())
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
-		return g.NewError(500, fmt.Errorf("error creating room: %s", err))
+		return fmt.Errorf("error creating room: %s", err)
 	}
 
 	currentUserId := c.GetString(auth.UserIdField)
 	if err := handler.roomService.AddMembersToRoom(roomID, []string{currentUserId}); err != nil {
-		return g.NewError(500, fmt.Errorf("error adding self to room: %s", err))
+		return fmt.Errorf("error adding self to room: %s", err)
 	}
 
 	if err := handler.orgService.AddRoomsToOrg(b.OrgId.Hex(), []string{roomID}); err != nil {
-		return g.NewError(500, fmt.Errorf("error adding room to org: %s", err))
+		return fmt.Errorf("error adding room to org: %s", err)
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"status": "success", "roomId": roomID})
@@ -179,7 +189,7 @@ func (handler *RoomRouteHandler) createPrivateChatHandler(c *gin.Context, input 
 	currentUserId := c.GetString(auth.UserIdField)
 	userInfo, err := handler.userService.GetUserByID(currentUserId)
 	if err != nil {
-		return g.NewError(500, err)
+		return err
 	}
 	// both user must be in the org
 	allowed := false
@@ -190,15 +200,15 @@ func (handler *RoomRouteHandler) createPrivateChatHandler(c *gin.Context, input 
 		}
 	}
 	if !allowed {
-		return g.NewError(403, errors.New("you are not in specified org"))
+		return g.NewError(403, "you are not in specified org")
 	}
 
 	roomID, err := handler.roomService.AddRoom(b.toRoom())
 	if err != nil {
-		return g.NewError(500, err)
+		return err
 	}
 	if err := handler.roomService.AddMembersToRoom(roomID, []string{currentUserId, b.UserId.Hex()}); err != nil {
-		return g.NewError(500, err)
+		return err
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -261,7 +271,7 @@ func (handler *RoomRouteHandler) addMemberToRoom(c *gin.Context, input struct {
 }) error {
 	roomID := c.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
-		return g.NewError(400, errors.New("bad room ID"))
+		return g.NewError(400, "bad room ID")
 	}
 
 	body := input.Body
@@ -269,7 +279,7 @@ func (handler *RoomRouteHandler) addMemberToRoom(c *gin.Context, input struct {
 	err := handler.roomService.AddMembersToRoom(roomID, joinIDs)
 	if err != nil {
 		log.Println("error AddMemberToRoom", err.Error())
-		return g.NewError(500, fmt.Errorf("error adding self to room: %s", err))
+		return g.NewError(500, fmt.Sprintf("error adding self to room: %s", err))
 	}
 
 	// note: this method doesn't return error yet
@@ -484,4 +494,132 @@ func (handler *RoomRouteHandler) uploadFile(c *gin.Context) {
 	// 	w.Write(buf[])
 	// }
 
+}
+
+type empty struct{}
+type any = interface{}
+
+type inviteAdminDto struct {
+	UserIDs []bson.ObjectId `validate:"required,min=1,dive,required"`
+}
+
+// Room ADMIN API
+// addAdminsToRoom add admins to room (auto invite them as member)
+func (handler *RoomRouteHandler) addAdminsToRoom(c *gin.Context, req struct {
+	Body inviteAdminDto
+}) error {
+	roomID := c.Param("id")
+	if !bson.IsObjectIdHex(roomID) {
+		return g.NewError(400, "bad room ID in path")
+	}
+
+	room, err := handler.roomService.GetRoomByID(roomID)
+	if err != nil {
+		if errors.Is(err, mgo.ErrNotFound) {
+			return g.NewError(404, "room does not exist")
+		}
+		return g.NewError(500, "something went wrong")
+	}
+
+	if match := linq.From(room.ListAdmin).FirstWith(func(i any) bool {
+		return i.(bson.ObjectId).Hex() == roomID
+	}); match == nil {
+		return g.NewError(403, "must be admin of selected room")
+	}
+
+	body := req.Body
+	// dont allow adding outsider
+	org, err := handler.orgService.GetOrganizeById(room.OrgID.Hex())
+	if err != nil {
+		return g.NewError(500, err.Error())
+	}
+	orgMemberSet := make(map[bson.ObjectId]bool, len(org.Members))
+	linq.From(org.Members).ForEach(func(i any) {
+		orgMemberSet[i.(bson.ObjectId)] = true
+	})
+	if allOk := linq.From(body.UserIDs).All(func(i any) bool {
+		_, inOrg := orgMemberSet[i.(bson.ObjectId)]
+		return inOrg
+	}); !allOk {
+		return g.NewError(400, "some member in list are not in org")
+	}
+
+	if err := handler.roomService.AddAdminsToRoom(room.RoomID, body.UserIDs); err != nil {
+		handler.logger.Println("can't invite user to room", err)
+		return g.NewError(500, err.Error())
+	}
+
+	c.JSON(200, g.Response{
+		Success: true,
+		Message: "invited admin",
+	})
+	return nil
+}
+
+func (handler *RoomRouteHandler) getRoomAdmins(c *gin.Context, req struct{ Body empty }) error {
+	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		return g.NewError(400, "bad room id in path")
+	}
+
+	if room, err := handler.roomService.GetRoomByID(id); err != nil {
+		if errors.Is(err, mgo.ErrNotFound) {
+			return g.NewError(404, "room not found")
+		}
+		return err
+	} else {
+		adminUsers, err := handler.userService.GetUsersByIDs(utills.ToStringArr(room.ListAdmin))
+		if err != nil {
+			handler.logger.Print("error getting users", err)
+			return err
+		}
+		c.JSON(200, adminUsers)
+		return nil
+	}
+}
+
+// removeAdminsFromRoom demote admins to user, it doesn't kick them
+// if want to kick, use deleteMemberFromRoom
+func (handler *RoomRouteHandler) removeAdminsFromRoom(c *gin.Context, req struct {
+	Body inviteAdminDto
+}) error {
+	roomID := c.Param("id")
+	if !bson.IsObjectIdHex(roomID) {
+		return g.NewError(400, "bad room ID in path")
+	}
+
+	room, err := handler.roomService.GetRoomByID(roomID)
+	if err != nil {
+		if errors.Is(err, mgo.ErrNotFound) {
+			return g.NewError(404, "room does not exist")
+		}
+		return g.NewError(500, "something went wrong")
+	}
+
+	if match := linq.From(room.ListAdmin).FirstWith(func(i any) bool {
+		return i.(bson.ObjectId).Hex() == roomID
+	}); match == nil {
+		return g.NewError(403, "must be admin of selected room")
+	}
+
+	user, err := handler.userService.GetUserByID(c.GetString(auth.UserIdField))
+	if err != nil {
+		return g.NewError(500, err.Error())
+	}
+	if match := linq.From(user.Organize).FirstWith(func(i any) bool {
+		return i.(bson.ObjectId) == room.OrgID
+	}); match == nil {
+		return g.NewError(403, "foreign user can't invite")
+	}
+
+	body := req.Body
+	if err := handler.roomService.RemoveAdminsFromRoom(room.RoomID, body.UserIDs); err != nil {
+		handler.logger.Println("can't invite user to room", err)
+		return g.NewError(500, err.Error())
+	}
+	c.JSON(200, g.Response{
+		Success: true,
+		Message: "invited admin",
+	})
+	return nil
 }

@@ -151,3 +151,10 @@ func (userMongo UserRepositoryMongo) GetUserRoomByUserID(userID string) ([]strin
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.ObjectIdHex(userID)).One(&user)
 	return model.ToStringArr(user.Room), err
 }
+
+func (userMongo UserRepositoryMongo) BulkUpdateUser(ids []bson.ObjectId, update model.UserUpdateMongo) error {
+	_, err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateAll(bson.M{
+		"$id": bson.M{"$in": ids},
+	}, bson.M{"$set": update})
+	return err
+}

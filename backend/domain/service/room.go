@@ -121,6 +121,14 @@ func (s *RoomService) GetProxyRoomIDs(proxyID string) ([]string, error) {
 	return rooms, err
 }
 
+func (s *RoomService) AddAdminsToRoom(roomID bson.ObjectId, userIDs []bson.ObjectId) error {
+	return s.roomUserRepository.AddAdminsToRoom(roomID, userIDs)
+}
+
+func (s *RoomService) RemoveAdminsFromRoom(roomID bson.ObjectId, userIDs []bson.ObjectId) error {
+	return s.roomUserRepository.RemoveAdminsFromRoom(roomID, userIDs)
+}
+
 // Proxy master no longer fixed
 
 // // GetRoomMasterProxy return master proxy of the room

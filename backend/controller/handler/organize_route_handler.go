@@ -105,15 +105,6 @@ func (handler *OrganizeRouteHandler) getOrganizationMembers(context *gin.Context
 	})
 }
 
-func isInObjArr(id bson.ObjectId, arr []bson.ObjectId) bool {
-	for _, x := range arr {
-		if id == x {
-			return true
-		}
-	}
-	return false
-}
-
 func (handler *OrganizeRouteHandler) getOrganizations(context *gin.Context) {
 	var OrganizesInfo model.OrganizeInfo
 	isMe := context.Query("me") != ""

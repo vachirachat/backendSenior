@@ -2,6 +2,7 @@ package repository
 
 import (
 	"backendSenior/domain/model"
+	"github.com/globalsign/mgo/bson"
 )
 
 type UserRepository interface {
@@ -16,6 +17,8 @@ type UserRepository interface {
 	EditUserRole(model.UserSecret) error
 	DeleteUserByID(userID string) error
 	GetUserByEmail(email string) (model.User, error)
+
+	BulkUpdateUser([]bson.ObjectId, model.UserUpdateMongo) error
 
 	//login
 	// GetUserTokenById(email string) (model.UserToken, error)

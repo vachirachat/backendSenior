@@ -18,20 +18,7 @@ type Room struct {
 	RoomType         string          `json:"roomType" bson:"roomType,omitempty"`
 	ListUser         []bson.ObjectId `json:"users" bson:"users,omitempty"`
 	ListProxy        []bson.ObjectId `json:"proxies" bson:"proxies,omitempty"`
-	// MainProxy        bson.ObjectId   `json:"mainProxy" bson:"mainProxy"`
-}
-
-// RoomInsert is used for inserting where empty fields are
-// not omitted so that we can insert empty array to the database
-type RoomInsert struct {
-	RoomID           bson.ObjectId   `json:"roomId" bson:"_id,omitempty"`
-	RoomName         string          `json:"roomName" bson:"roomName"`
-	OrgID            bson.ObjectId   `json:"orgId" bson:"orgId,omitempty"` // orgId can be empty (when creating)
-	CreatedTimeStamp time.Time       `json:"-" bson:"createdAt"`
-	RoomType         string          `json:"roomType" bson:"roomType"`
-	ListUser         []bson.ObjectId `json:"users" bson:"users"`
-	ListProxy        []bson.ObjectId `json:"proxies" bson:"proxies"`
-	// MainProxy        bson.ObjectId   `json:"mainProxy" bson:"mainProxy,omitempty"` // mainProxy can be empty (when creating)
+	ListAdmin        []bson.ObjectId `json:"admins" bson:"admins,omitempty"`
 }
 
 // RoomUpdateMongo has same fields as room, but has types of interface{}.
@@ -45,7 +32,7 @@ type RoomUpdateMongo struct {
 	RoomType         interface{} `bson:"roomType,omitempty"`
 	ListUser         interface{} `bson:"users,omitempty"`
 	ListProxy        interface{} `bson:"proxies,omitempty"`
-	MainProxy        interface{} `bson:"mainProxy,omitempty"`
+	ListAdmin        interface{} `json:"admins" bson:"admins,omitempty"`
 }
 
 // Map return Room struct as Map

@@ -3,10 +3,8 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
-	"time"
-	"unsafe"
-
 	"github.com/globalsign/mgo/bson"
+	"time"
 
 	"github.com/globalsign/mgo"
 )
@@ -38,9 +36,7 @@ func (roomMongo RoomRepositoryMongo) GetRoomsByIDs(roomIDs []string) ([]model.Ro
 func (roomMongo RoomRepositoryMongo) AddRoom(room model.Room) (string, error) {
 	room.RoomID = bson.NewObjectId()
 
-	roomInsert := *(*model.RoomInsert)(unsafe.Pointer(&room))
-
-	return room.RoomID.Hex(), roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).Insert(roomInsert)
+	return room.RoomID.Hex(), roomMongo.ConnectionDB.DB(dbName).C(collectionRoom).Insert(room)
 }
 
 // UpdateRoom updates room, return error when not found

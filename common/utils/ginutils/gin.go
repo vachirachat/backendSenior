@@ -31,20 +31,20 @@ type ErrCodeI interface {
 
 // errCode implements ErrCodeI
 type errCode struct {
-	err  error
+	text string
 	code int
 }
 
 func (e *errCode) Error() string {
-	return e.err.Error()
+	return e.text
 }
 func (e *errCode) Status() int {
 	return e.code
 }
 
-func NewError(code int, err error) ErrCodeI {
+func NewError(code int, text string) ErrCodeI {
 	return &errCode{
-		err:  err,
+		text: text,
 		code: code,
 	}
 }
