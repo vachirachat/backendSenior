@@ -18,7 +18,6 @@ type UserRepositoryMongo struct {
 var _ repository.UserRepository = (*UserRepositoryMongo)(nil)
 
 const (
-	collectionToken  = "UserToken"
 	collectionSecret = "UserSecret"
 )
 
@@ -111,6 +110,12 @@ func (userMongo UserRepositoryMongo) GetAllUserToken() ([]model.UserToken, error
 	var UsersToken []model.UserToken
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionToken).Find(nil).All(&UsersToken)
 	return UsersToken, err
+}
+
+func (userMongo *UserRepositoryMongo) RemoveToken(userid string) error {
+	return userMongo.ConnectionDB.DB(dbName).C(collectionToken).UpdateId(bson.ObjectIdHex(userid), bson.M{
+		"$set": bson.M{"accesstoken": ""},
+	})
 }
 
 func (userMongo UserRepositoryMongo) GetUserSecret(userCredential model.UserSecret) (model.User, error) {

@@ -79,9 +79,6 @@ func main() {
 		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PORT is not set")
 	}
 
-	log.Println("Plugin Config >>>", "enablePlugin", enablePlugin, "enablePluginEnc", enablePluginEnc)
-	log.Println("pluginPort", pluginPort)
-
 	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, enablePluginEnc, pluginPort)
 
 	upStreamController := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)

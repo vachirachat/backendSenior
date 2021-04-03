@@ -12,6 +12,7 @@ const (
 	collectionUser     = "users"
 	collectionRoom     = "rooms"
 	collectionProxy    = "proxies"
+	collectionToken    = "usertokens"
 	collectionOrganize = "organize"
 	collectionFCMToken = "fcmTokens"
 	// for mgo/txn
