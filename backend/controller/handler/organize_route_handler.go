@@ -407,7 +407,10 @@ func (handler *OrganizeRouteHandler) findOrgByName(c *gin.Context, req struct {
 	if orgs, err := handler.organizeService.FindOrgByName(req.Body); err != nil {
 		return err
 	} else {
-		c.JSON(200, orgs[:20]) // limit don't show too much, privacy
+		if len(orgs) > 20 {
+			orgs = orgs[:20] // limit don't show too much, privacy
+		}
+		c.JSON(200, orgs)
 		return nil
 	}
 }
