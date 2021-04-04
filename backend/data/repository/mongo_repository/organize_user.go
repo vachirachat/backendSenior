@@ -50,7 +50,7 @@ func (repo *OrganizeUserRepositoryMongo) AddAdminToOrganize(orgID string, adminI
 			C:  collectionOrganize,
 			Id: bson.ObjectIdHex(orgID),
 			Update: bson.M{
-				"$addToSet": model.OrganizationUpdateMongo{
+				"$addToSet": model.OrganizationT{
 					Admins: bson.M{
 						"$each": utills.ToObjectIdArr(adminIDs),
 					},
@@ -101,7 +101,7 @@ func (repo *OrganizeUserRepositoryMongo) AddMembersToOrganize(orgID string, memb
 			C:  collectionOrganize,
 			Id: bson.ObjectIdHex(orgID),
 			Update: bson.M{
-				"$addToSet": model.OrganizationUpdateMongo{
+				"$addToSet": model.OrganizationT{
 					Members: bson.M{
 						"$each": utills.ToObjectIdArr(memberIDs),
 					},
@@ -151,7 +151,7 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeAdmin(orgID string, admin
 			C:  collectionOrganize,
 			Id: bson.ObjectIdHex(orgID),
 			Update: bson.M{
-				"$pullAll": model.OrganizationUpdateMongo{
+				"$pullAll": model.OrganizationT{
 					Admins: utills.ToObjectIdArr(adminIDs),
 				},
 			},
@@ -186,7 +186,7 @@ func (repo *OrganizeUserRepositoryMongo) DeleleOrganizeMember(orgID string, memb
 			C:  collectionOrganize,
 			Id: bson.ObjectIdHex(orgID),
 			Update: bson.M{
-				"$pullAll": model.OrganizationUpdateMongo{
+				"$pullAll": model.OrganizationT{
 					Members: utills.ToObjectIdArr(memberIDs),
 					Admins:  utills.ToObjectIdArr(memberIDs),
 				},

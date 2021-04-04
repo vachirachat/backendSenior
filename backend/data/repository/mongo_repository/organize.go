@@ -31,7 +31,7 @@ func (organizeMongo *OrganizeRepositoryMongo) GetAllOrganize() ([]model.Organize
 // GetOrganizeByUser return all organization user is in
 func (organizeMongo *OrganizeRepositoryMongo) GetOrganizeByUser(userID string) ([]model.Organize, error) {
 	var organizes []model.Organize
-	err := organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).Find(model.OrganizationUpdateMongo{
+	err := organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).Find(model.OrganizationT{
 		Members: bson.ObjectIdHex(userID),
 	}).All(&organizes)
 	return organizes, err
@@ -77,6 +77,12 @@ func (organizeMongo OrganizeRepositoryMongo) GetOrganizesByIDs(organizeIDs []str
 
 func (organizeMongo OrganizeRepositoryMongo) UpdateOrganize(organizeID string, name string) error {
 	return organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).UpdateId(bson.ObjectIdHex(organizeID), bson.M{
-		"$set": model.OrganizationUpdateMongo{Name: name},
+		"$set": model.OrganizationT{Name: name},
 	})
+}
+
+func (organizeMongo *OrganizeRepositoryMongo) FindOrg(filter interface{}) ([]model.Organize, error) {
+	var orgs []model.Organize
+	err := organizeMongo.ConnectionDB.DB(dbName).C(collectionOrganize).Find(filter).All(&orgs)
+	return orgs, err
 }
