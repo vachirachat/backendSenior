@@ -82,7 +82,7 @@ func (handler *ChatRouteHandler) websocketHandler(context *gin.Context) {
 	}
 
 	clnt.readLoop()
-	chatSocket.Conn.Observable().DoOnCompleted(func() {
+	<-chatSocket.Conn.Observable().DoOnCompleted(func() {
 		_ = handler.downstream.OnDisconnect(id)
 
 	})

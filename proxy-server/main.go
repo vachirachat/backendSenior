@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"os"
@@ -138,6 +139,11 @@ func main() {
 		FileService:       fileService,
 		Encrpytion:        enc,
 	}).NewRouter()
+
+	router.GET("/debug/conns", func(c *gin.Context) {
+
+		c.JSON(200, pool.DebugNumOfConns())
+	})
 
 	// websocket messasge handler
 	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, keyService, onMessagePlugin, enc)

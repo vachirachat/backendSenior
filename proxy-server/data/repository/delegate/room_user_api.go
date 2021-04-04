@@ -6,6 +6,7 @@ import (
 	"backendSenior/utills"
 	"encoding/json"
 	"fmt"
+	"github.com/globalsign/mgo/bson"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -21,6 +22,14 @@ type DelegateRoomUserRepository struct {
 	controllerOrigin     string        // origin is hostname and port
 	ttl                  time.Duration // cache duration
 	lock                 sync.RWMutex
+}
+
+func (repo *DelegateRoomUserRepository) AddAdminsToRoom(roomID bson.ObjectId, userIDs []bson.ObjectId) (err error) {
+	panic("not supported")
+}
+
+func (repo *DelegateRoomUserRepository) RemoveAdminsFromRoom(roomID bson.ObjectId, userIDs []bson.ObjectId) (err error) {
+	panic("not supported")
 }
 
 var _ repository.RoomUserRepository = (*DelegateRoomUserRepository)(nil)

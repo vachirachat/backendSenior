@@ -118,3 +118,14 @@ func removeConn(connID string, connArr []*chatsocket.Connection) ([]*chatsocket.
 	}
 	return connArr, &chatsocket.Connection{}, false
 }
+
+func (pool *ConnectionPool) DebugNumOfConns() map[string]interface{} {
+	res := make(map[string]interface{})
+	res["total"] = len(pool.connections)
+	by_user := make(map[string]int)
+	for u, conns := range pool.connectionsByUser {
+		by_user[u] = len(conns)
+	}
+	res["by_user"] = by_user
+	return res
+}

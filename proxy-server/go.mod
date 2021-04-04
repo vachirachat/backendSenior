@@ -12,7 +12,7 @@ require (
 	backendSenior v0.0.0-00010101000000-000000000000
 	common v0.0.0-00010101000000-000000000000
 	github.com/cenkalti/backoff/v4 v4.1.0 // indirect
-	github.com/cornelk/hashmap v1.0.1 // indirect
+	github.com/cornelk/hashmap v1.0.1
 	github.com/dchest/siphash v1.2.2 // indirect
 	github.com/gin-gonic/gin v1.6.3
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
