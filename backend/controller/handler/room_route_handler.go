@@ -629,7 +629,7 @@ func (handler *RoomRouteHandler) addAdminsToRoom(c *gin.Context, req struct {
 	return nil
 }
 
-func (handler *RoomRouteHandler) getRoomAdmins(c *gin.Context, req struct{ Body empty }) error {
+func (handler *RoomRouteHandler) getRoomAdmins(c *gin.Context, req struct{}) error {
 	id := c.Param("id")
 	if !bson.IsObjectIdHex(id) {
 		return g.NewError(400, "bad room id in path")

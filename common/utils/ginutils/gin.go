@@ -167,8 +167,10 @@ func InjectGin(handler interface{}) func(c *gin.Context) {
 	if arg2T.Kind() != reflect.Struct {
 		panic("second argument must be struct type")
 	}
-	if _, ok := arg2T.FieldByName("Body"); !ok {
-		panic("field `Body` not found in struct")
+
+	bindBody := false
+	if _, ok := arg2T.FieldByName("Body"); ok {
+		bindBody = true
 	}
 
 	errorT := reflect.TypeOf((*error)(nil)).Elem()
@@ -183,24 +185,27 @@ func InjectGin(handler interface{}) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// prepare injection data
 		argV := reflect.New(arg2T)
-		fieldPtr := argV.Elem().FieldByName("Body").Addr().Interface()
 
-		if err := c.BindJSON(fieldPtr); err != nil {
-			c.JSON(400, Response{
-				Success: false,
-				Message: "JSON binding failed",
-				Data:    err.Error(),
-			})
-			return
-		}
+		if bindBody {
+			fieldPtr := argV.Elem().FieldByName("Body").Addr().Interface()
 
-		if err := v.Struct(argV.Elem().Interface()); err != nil {
-			c.JSON(400, Response{
-				Success: false,
-				Message: "body validation failed",
-				Data:    err.Error(),
-			})
-			return
+			if err := c.BindJSON(fieldPtr); err != nil {
+				c.JSON(400, Response{
+					Success: false,
+					Message: "JSON binding failed",
+					Data:    err.Error(),
+				})
+				return
+			}
+
+			if err := v.Struct(argV.Elem().Interface()); err != nil {
+				c.JSON(400, Response{
+					Success: false,
+					Message: "body validation failed",
+					Data:    err.Error(),
+				})
+				return
+			}
 		}
 
 		// call real handler
