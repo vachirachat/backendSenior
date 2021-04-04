@@ -10,9 +10,10 @@ import (
 	"proxySenior/data/repository/delegate"
 	"proxySenior/data/repository/mongo_repository"
 	"proxySenior/data/repository/upstream"
+	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
-	"proxySenior/utils"
+	"proxySenior/utills"
 
 	"github.com/joho/godotenv"
 
@@ -24,10 +25,11 @@ func main() {
 	if err != nil {
 		log.Fatalln("Can't load .env file, does it exist ?")
 	}
+
 	// Repo
-	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.CONTROLLER_ORIGIN)
+	roomUserRepo := delegate.NewDelegateRoomUserRepository(utills.CONTROLLER_ORIGIN)
 	pool := chatsocket.NewConnectionPool()
-	msgRepo := delegate.NewDelegateMessageRepository(utils.CONTROLLER_ORIGIN)
+	msgRepo := delegate.NewDelegateMessageRepository(utills.CONTROLLER_ORIGIN)
 
 	// Service
 	clientID := os.Getenv("CLIENT_ID")
@@ -41,53 +43,51 @@ func main() {
 	// Refactor :
 	// Task: Plugin-Encryption : Check Flag to Forward
 	// Add port to communicate with RPC
-	enablePlugin := false
+	var proxyConfig = &model_proxy.ProxyConfig{
+		EnablePlugin:    false,
+		EnablePluginEnc: false,
+		PluginPort:      os.Getenv("PLUGIN_PORT"),
+		DockerID:        "08392baafeb2",
+	}
+
 	if os.Getenv("PLUGIN_ACTIVE") == "True" {
-		enablePlugin = true
+		proxyConfig.EnablePlugin = true
 	}
-
-	enablePluginEnc := false
 	if os.Getenv("PLUGIN_Encryption") == "True" {
-		enablePluginEnc = true
+		proxyConfig.EnablePluginEnc = true
 	}
 
-	pluginPort := os.Getenv("PLUGIN_PORT")
-	if pluginPort == "" {
-		enablePlugin = false
+	if proxyConfig.PluginPort == "" {
+		proxyConfig.EnablePlugin = false
 		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PATH is not set")
 	}
 
-	log.Println("Plugin Config >>>", "enablePlugin", enablePlugin, "enablePluginEnc", enablePluginEnc)
-	log.Println("pluginPort", pluginPort)
-
-	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, enablePluginEnc, pluginPort)
-	upstream := upstream.NewUpStreamController(utils.CONTROLLER_ORIGIN, clientID, clientSecret)
+	onMessagePlugin := plugin.NewOnMessagePortPlugin(proxyConfig)
+	upstream := upstream.NewUpStreamController(utills.CONTROLLER_ORIGIN, clientID, clientSecret)
 	keystore := &mongo_repository.KeyRepository{}
-
-	// err = onMessagePlugin.Wait()
-	// if err != nil {
-	// 	log.Fatalln("Wait for onMessagePlugin Error")
-	// }
-	// Task: Plugin-Encryption : Check Flag to Forward
 
 	enc := service.NewEncryptionService(keystore, onMessagePlugin)
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
 	upstreamService := service.NewChatUpstreamService(upstream, enc)
-	delegateAuth := service.NewDelegateAuthService(utils.CONTROLLER_ORIGIN)
+	delegateAuth := service.NewDelegateAuthService(utills.CONTROLLER_ORIGIN)
 	messageService := service.NewMessageService(msgRepo, enc)
 
+	configService := service.NewConfigService(enc, proxyConfig, onMessagePlugin)
+	// Fix Real Use
+	// configService := service.NewConfigService(enc, proxyConfig)
 	// create router from service
 	router := (&route.RouterDeps{
 		UpstreamService:   upstreamService,
 		DownstreamService: downstreamService,
 		AuthService:       delegateAuth,
 		MessageService:    messageService,
+		ConfigService:     configService,
 	}).NewRouter()
 
 	// websocket messasge handler
 	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, enc, onMessagePlugin)
 	go messageHandler.Start()
 
-	router.Run(utils.LISTEN_ADDRESS)
+	router.Run(utills.LISTEN_ADDRESS)
 	defer onMessagePlugin.CloseConnection()
 }

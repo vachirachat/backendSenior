@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	model_proxy "proxySenior/domain/model"
 	"proxySenior/share/proto"
 	"strconv"
 	"time"
@@ -18,19 +19,44 @@ type GRPCOnPortMessagePlugin struct {
 	conn   *grpc.ClientConn
 }
 
-func NewGRPCOnPortMessagePlugin(serverPort string) *GRPCOnPortMessagePlugin {
+func NewGRPCOnPortMessagePlugin(proxyConfig *model_proxy.ProxyConfig) *GRPCOnPortMessagePlugin {
+	gRPCOnPortMessagePlugin := &GRPCOnPortMessagePlugin{}
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
 	opts = append(opts, grpc.WithBlock())
+	opts = append(opts, grpc.WithTimeout(time.Duration(5)*time.Second))
+	go gRPCOnPortMessagePlugin.connect(proxyConfig, opts)
+	return gRPCOnPortMessagePlugin
+}
 
-	conn, err := grpc.Dial(serverPort, opts...)
-	if err != nil {
-		log.Fatalf("fail to dial: %v", err)
+func (obp *GRPCOnPortMessagePlugin) connect(proxyConfig *model_proxy.ProxyConfig, opts []grpc.DialOption) {
+
+	for {
+		if !proxyConfig.EnablePlugin {
+			fmt.Println("connecting to plugin server:")
+			fmt.Println("Should EnablePlugin")
+			time.Sleep(15 * time.Second)
+			continue
+		} else {
+			// conn, err := grpc.Dial("172.17.0.3:5005", opts...)
+			conn, err := grpc.Dial(proxyConfig.PluginPort, opts...)
+			//Fix Check Debug
+			if err != nil {
+				fmt.Println("connecting to plugin server:")
+				fmt.Println("Retry Connect to Plugin in 15 sec")
+				time.Sleep(15 * time.Second)
+				continue
+			}
+			obp.conn = conn
+			client := proto.NewBackupClient(obp.conn)
+			obp.client = &client
+			fmt.Println("Plugin Heart-Beat")
+		}
+		time.Sleep(30 * time.Second)
+		obp.conn.Close()
+
 	}
 
-	client := proto.NewBackupClient(conn)
-
-	return &GRPCOnPortMessagePlugin{client: &client}
 }
 
 func (obp *GRPCOnPortMessagePlugin) CloseConnection() {

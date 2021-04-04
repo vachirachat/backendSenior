@@ -17,6 +17,16 @@ Content-Type: application/json
   "port": 8090
 }
 
+###
+POST {{base}}
+Content-Type: application/json
+
+{
+  "name": "Local Proxy",
+  "ip": "localhost",
+  "port": 8090
+}
+
 
 ### 
 POST {{base}}/{{proxyId}}/reset

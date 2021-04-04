@@ -4,17 +4,17 @@
 @orgA = 60001dc7584cb6da2059f5b4
 
 
-@roomA = 60001e33584cb6da2059f5b7
+@roomA = 6066d82dbc4da71de4a1ecd4
 @roomB = 
 
-@proxyA = 600025c6584cb6da2059f5bb
+@proxyA = 6066d5c7bc4da719f0c4de2f
 @proxyB = 
 
 // me = 5fef73f2315e73be2c81c748
-@userA = 60001d1cf0a50a974cee376d
-@userB = 60001260f0a50a974cee2f95
+@userA = 6036f05799a05bbc180bd3cb
+# @userB = 60001260f0a50a974cee2f95
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjI5ZTVkMGQ4LTk3Y2YtNGViOS1iZjEyLWJkYjQ1MDI5MTJiMCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxMDYyMDE2OCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjAwMDFkMWNmMGE1MGE5NzRjZWUzNzZkIn0._rl0gKLkpNvKyDmcxWJuT7XXSzodHOyxVPBjH9CSXNA
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImVhNmY1Y2VlLTNmNjYtNGVmOC1iZWRiLTllNjAyMDYwMmE2ZSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNzM1MjYyOSwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjAzNmYwNTc5OWEwNWJiYzE4MGJkM2NiIn0.eV7mWBaZonXWQ-_aay16PzNXz2hsKdJeDFs3WsRePE8
 
 ### GET ALL ROOMS
 GET {{base}}
@@ -30,7 +30,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "roomName": "TEST_ROAD",
+  "roomName": "TEST_TOP",
   "roomType": "GROUP",
   "orgId": "{{orgA}}"
 }
@@ -74,7 +74,7 @@ Content-Type: application/json
 
 ### get proxy full
 GET {{base}}/{{roomA}}/proxy    
-###
+### Add proxy to Room
 POST {{base}}/{{roomA}}/proxy    
 Content-Type: application/json
 

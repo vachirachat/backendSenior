@@ -1,10 +1,11 @@
 package route
 
 import (
-	"backendSenior/domain/service"
-	"fmt"
-
 	"backendSenior/domain/model"
+	"backendSenior/domain/service"
+	"bytes"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -30,6 +31,8 @@ func (handler *ProxyRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/:id/", handler.updateProxy)
 	routerGroup.GET("/:id/", handler.getProxyByID)
 	routerGroup.POST("/:id/reset", handler.resetSecret)
+	routerGroup.POST("/:id/file", handler.forwardProxyFile)
+	routerGroup.POST("/:id/status", handler.forwardProxyStatus)
 }
 
 func (handler *ProxyRouteHandler) getAllProxies(context *gin.Context) {
@@ -119,3 +122,94 @@ func (handler *ProxyRouteHandler) updateProxy(context *gin.Context) {
 
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }
+
+func (handler *ProxyRouteHandler) forwardProxyFile(context *gin.Context) {
+	proxyID := context.Param("id")
+	if !bson.IsObjectIdHex(proxyID) {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
+		return
+	}
+	proxy, err := handler.proxyService.GetProxyByID(proxyID)
+	if err != nil {
+		fmt.Println("error get proxy by id", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	}
+	resp, err := forwardToProxy(proxy, "docker/file", context)
+	if err != nil {
+		fmt.Println("error get proxy by id", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	}
+	context.JSON(http.StatusOK, gin.H{"status": resp})
+}
+
+func (handler *ProxyRouteHandler) forwardProxyStatus(context *gin.Context) {
+	proxyID := context.Param("id")
+	if !bson.IsObjectIdHex(proxyID) {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
+		return
+	}
+	proxy, err := handler.proxyService.GetProxyByID(proxyID)
+	if err != nil {
+		fmt.Println("error get proxy by id", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	}
+	resp, err := forwardToProxy(proxy, "docker/status", context)
+	if err != nil {
+		fmt.Println("error get proxy by id", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	}
+	context.JSON(http.StatusOK, gin.H{"status": resp})
+}
+
+func (handler *ProxyRouteHandler) forwardProxyDown(context *gin.Context) {
+	proxyID := context.Param("id")
+	if !bson.IsObjectIdHex(proxyID) {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
+		return
+	}
+	proxy, err := handler.proxyService.GetProxyByID(proxyID)
+	if err != nil {
+		fmt.Println("error get proxy by id", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	}
+	resp, err := forwardToProxy(proxy, "docker/status", context)
+	if err != nil {
+		fmt.Println("error get proxy by id", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	}
+	context.JSON(http.StatusOK, gin.H{"status": resp})
+}
+
+// Fix Refactor : Move to Service
+func forwardToProxy(proxy model.Proxy, path string, context *gin.Context) (string, error) {
+	// we need to buffer the body if we want to read it here and send it
+	// in the request.
+	body, err := ioutil.ReadAll(context.Request.Body)
+	if err != nil {
+		return "", err
+	}
+
+	// you can reassign the body if you need to parse it as multipart
+	context.Request.Body = ioutil.NopCloser(bytes.NewReader(body))
+
+	proxyScheme := "http"
+	proxyHost := proxy.IP + ":" + fmt.Sprint(proxy.Port)
+	// create a new url from the raw RequestURI sent by the client
+	url := fmt.Sprintf("%s://%s%s", proxyScheme, proxyHost, "/api/v1/config/"+path)
+	log.Println(url)
+	proxyReq, err := http.NewRequest(context.Request.Method, url, bytes.NewReader(body))
+	proxyReq.Header = make(http.Header)
+	for h, val := range context.Request.Header {
+		proxyReq.Header[h] = val
+	}
+	httpClient := http.Client{}
+	resp, err := httpClient.Do(proxyReq)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, err = ioutil.ReadAll(resp.Body)
+	return string(body), nil
+}
+
+// Fix Refactor : Move to Service

@@ -63,8 +63,8 @@ type client struct {
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
-		// routerGroup.GET("/ws" /*, handler.authMiddleware.AuthRequired()*/, func(context *gin.Context) {
+	// routerGroup.GET("/ws", handler.authMiddleware.AuthRequired(), func(context *gin.Context) {
+	routerGroup.GET("/ws" /*, handler.authMiddleware.AuthRequired()*/, func(context *gin.Context) {
 		// fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
@@ -76,8 +76,8 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			},
 		}
 
-		userID := context.GetString(middleware.UserIdField)
-		// userID := "60001260f0a50a974cee2f95"
+		// userID := context.GetString(middleware.UserIdField)
+		userID := "6036f05799a05bbc180bd3cb"
 		// Proxy use no auth ?
 		wsConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
