@@ -123,13 +123,13 @@ func (c *client) readLoop() {
 			var msg model.Message
 			if err := json.Unmarshal(rawMessage.Payload, &msg); err != nil {
 				fmt.Println("bad message payload format")
-				conn.SendJSON(wsErrorMessage("bad message payload format", err))
+				conn.SendJSON(wsErrorMessage("bad message payload format", err.Error()))
 				return
 			}
 
 			if ok, err := c.handlerRef.downstream.IsUserInRoom(userID, msg.RoomID.Hex()); err != nil {
 				fmt.Println("unable to check room")
-				conn.SendJSON(wsErrorMessage("unable to check room", err))
+				conn.SendJSON(wsErrorMessage("unable to check room", err.Error()))
 				return
 			} else if !ok {
 				conn.SendJSON(wsErrorMessage("unauthorized"))
@@ -138,14 +138,14 @@ func (c *client) readLoop() {
 
 			now := time.Now()
 			if err := c.handlerRef.encryption.EncryptController(&msg); err != nil {
-				conn.SendJSON(wsErrorMessage("encryption error", err))
+				conn.SendJSON(wsErrorMessage("encryption error", err.Error()))
 				return
 			}
 			msg.TimeStamp = now
 			msg.UserID = bson.ObjectIdHex(userID)
 			if err := c.handlerRef.upstream.SendMessage(msg); err != nil {
 				fmt.Println("error sending", err)
-				conn.SendJSON(wsErrorMessage("error sending message to controller", err))
+				conn.SendJSON(wsErrorMessage("error sending message to controller", err.Error()))
 				return
 			}
 			// TODO: add send success here

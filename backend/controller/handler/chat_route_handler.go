@@ -142,7 +142,7 @@ func (c *client) handleMessage() {
 
 		var rawMessage chatsocket.RawMessage
 		if err := json.Unmarshal(message, &rawMessage); err != nil {
-			wsConn.SendJSON(wsErrorMessage("bad socket message structure", err))
+			wsConn.SendJSON(wsErrorMessage("bad socket message structure", err.Error()))
 			return
 		}
 
@@ -150,12 +150,12 @@ func (c *client) handleMessage() {
 		case message_types.Chat:
 			var msg model.Message
 			if err := json.Unmarshal(rawMessage.Payload, &msg); err != nil {
-				wsConn.SendJSON(wsErrorMessage("bad message payload format", err))
+				wsConn.SendJSON(wsErrorMessage("bad message payload format", err.Error()))
 				return
 			}
 
 			if ok, err := handler.chatService.IsProxyInRoom(proxyID, msg.RoomID.Hex()); err != nil {
-				wsConn.SendJSON(wsErrorMessage("can't check room", err))
+				wsConn.SendJSON(wsErrorMessage("can't check room", err.Error()))
 				return
 			} else if !ok {
 				wsConn.SendJSON(wsErrorMessage("unauthorized"))
