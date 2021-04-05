@@ -170,6 +170,7 @@ func (h *FileRouteHandler) uploadFile(c *gin.Context) {
 		metaBytes = encryption.B64Encode(metaBytes)
 		h.upstreamChat.SendMessage(model.Message{
 			TimeStamp: now,
+			FileID:    meta.FileID,
 			RoomID:    bson.ObjectIdHex(roomID),
 			UserID:    bson.ObjectIdHex(userID),
 			ClientUID: "foo",             // TODO: this isn't needed?
@@ -259,6 +260,7 @@ func (h *FileRouteHandler) uploadImage(c *gin.Context) {
 		metaBytes = encryption.B64Encode(metaBytes)
 		h.upstreamChat.SendMessage(model.Message{
 			TimeStamp: now,
+			FileID:    meta.FileID,
 			RoomID:    bson.ObjectIdHex(roomID),
 			UserID:    bson.ObjectIdHex(userID),
 			ClientUID: "foo",             // TODO: this isn't needed?

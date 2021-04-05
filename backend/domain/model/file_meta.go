@@ -20,7 +20,7 @@ type FileMeta struct {
 
 type FileMetaFilter struct {
 	FileID      interface{} `bson:"_id,omitempty"`
-	ThumbnailID interface{} `bson:"thumbnailId,omitempty"` // optional
+	ThumbnailID interface{} `bson:"thumbnailId,omitempty"`
 	UserID      interface{} `bson:"userId,omitempty"`
 	RoomID      interface{} `bson:"roomId,omitempty"`
 	BucketName  interface{} `bson:"bucketName,omitempty"`
