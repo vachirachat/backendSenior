@@ -133,11 +133,11 @@ func (handler *MessageRouteHandler) deleteMessageByIDHandler(context *gin.Contex
 		return g.NewError(403, "not in the room")
 	}
 
-	if msg.Type == "FILE" {
+	if msg.Type == model.MsgFile {
 		if err := handler.fileService.DeleteFile(msg.FileID); err != nil && !errors.Is(err, mgo.ErrNotFound) {
 			return err
 		}
-	} else if msg.Type == "IMAGE" {
+	} else if msg.Type == model.MsgImage {
 		if err := handler.fileService.DeleteImage(msg.FileID); err != nil && !errors.Is(err, mgo.ErrNotFound) {
 			return err
 		}

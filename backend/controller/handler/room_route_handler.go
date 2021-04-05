@@ -118,17 +118,12 @@ type createGroupDto struct {
 	OrgId    bson.ObjectId `validate:"required"`
 }
 
-const (
-	RoomTypeGroup   = "GROUP"
-	RoomTypePrivate = "PRIVATE"
-)
-
 func (d *createGroupDto) toRoom() model.Room {
 	return model.Room{
 		RoomName: d.RoomName,
 		// We dont have orgId here, since we want it to be set after room is "invited" to org
 		CreatedTimeStamp: time.Now(),
-		RoomType:         RoomTypeGroup,
+		RoomType:         model.RoomGroup,
 		ListUser:         []bson.ObjectId{},
 		ListProxy:        []bson.ObjectId{},
 	}
@@ -170,7 +165,7 @@ func (d *createPrivateChatDto) toRoom() model.Room {
 		RoomName:         d.RoomName,
 		OrgID:            d.OrgId,
 		CreatedTimeStamp: time.Now(),
-		RoomType:         RoomTypePrivate,
+		RoomType:         model.RoomPrivate,
 		ListUser:         nil,
 		ListProxy:        nil,
 	}
@@ -282,6 +277,10 @@ func (handler *RoomRouteHandler) addMemberToRoom(c *gin.Context, req struct {
 		}
 		return err
 	}
+	if currentRoom.RoomType != model.RoomGroup {
+		return g.NewError(400, "not allowed on private room")
+	}
+
 	userID := bson.ObjectIdHex(c.GetString(auth.UserIdField))
 	if !linq.From(currentRoom.ListUser).Contains(userID) {
 		return g.NewError(403, "you are not in the room")
@@ -348,6 +347,10 @@ func (handler *RoomRouteHandler) deleteMemberFromRoom(c *gin.Context, req struct
 		}
 		return err
 	}
+	if currentRoom.RoomType != model.RoomGroup {
+		return g.NewError(400, "not allowed on private room")
+	}
+
 	userID := bson.ObjectIdHex(c.GetString(auth.UserIdField))
 	if !linq.From(currentRoom.ListUser).Contains(userID) {
 		return g.NewError(403, "you are not in the room")
@@ -584,6 +587,10 @@ func (handler *RoomRouteHandler) addAdminsToRoom(c *gin.Context, req struct {
 		return err
 	}
 
+	if currentRoom.RoomType != model.RoomGroup {
+		return g.NewError(400, "not allowed on private room")
+	}
+
 	// NOTE: we are managing admin, so the user who request must be admin
 	// admin can't be cross-org user, so no need extra check
 	if !linq.From(currentRoom.ListAdmin).Contains(bson.ObjectIdHex(c.GetString(auth.UserIdField))) {
@@ -667,6 +674,9 @@ func (handler *RoomRouteHandler) removeAdminsFromRoom(c *gin.Context, req struct
 			return g.NewError(404, "currentRoom does not exist")
 		}
 		return g.NewError(500, "something went wrong")
+	}
+	if currentRoom.RoomType != model.RoomGroup {
+		return g.NewError(400, "not allowed on private room")
 	}
 
 	if !linq.From(currentRoom.ListAdmin).Contains(bson.ObjectIdHex(c.GetString(auth.UserIdField))) {

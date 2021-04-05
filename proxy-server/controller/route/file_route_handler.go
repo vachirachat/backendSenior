@@ -175,7 +175,7 @@ func (h *FileRouteHandler) uploadFile(c *gin.Context) {
 			UserID:    bson.ObjectIdHex(userID),
 			ClientUID: "foo",             // TODO: this isn't needed?
 			Data:      string(metaBytes), // tell client the meta
-			Type:      "FILE",
+			Type:      model.MsgFile,
 		})
 	}()
 
@@ -265,7 +265,7 @@ func (h *FileRouteHandler) uploadImage(c *gin.Context) {
 			UserID:    bson.ObjectIdHex(userID),
 			ClientUID: "foo",             // TODO: this isn't needed?
 			Data:      string(metaBytes), // tell client the meta
-			Type:      "IMAGE",
+			Type:      model.MsgImage,
 		})
 	}()
 
