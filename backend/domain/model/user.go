@@ -24,7 +24,7 @@ type User struct {
 	Room      []bson.ObjectId `json:"room" bson:"room,omitempty"`
 	Organize  []bson.ObjectId `json:"organize" bson:"organize,omitempty"`
 	UserType  string          `json:"userType" bson:"userType,omitempty"`
-	FCMTokens []string        `json:"fcmTokens" bson:"fcmTokens,omitempty"`
+	FCMTokens []string        `json:"-" bson:"fcmTokens,omitempty"`
 }
 
 // UserInsert is used for inserting where empty fields are
