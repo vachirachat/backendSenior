@@ -40,8 +40,8 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	//SignIN/UP API
 	// routerGroup.GET("/token", handler.userTokenListHandler)
 	routerGroup.POST("/login", handler.loginHandle)
-	routerGroup.POST("/logout", handler.logoutHandle)
-	routerGroup.GET("/getalltoken", handler.getAllTokenHandle)
+	routerGroup.POST("/logout", handler.authMiddleware.AuthRequired(), handler.logoutHandle)
+	// routerGroup.GET("/getalltoken", handler.getAllTokenHandle)
 
 	routerGroup.POST("/login/:orgid/org", handler.loginOrgHandle)
 	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
