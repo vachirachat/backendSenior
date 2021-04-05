@@ -196,7 +196,7 @@ func (s *FileService) DeleteFile(fileID bson.ObjectId) error {
 	}); err != nil {
 		return fmt.Errorf("finding meta: %w", err)
 	} else if len(metas) == 0 {
-		return errors.New("file not found")
+		return mgo.ErrNotFound
 	} else {
 		m := metas[0]
 		if err := s.file.DeleteObject(m.BucketName, m.FileID.Hex()); err != nil {
