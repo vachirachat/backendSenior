@@ -38,6 +38,8 @@ func (h *FileRouteHandler) Mount(rg *gin.RouterGroup) {
 	rg.POST("/room/:roomId/files", h.authMw.AuthRequired(), h.uploadFile)
 	rg.POST("/room/:roomId/images", h.authMw.AuthRequired(), h.uploadImage)
 
+	//rg.GET("/room/:roomID/files", h.authMw.AuthRequired(), h.getFiles)
+	//rg.GET("/room/:roomID/images", h.authMw.AuthRequired(), h.getImages)
 }
 
 func (h *FileRouteHandler) getFile(c *gin.Context) {
