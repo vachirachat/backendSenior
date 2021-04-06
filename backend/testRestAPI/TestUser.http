@@ -18,6 +18,11 @@ Content-Type: application/json
   "Password": "top"
 }
 
+### Test Token
+GET http://localhost:8080/api/v1/user/getalltoken
+
+
+
 @orgID = 6065876abc4da7c50b4b8494
 ###
 POST http://localhost:8080/api/v1/user/login/{{orgID}}/org
@@ -28,7 +33,8 @@ Content-Type: application/json
   "Password": "top"
 }
 
-
+###
+POST http://localhost:8080/api/v1/user/logout
 
 
 ###GET USER

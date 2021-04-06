@@ -1,6 +1,9 @@
 package model
 
-import "github.com/dgrijalva/jwt-go"
+import (
+	"github.com/dgrijalva/jwt-go"
+	"github.com/globalsign/mgo/bson"
+)
 
 type Permission struct {
 	Resource string   `json:"resource" bson:"resource"`
@@ -37,4 +40,20 @@ type JWTClaim struct {
 	UserId     string `json:"user_id"`
 	// Inherit standard claims
 	jwt.StandardClaims
+}
+
+// JWTClaim is the payload of JWT
+type TokenDB struct {
+	UserID      bson.ObjectId `json:"_id" bson:"_id,omitempty"`
+	AccessToken string        `json:"accesstoken" bson:"accesstoken"`
+}
+
+type TokenDBInsert struct {
+	UserID      bson.ObjectId `json:"_id" bson:"_id,omitempty"`
+	AccessToken string        `json:"accesstoken" bson:"accesstoken,omitempty"`
+}
+
+type TokenDBUpdateMongo struct {
+	UserID      interface{} `bson:"_id,omitempty"`
+	AccessToken interface{} `bson:"accesstoken,omitempty"`
 }
