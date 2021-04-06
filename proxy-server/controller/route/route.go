@@ -17,6 +17,7 @@ type RouterDeps struct {
 	DownstreamService *service.ChatDownstreamService
 	AuthService       *service.DelegateAuthService
 	MessageService    *service.MessageService
+	ConfigService     *service.ConfigService
 	KeyService        *key_service.KeyService
 	FileService       *service.FileService
 	Encrpytion        *service.EncryptionService
@@ -30,13 +31,14 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	chatRouteHandler := NewChatRouteHandler(deps.UpstreamService, deps.DownstreamService, authMiddleware, deps.Encrpytion)
 	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.KeyService)
 	pingRouteHandler := NewPingRouteHandler()
+	configRouteHandler := NewConfigRouteHandler(deps.ConfigService)
 	keyRouteHandler := NewKeyRouteHandler(deps.KeyService)
 	fileRouteHandler := NewFileRouteHandler(deps.FileService, authMiddleware, deps.KeyService, deps.UpstreamService)
 
 	pingRouteHandler.Mount(r.Group("/ping"))
 
 	subgroup := r.Group("/api/v1")
-
+	configRouteHandler.Mount(subgroup.Group("/config"))
 	chatRouteHandler.Mount(subgroup.Group("/chat"))
 	messageRouteHandler.Mount(subgroup.Group("/message"))
 	keyRouteHandler.Mount(subgroup.Group("/key"))

@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"os"
@@ -16,12 +15,15 @@ import (
 	"proxySenior/data/repository/delegate"
 	"proxySenior/data/repository/mongo_repository"
 	"proxySenior/data/repository/upstream"
+	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
 	"proxySenior/utils"
 	"syscall"
 	"time"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -62,25 +64,28 @@ func main() {
 	// Refactor :
 	// Task: Plugin-Encryption : Check Flag to Forward
 	// Add port to communicate with RPC
-	enablePlugin := false
-	if os.Getenv("PLUGIN_ACTIVE") == "True" {
-		enablePlugin = true
+	var proxyConfig = &model_proxy.ProxyConfig{
+		EnablePlugin:    false,
+		EnablePluginEnc: false,
+		PluginPort:      os.Getenv("PLUGIN_PORT"),
+		DockerID:        "",
 	}
 
-	enablePluginEnc := false
+	if os.Getenv("PLUGIN_ACTIVE") == "True" {
+		proxyConfig.EnablePlugin = true
+	}
 	if os.Getenv("PLUGIN_Encryption") == "True" {
-		enablePluginEnc = true
+		proxyConfig.EnablePluginEnc = true
 	}
 
 	pluginPort := os.Getenv("PLUGIN_PORT")
-	log.Println("pluginPort =", pluginPort)
 
 	if pluginPort == "" {
-		enablePlugin = false
+		proxyConfig.EnablePlugin = false
 		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PORT is not set")
 	}
 
-	onMessagePlugin := plugin.NewOnMessagePortPlugin(enablePlugin, enablePluginEnc, pluginPort)
+	onMessagePlugin := plugin.NewOnMessagePortPlugin(proxyConfig)
 
 	upStreamController := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)
 	defer upStreamController.Stop()
@@ -89,15 +94,6 @@ func main() {
 	conn := make(chan struct{}, 10)
 	upstreamService.OnConnect(conn)
 	defer upstreamService.OffConnect(conn)
-
-	if enablePlugin {
-		log.Println("waiting plugin")
-		err = onMessagePlugin.Wait()
-		if err != nil {
-			log.Fatalln("Wait for onMessagePlugin Error")
-		}
-
-	}
 
 	rabbit := rmq.New("amqp://guest:guest@localhost:5672/")
 	if err := rabbit.Connect(); err != nil {
@@ -126,12 +122,16 @@ func main() {
 		}
 	}()
 
+	configService := service.NewConfigService(enc, proxyConfig, onMessagePlugin)
+	// Fix Real Use
+	// configService := service.NewConfigService(enc, proxyConfig)
 	// create router from service
 	router := (&route.RouterDeps{
 		UpstreamService:   upstreamService,
 		DownstreamService: downstreamService,
 		AuthService:       delegateAuth,
 		MessageService:    messageService,
+		ConfigService:     configService,
 		KeyService:        keyService,
 		FileService:       fileService,
 		Encrpytion:        enc,

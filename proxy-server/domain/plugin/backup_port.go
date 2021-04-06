@@ -4,44 +4,44 @@ import (
 	"backendSenior/domain/model"
 	"errors"
 	"proxySenior/data/external"
+	model_proxy "proxySenior/domain/model"
 )
 
 // OnMessagePlugin is plugin for backup message
 type OnMessagePortPlugin struct {
-	enabled           bool
-	enabledEncryption bool
-	plugin            *external.GRPCOnPortMessagePlugin
+	proxyConfig *model_proxy.ProxyConfig
+	plugin      *external.GRPCOnPortMessagePlugin
 }
 
 // NewOnMessagePlugin create plugin from path of plugin server
-func NewOnMessagePortPlugin(enabled bool, enabledEncrypt bool, serverAdd string) *OnMessagePortPlugin {
+func NewOnMessagePortPlugin(proxyConfig *model_proxy.ProxyConfig) *OnMessagePortPlugin {
 
-	if !enabled {
-		return &OnMessagePortPlugin{
-			enabled: false,
-		}
-	}
+	// if !proxyConfig.EnablePlugin {
+	// 	return &OnMessagePortPlugin{
+	// 		proxyConfig: proxyConfig,
+	// 		plugin:      external.NewGRPCOnPortMessagePlugin(proxyConfig),
+	// 	}
+	// }
 
 	return &OnMessagePortPlugin{
-		enabled:           true,
-		enabledEncryption: enabledEncrypt,
-		plugin:            external.NewGRPCOnPortMessagePlugin(serverAdd),
+		proxyConfig: proxyConfig,
+		plugin:      external.NewGRPCOnPortMessagePlugin(proxyConfig),
 	}
 }
 
 // IsEnabled return whether plugin is enabled
 func (p *OnMessagePortPlugin) IsEnabled() bool {
-	return p.enabled
+	return p.proxyConfig.EnablePlugin
 }
 
 // IsEnabled return whether plugin is enabled
 func (p *OnMessagePortPlugin) IsEnabledEncryption() bool {
-	return p.enabledEncryption
+	return p.proxyConfig.EnablePluginEnc
 }
 
 // Wait blocks until plugin is ready,
 func (p *OnMessagePortPlugin) Wait() error {
-	if !p.enabled {
+	if !p.proxyConfig.EnablePlugin {
 		return errors.New("Plugin not enabled")
 	}
 	return p.plugin.Wait()
@@ -49,7 +49,7 @@ func (p *OnMessagePortPlugin) Wait() error {
 
 // OnMessageIn should be called when message in
 func (p *OnMessagePortPlugin) OnMessagePortPlugin(message model.Message) error {
-	if !p.enabled {
+	if !p.proxyConfig.EnablePlugin {
 		return errors.New("Plugin not enabled")
 	}
 	err := p.plugin.OnMessageIn(message)
@@ -59,10 +59,10 @@ func (p *OnMessagePortPlugin) OnMessagePortPlugin(message model.Message) error {
 
 // OnMessageIn should be called when message in
 func (p *OnMessagePortPlugin) CustomEncryptionPlugin(message model.Message) (model.Message, error) {
-	if !p.enabled {
+	if !p.proxyConfig.EnablePlugin {
 		return model.Message{}, errors.New("Plugin not enabled")
 	}
-	if !p.enabledEncryption {
+	if !p.proxyConfig.EnablePluginEnc {
 		return model.Message{}, errors.New("Custom Encryption Plugin not enabled")
 	}
 	EncMessage, err := p.plugin.CustomEncryption(message)
@@ -72,11 +72,11 @@ func (p *OnMessagePortPlugin) CustomEncryptionPlugin(message model.Message) (mod
 
 // OnMessageIn should be called when message in
 func (p *OnMessagePortPlugin) CustomDecryptionPlugin(message model.Message) (model.Message, error) {
-	if !p.enabled {
+	if !p.proxyConfig.EnablePlugin {
 		return model.Message{}, errors.New("Plugin not enabled")
 	}
 
-	if !p.enabledEncryption {
+	if !p.proxyConfig.EnablePluginEnc {
 		return model.Message{}, errors.New("Custom Encryption Plugin not enabled")
 	}
 
