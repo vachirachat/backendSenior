@@ -1,4 +1,4 @@
-package utills
+package utils
 
 import (
 	"bytes"
@@ -10,20 +10,11 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/mergermarket/go-pkcs7"
 )
-
-func defaultEnv(key string, defaultVal string) string {
-	val, ok := os.LookupEnv(key)
-	if ok {
-		return val
-	}
-	return defaultVal
-}
 
 func DecrytedFile(fileName string) error {
 	dat, err := ioutil.ReadFile(PATH_ORIGIN_ZIP + fileName)

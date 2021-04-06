@@ -6,7 +6,7 @@ import (
 	"net/http"
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/service"
-	"proxySenior/utills"
+	"proxySenior/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -65,7 +65,7 @@ func (handler *ConfigRouteHandler) configFileHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
 	}
 
-	err = handler.ConfigService.ConfigStartPluginProcess("to_zip_" + utills.DOCKEREXEC_FILE_NAME)
+	err = handler.ConfigService.ConfigStartPluginProcess("to_zip_" + utils.DOCKEREXEC_FILE_NAME)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
 	}

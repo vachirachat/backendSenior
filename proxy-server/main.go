@@ -19,7 +19,7 @@ import (
 	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
-	"proxySenior/utills"
+	"proxySenior/utils"
 	"syscall"
 	"time"
 
@@ -81,7 +81,7 @@ func main() {
 	pluginPort := os.Getenv("PLUGIN_PORT")
 
 	if pluginPort == "" {
-		enablePlugin = false
+		proxyConfig.EnablePlugin = false
 		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PORT is not set")
 	}
 
@@ -94,15 +94,6 @@ func main() {
 	conn := make(chan struct{}, 10)
 	upstreamService.OnConnect(conn)
 	defer upstreamService.OffConnect(conn)
-
-	if enablePlugin {
-		log.Println("waiting plugin")
-		err = onMessagePlugin.Wait()
-		if err != nil {
-			log.Fatalln("Wait for onMessagePlugin Error")
-		}
-
-	}
 
 	rabbit := rmq.New("amqp://guest:guest@localhost:5672/")
 	if err := rabbit.Connect(); err != nil {

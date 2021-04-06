@@ -11,7 +11,7 @@ import (
 	"os/exec"
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/plugin"
-	"proxySenior/utills"
+	"proxySenior/utils"
 	"strings"
 )
 
@@ -60,7 +60,7 @@ func (confService *ConfigService) ConfigFileProxy(file io.Reader, fileHandler *m
 	// StartDockerImage
 	confService.startDockerImage()
 	// Create file
-	dst, err := os.Create(utills.PATH_ORIGIN + fileHandler.Filename)
+	dst, err := os.Create(utils.PATH_ORIGIN + fileHandler.Filename)
 	defer dst.Close()
 	if err != nil {
 		return err
@@ -71,28 +71,28 @@ func (confService *ConfigService) ConfigFileProxy(file io.Reader, fileHandler *m
 		return err
 	}
 
-	err = utills.UnzipFile(fileHandler.Filename)
+	err = utils.UnzipFile(fileHandler.Filename)
 	if err != nil {
 		return err
 	}
 
-	err = utills.DecrytedFile(utills.DOCKEREXEC_FILE_NAME)
+	err = utils.DecrytedFile(utils.DOCKEREXEC_FILE_NAME)
 	if err != nil {
 		return err
 	}
 
-	// cmdChmod := exec.Command("chmod", "+x", utills.PATH_ORIGIN_ZIP+"to_zip_"+fileHandler.Filename)
-	cmdChmod := exec.Command("chmod", "+x", utills.PATH_ORIGIN_ZIP+"to_zip_"+utills.DOCKEREXEC_FILE_NAME)
-	log.Println("chmod", "+x", utills.PATH_ORIGIN_ZIP+"to_zip_"+utills.DOCKEREXEC_FILE_NAME)
+	// cmdChmod := exec.Command("chmod", "+x", utils.PATH_ORIGIN_ZIP+"to_zip_"+fileHandler.Filename)
+	cmdChmod := exec.Command("chmod", "+x", utils.PATH_ORIGIN_ZIP+"to_zip_"+utils.DOCKEREXEC_FILE_NAME)
+	log.Println("chmod", "+x", utils.PATH_ORIGIN_ZIP+"to_zip_"+utils.DOCKEREXEC_FILE_NAME)
 	_, err = cmdChmod.Output()
 	if err != nil {
 		log.Println("Cannot change file-type")
 		log.Fatal(err)
 		return err
 	}
-	log.Println("docker", "cp", utills.PATH_ORIGIN_ZIP+"to_zip_"+utills.DOCKEREXEC_FILE_NAME, confService.proxyConfig.DockerID+":"+utills.DOCKER_PATH_ORIGIN+"/exec-module")
-	// cmdDockerCopy := exec.Command("docker", "cp", utills.PATH_ORIGIN_ZIP+"to_zip_"+fileHandler.Filename, *confService.proxyConfig.DockerID+":"+utills.DOCKER_PATH_ORIGIN+"/exec-module")
-	cmdDockerCopy := exec.Command("docker", "cp", utills.PATH_ORIGIN_ZIP+"to_zip_"+utills.DOCKEREXEC_FILE_NAME, confService.proxyConfig.DockerID+":"+utills.DOCKER_PATH_ORIGIN+"/exec-module")
+	log.Println("docker", "cp", utils.PATH_ORIGIN_ZIP+"to_zip_"+utils.DOCKEREXEC_FILE_NAME, confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/exec-module")
+	// cmdDockerCopy := exec.Command("docker", "cp", utils.PATH_ORIGIN_ZIP+"to_zip_"+fileHandler.Filename, *confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/exec-module")
+	cmdDockerCopy := exec.Command("docker", "cp", utils.PATH_ORIGIN_ZIP+"to_zip_"+utils.DOCKEREXEC_FILE_NAME, confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/exec-module")
 
 	_, err = cmdDockerCopy.Output()
 	if err != nil {
@@ -102,35 +102,35 @@ func (confService *ConfigService) ConfigFileProxy(file io.Reader, fileHandler *m
 	}
 
 	// var b bytes.Buffer
-	// if err = utills.Execute(&b,
-	// 	exec.Command("rm", "-Rf", utills.PATH_ORIGIN+"*"),
+	// if err = utils.Execute(&b,
+	// 	exec.Command("rm", "-Rf", utils.PATH_ORIGIN+"*"),
 	// 	exec.Command("yes"),
 	// ); err != nil {
 	// 	return err
 	// }
 
-	// if err = utills.Execute(&b,
-	// 	exec.Command("rm", "-Rf", utills.PATH_ORIGIN_ZIP+"*"),
+	// if err = utils.Execute(&b,
+	// 	exec.Command("rm", "-Rf", utils.PATH_ORIGIN_ZIP+"*"),
 	// 	exec.Command("yes"),
 	// ); err != nil {
 	// 	return err
 	// }
 
-	cmdRemove := exec.Command("rm", utills.PATH_ORIGIN+fileHandler.Filename)
+	cmdRemove := exec.Command("rm", utils.PATH_ORIGIN+fileHandler.Filename)
 	_, err = cmdRemove.Output()
 	if err != nil {
 		log.Println("Cannot remove PATH_ORIGIN file-type")
 		log.Fatal(err)
 	}
 
-	cmdRemove = exec.Command("rm", utills.PATH_ORIGIN_ZIP+utills.DOCKEREXEC_FILE_NAME)
+	cmdRemove = exec.Command("rm", utils.PATH_ORIGIN_ZIP+utils.DOCKEREXEC_FILE_NAME)
 	_, err = cmdRemove.Output()
 	if err != nil {
 		log.Println("Cannot remove PATH_ORIGIN_ZIP file-type")
 		log.Fatal(err)
 	}
 
-	cmdRemove = exec.Command("rm", utills.PATH_ORIGIN_ZIP+"to_zip_"+utills.DOCKEREXEC_FILE_NAME)
+	cmdRemove = exec.Command("rm", utils.PATH_ORIGIN_ZIP+"to_zip_"+utils.DOCKEREXEC_FILE_NAME)
 	_, err = cmdRemove.Output()
 	if err != nil {
 		log.Println("Cannot remove PATH_ORIGIN_ZIP file-type")
@@ -142,7 +142,7 @@ func (confService *ConfigService) ConfigFileProxy(file io.Reader, fileHandler *m
 
 func (confService *ConfigService) ConfigPluginNetworkStatus(storage model_proxy.JSONDocker) (string, error) {
 	var b bytes.Buffer
-	if err := utills.Execute(&b,
+	if err := utils.Execute(&b,
 		exec.Command("docker", "network", "inspect", "bridge"),
 		exec.Command("grep", "-A", "5", storage.Server),
 		exec.Command("grep", "IPv4Address"),
@@ -158,7 +158,7 @@ func (confService *ConfigService) ConfigPluginNetworkStatus(storage model_proxy.
 
 func (confService *ConfigService) ConfigStopPluginProcess(process_name string) error {
 	var processID string
-	out, err := utills.RunDockerExec(confService.proxyConfig.DockerID, "", []string{"ps", "-A"})
+	out, err := utils.RunDockerExec(confService.proxyConfig.DockerID, "", []string{"ps", "-A"})
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func (confService *ConfigService) ConfigStopPluginProcess(process_name string) e
 			processID = words[i-3]
 		}
 	}
-	_, err = utills.RunDockerExec(confService.proxyConfig.DockerID, "", []string{"kill", "-9", processID})
+	_, err = utils.RunDockerExec(confService.proxyConfig.DockerID, "", []string{"kill", "-9", processID})
 	if err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ func (confService *ConfigService) ConfigStopPluginProcess(process_name string) e
 
 // Start process in Docker
 func (confService *ConfigService) ConfigStartPluginProcess(file string) error {
-	_, err := utills.RunDockerExec(confService.proxyConfig.DockerID, "", []string{"/app/go_server/exec-module/" + file, "&"})
+	_, err := utils.RunDockerExec(confService.proxyConfig.DockerID, "", []string{"/app/go_server/exec-module/" + file, "&"})
 	// Start Plugin
 	confService.ConfigSetStartProxy()
 	return err
@@ -201,7 +201,7 @@ func (confService *ConfigService) startDockerImage() {
 }
 
 func (confService *ConfigService) createDockerImage() error {
-	cmdDockerCopy := exec.Command("docker", "run", "-p", "5555:5555", "-p", "5005:5005", "-d", "-t", "--name", utills.DOCKERIMAGE_NAME, "--rm", utills.DOCKERIMAGE_REMOTE_NAME)
+	cmdDockerCopy := exec.Command("docker", "run", "-p", "5555:5555", "-p", "5005:5005", "-d", "-t", "--name", utils.DOCKERIMAGE_NAME, "--rm", utils.DOCKERIMAGE_REMOTE_NAME)
 	_, err := cmdDockerCopy.Output()
 	if err != nil {
 		log.Println("Cannot Create DockerImage")
@@ -214,9 +214,9 @@ func (confService *ConfigService) createDockerImage() error {
 func (confService *ConfigService) configImageInfo() (string, error) {
 	// confService.proxyConfig.EnablePlugin = false
 	var b bytes.Buffer
-	if err := utills.Execute(&b,
+	if err := utils.Execute(&b,
 		exec.Command("docker", "ps"),
-		exec.Command("grep", utills.DOCKERIMAGE_NAME),
+		exec.Command("grep", utils.DOCKERIMAGE_NAME),
 	); err != nil {
 		return "", err
 	}
