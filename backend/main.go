@@ -5,7 +5,6 @@ import (
 	"backendSenior/data/repository/chatsocket"
 	"backendSenior/data/repository/file"
 	"backendSenior/data/repository/mongo_repository"
-	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
@@ -84,6 +83,7 @@ func main() {
 	fcmTokenRepo := mongo_repository.NewFCMTokenRepository(connectionDB)
 	fcmUserRepo := mongo_repository.NewFCMUserRepository(connectionDB)
 
+	tokenRepo := mongo_repository.NewTokenRepository(connectionDB)
 	fileStore, err := file.NewFileStore(&file.MinioConfig{
 		Endpoint:  "localhost:9000",
 		AccessID:  "minioadmin",
@@ -108,7 +108,7 @@ func main() {
 	// Init service
 
 	// TODO: implement token repo, no hardcode secret
-	jwtSvc := auth.NewJWTService((repository.TokenRepository)(nil), []byte("secret_access"), []byte("secret_refresh"))
+	jwtSvc := auth.NewJWTService(tokenRepo, []byte("secret_access"), []byte("secret_refresh"))
 
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo, jwtSvc)

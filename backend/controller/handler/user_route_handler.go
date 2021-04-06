@@ -40,6 +40,9 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	//SignIN/UP API
 	// routerGroup.GET("/token", handler.userTokenListHandler)
 	routerGroup.POST("/login", handler.loginHandle)
+	routerGroup.POST("/logout", handler.authMiddleware.AuthRequired(), handler.logoutHandle)
+	// routerGroup.GET("/getalltoken", handler.getAllTokenHandle)
+
 	routerGroup.POST("/login/:orgid/org", handler.loginOrgHandle)
 	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
 	routerGroup.GET("/me", handler.authMiddleware.AuthRequired(), handler.getMeHandler)
@@ -181,6 +184,27 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success", "token": tokenDetails})
+}
+
+func (handler *UserRouteHandler) logoutHandle(context *gin.Context) {
+	id := context.GetString(authMw.UserIdField)
+	err := handler.jwtService.RemoveToken(id)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "remove token error: " + err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func (handler *UserRouteHandler) getAllTokenHandle(context *gin.Context) {
+	tokens, err := handler.jwtService.GetAllToken()
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "remove token error: " + err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"status": tokens})
 }
 
 func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
