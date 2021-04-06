@@ -1,0 +1,11 @@
+@base = http://localhost:8090/api/v1/key
+
+@roomId = 5fef767926dcb936c4e0b6d9
+@roomId2 = 5ffac45f26dcb94e81f37fe4
+
+### get key
+GET {{base}}/{{roomId2}}/key
+
+
+### generate key
+POST {{base}}/{{roomId2}}/key

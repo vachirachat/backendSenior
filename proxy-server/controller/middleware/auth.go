@@ -31,7 +31,6 @@ func (mw *AuthMiddleware) AuthRequired() gin.HandlerFunc {
 		token := extractToken(c)
 		if token == "" {
 			c.Abort()
-			fmt.Println("goo")
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "no token"})
 			return
 		}

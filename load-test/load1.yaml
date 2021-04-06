@@ -1,0 +1,32 @@
+config:
+  # proxy
+  target: ws://localhost:8090/api/v1/chat/ws
+  phases:
+    - duration: 10
+      arrivalRate: 5
+      name: warm up
+    - duration: 100
+      arrivalRate: 100
+      name: load
+  ws:
+    headers:
+      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjM5NGYzZTdjLWMwMzMtNGYzMi04OWI0LTk0NmVhNWIzMDAwOSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNDU4Mjg5OSwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNWZlZjczZjIzMTVlNzNiZTJjODFjNzQ4In0.Gd0W0PMufQBmlegPzbUyvyKs_oiistAK71e_INLkxPo"
+
+scenarios:
+  - name: test chatting
+    engine: ws
+    flow:
+      - loop:
+        - send:
+            type: CHAT
+            payload:
+              messageId: "605259e826dcb9e43396db05"
+              timestamp: "2021-03-18T02:35:04.005382742+07:00"
+              roomId: "5fef767926dcb936c4e0b6d9"
+              userId: "5fef73eb315e73be2c81c745"
+              uid: "TODO"
+              data: "hello world"
+              type: "TEXT"
+        - think: 0.2
+        count: 20
+

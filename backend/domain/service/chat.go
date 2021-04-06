@@ -5,22 +5,25 @@ import (
 	"backendSenior/domain/model"
 	"backendSenior/domain/model/chatsocket"
 	"fmt"
+	"log"
+	"os"
 	"sync"
 	"time"
 )
 
 // ChatService manages sending message and connection pool
 type ChatService struct {
-	mapRoomProxy repository.RoomUserRepository
+	mapRoomProxy repository.RoomProxyRepository
 	mapRoomUser  repository.RoomUserRepository
 	send         repository.SendMessageRepository
 	mapConn      repository.SocketConnectionRepository
 	msgRepo      repository.MessageRepository
 	notifService *NotificationService
+	log          *log.Logger
 }
 
 // NewChatService create new instance of chat service
-func NewChatService(roomProxyRepo repository.RoomUserRepository, roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository, msgRepo repository.MessageRepository, notifService *NotificationService) *ChatService {
+func NewChatService(roomProxyRepo repository.RoomProxyRepository, roomUserRepo repository.RoomUserRepository, sender repository.SendMessageRepository, userConnRepo repository.SocketConnectionRepository, msgRepo repository.MessageRepository, notifService *NotificationService) *ChatService {
 	return &ChatService{
 		mapRoomProxy: roomProxyRepo,
 		mapRoomUser:  roomUserRepo,
@@ -28,12 +31,13 @@ func NewChatService(roomProxyRepo repository.RoomUserRepository, roomUserRepo re
 		mapConn:      userConnRepo,
 		msgRepo:      msgRepo,
 		notifService: notifService,
+		log:          log.New(os.Stdout, "ChatService:", log.Ldate|log.Lshortfile),
 	}
 }
 
-// IsUserInRoom check whether user is in room
-func (chat *ChatService) IsUserInRoom(userID string, roomID string) (bool, error) {
-	rooms, err := chat.mapRoomProxy.GetUserRooms(userID)
+// IsProxyInRoom check whether proxy is in room and allowed to send message
+func (chat *ChatService) IsProxyInRoom(proxyID string, roomID string) (bool, error) {
+	rooms, err := chat.mapRoomProxy.GetProxyRooms(proxyID)
 
 	if err != nil {
 		return false, err
@@ -61,51 +65,35 @@ func (chat *ChatService) SendMessageToConnection(connID string, message interfac
 // []byte will be sent as is, but other value will be marshalled
 func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{}) error {
 
-	userIDs, err := chat.mapRoomProxy.GetRoomUsers(roomID)
+	userIDs, err := chat.mapRoomProxy.GetRoomProxies(roomID)
 	if err != nil {
 		return fmt.Errorf("getting room's users: %s", err)
 	}
 
-	fmt.Println("room", roomID, "has users", userIDs)
-
 	var allWg sync.WaitGroup
 
 	for _, uid := range userIDs {
-		allWg.Add(1)
+		connIDs, err := chat.mapConn.GetConnectionByUser(uid)
+		//chat.log.Println("user", uid, "has connections", connIDs)
 
-		go func(uid string, wg *sync.WaitGroup) {
-			defer wg.Done()
-
-			connIDs, err := chat.mapConn.GetConnectionByUser(uid)
-			if err != nil {
-				fmt.Printf("error getting user connections: %s\n", err.Error())
-				return
-			}
-			// TODO: make error inside error too
-
-			var userWg sync.WaitGroup
-			// fmt.Println("User in rooms", userIDs)
-			for _, connID := range connIDs {
-				// fmt.Printf("\\-- User: %x\n", userID)
-				userWg.Add(1)
-				go func(connID string, wg *sync.WaitGroup) {
-					defer wg.Done()
-					// loop to all connection of user
-					err := chat.send.SendMessage(connID, data)
-					if err != nil {
-						fmt.Println("Error sending message", err)
-					}
-				}(connID, &userWg)
-			}
-
-			userWg.Wait() // wait all user done
-
-		}(uid, &allWg)
+		if err != nil {
+			chat.log.Println("error getting user connection", err)
+			return err
+		}
+		for _, connID := range connIDs {
+			allWg.Add(1)
+			go func(connID string, wg *sync.WaitGroup) {
+				defer wg.Done()
+				// loop to all connection of user
+				err := chat.send.SendMessage(connID, data)
+				if err != nil {
+					chat.log.Println("error sending message connid=", connID, err)
+				}
+			}(connID, &allWg)
+		}
 	}
 
 	allWg.Wait()
-
-	// end send message to all user
 	return nil
 }
 
@@ -124,7 +112,6 @@ func (chat *ChatService) SendNotificationToRoomExceptUser(roomID string, userID 
 	cnt := 0
 	for _, uid := range userIDs {
 		if uid == userID {
-			fmt.Println("excluded user", uid, "as it's sender")
 			continue
 		}
 		cnt += 1
@@ -142,7 +129,6 @@ func (chat *ChatService) SendNotificationToRoomExceptUser(roomID string, userID 
 		for _, tok := range <-resultChan {
 			online := chat.notifService.GetOnlineStatus(tok.Token)
 			if online {
-				fmt.Print("ignore device", tok.Token[:10], "since it's online")
 				continue
 			}
 			lastSeen := chat.notifService.GetLastSeenTime(tok.Token)
@@ -160,20 +146,33 @@ func (chat *ChatService) SendNotificationToRoomExceptUser(roomID string, userID 
 	}
 
 	success, err := chat.notifService.SendNotifications(allFCMTokens, notification)
-	fmt.Printf("[notification] successfully sent %d of %d notifications\n", success, len(allFCMTokens))
+	if len(allFCMTokens) != 0 {
+		fmt.Printf("[notification] successfully sent %d of %d notifications\n", success, len(allFCMTokens))
+	}
 	return err
 }
 
 // OnConnect maange adding new connection, then return new ID to be used as reference when disconnect
 func (chat *ChatService) OnConnect(conn *chatsocket.Connection) (connID string, err error) {
 	connID, err = chat.mapConn.AddConnection(conn)
-	fmt.Printf("[chat] user %s connected id = %s\n", conn.UserID, connID)
+	rooms, err := chat.mapRoomProxy.GetProxyRooms(conn.UserID)
+	chat.log.Printf("client %s connected, connection id %s\n", conn.UserID, conn.ConnID)
+
+	for _, roomID := range rooms {
+		go chat.BroadcastMessageToRoom(roomID, chatsocket.InvalidateRoomMasterMessage(roomID))
+	}
 	return
 }
 
 // OnDisconnect should be called when client disconnect, connID should be obtained fron OnConnect
-func (chat *ChatService) OnDisconnect(connID string) error {
-	err := chat.mapConn.RemoveConnection(connID)
-	fmt.Printf("[chat] disconnected id = %s\n", connID)
+func (chat *ChatService) OnDisconnect(conn *chatsocket.Connection) error {
+	err := chat.mapConn.RemoveConnection(conn.ConnID)
+	rooms, err := chat.mapRoomProxy.GetProxyRooms(conn.UserID)
+	chat.log.Printf("client %s dis-connected, connection id %s\n", conn.UserID, conn.ConnID)
+
+	for _, roomID := range rooms {
+		go chat.BroadcastMessageToRoom(roomID, chatsocket.InvalidateRoomMasterMessage(roomID))
+	}
+
 	return err
 }

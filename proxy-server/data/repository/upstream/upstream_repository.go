@@ -15,18 +15,30 @@ import (
 )
 
 const (
-	writeWait  = 10 * time.Second
-	pingPeriod = 20 * time.Second // NOTE: must be set according to server expectation
+	// Time allowed to write a message to the peer.
+	writeWait = 10 * time.Second
+
+	// Time allowed to read the next pong message from the peer.
+	pongWait = 60 * time.Second
+
+	// Send pings to peer with this period. Must be less than pongWait.
+	pingPeriod = (pongWait * 9) / 10
+
+	// Maximum message size allowed from peer.
+	maxMessageSize = 4096
 )
 
 // UpstreamRepository is the client to upstream (controller)
 // It manage websocket connection automatically
 type UpstreamRepository struct {
-	origin       string
-	sendChannel  chan []byte
-	receivers    []chan []byte
-	clientID     string
-	clientSecret string
+	origin           string
+	sendChannel      chan []byte
+	receivers        []chan []byte
+	onConnectRecv    []chan struct{}
+	onDisconnectRecv []chan struct{}
+	stopChan         chan struct{}
+	clientID         string
+	clientSecret     string
 }
 
 var _ repository.UpstreamMessageRepository = (*UpstreamRepository)(nil)
@@ -34,17 +46,27 @@ var _ repository.UpstreamMessageRepository = (*UpstreamRepository)(nil)
 // NewUpStreamController create new upstream controller
 func NewUpStreamController(origin string, clientID string, clientSecret string) *UpstreamRepository {
 	ctrl := &UpstreamRepository{
-		origin:       origin,
-		sendChannel:  make(chan []byte, 10),
-		receivers:    make([]chan []byte, 0),
-		clientID:     clientID,
-		clientSecret: clientSecret,
+		origin:           origin,
+		sendChannel:      make(chan []byte, 10),
+		receivers:        make([]chan []byte, 0),
+		onConnectRecv:    make([]chan struct{}, 0),
+		onDisconnectRecv: make([]chan struct{}, 0),
+		stopChan:         make(chan struct{}),
+		clientID:         clientID,
+		clientSecret:     clientSecret,
 	}
 	go ctrl.connect()
 	return ctrl
 }
 
+// Stop disconnect and stop controller
+func (upstream *UpstreamRepository) Stop() {
+	log.Println("[upstream]", "disconnecting")
+	close(upstream.stopChan)
+}
+
 func (upstream *UpstreamRepository) connect() {
+loop:
 	for {
 		url := url.URL{
 			Scheme: "ws",
@@ -66,25 +88,50 @@ func (upstream *UpstreamRepository) connect() {
 		}
 		fmt.Println("Connected to upstream")
 
+		// notify event listener
+		for _, c := range upstream.onConnectRecv {
+			select {
+			case c <- struct{}{}:
+			default:
+			}
+		}
+
 		// is used to signal close of connection
 		connCloseChan := make(chan struct{})
 
-		go readPump(c, connCloseChan, upstream.receivers)
-		go writePump(c, connCloseChan, upstream.sendChannel)
+		go upstream.readPump(c, connCloseChan)
+		go upstream.writePump(c, connCloseChan)
 
-		<-connCloseChan
-
+		// wait for go routing to stop us
+		select {
+		case <-connCloseChan:
+			fmt.Print("conncetion closed")
+		case <-upstream.stopChan:
+			break loop
+		}
 		fmt.Println("Reconnecting")
 		c.Close()
 	}
+	for _, c := range upstream.onDisconnectRecv {
+		select {
+		case c <- struct{}{}:
+		default:
+		}
+	}
 }
 
-func readPump(conn *websocket.Conn, closeChan chan struct{}, receivers []chan []byte) {
+func (upstream *UpstreamRepository) readPump(conn *websocket.Conn, closeChan chan struct{}) {
 	defer func() {
 		conn.Close()
 		close(closeChan)
+		log.Printf("upstream-repo: stop read pump\n")
 	}()
 
+	conn.SetReadLimit(maxMessageSize)
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error { conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+
+	log.Printf("upstream-repo: start read pump\n")
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
@@ -94,7 +141,7 @@ func readPump(conn *websocket.Conn, closeChan chan struct{}, receivers []chan []
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, []byte{'\n'}, []byte{' '}, -1))
-		for _, recv := range receivers {
+		for _, recv := range upstream.receivers {
 			select {
 			case recv <- message:
 			default:
@@ -103,7 +150,7 @@ func readPump(conn *websocket.Conn, closeChan chan struct{}, receivers []chan []
 	}
 }
 
-func writePump(conn *websocket.Conn, cloesChannel chan struct{}, sendChannel chan []byte) {
+func (upstream *UpstreamRepository) writePump(conn *websocket.Conn, cloesChannel chan struct{}) {
 	t := time.NewTicker(pingPeriod)
 	defer func() {
 		conn.Close()
@@ -119,14 +166,14 @@ func writePump(conn *websocket.Conn, cloesChannel chan struct{}, sendChannel cha
 				conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-		case message := <-sendChannel:
+		case message := <-upstream.sendChannel:
 			conn.SetWriteDeadline(time.Now().Add(writeWait))
 			conn.WriteMessage(websocket.TextMessage, message)
 
 			// Add queued chat messages to the current websocket message.
-			n := len(sendChannel)
+			n := len(upstream.sendChannel)
 			for i := 0; i < n; i++ {
-				conn.WriteMessage(websocket.TextMessage, <-sendChannel)
+				conn.WriteMessage(websocket.TextMessage, <-upstream.sendChannel)
 			}
 
 		case <-t.C: // ping
@@ -146,6 +193,7 @@ func (upstream *UpstreamRepository) SendMessage(message []byte) error {
 
 // RegisterHandler add channel to receive message it will send message to that channel
 func (upstream *UpstreamRepository) RegisterHandler(channel chan []byte) error {
+	log.Printf("registered handler %v\n", channel)
 	for _, r := range upstream.receivers {
 		if r == channel {
 			return errors.New("Channel Already Exists")
@@ -157,6 +205,7 @@ func (upstream *UpstreamRepository) RegisterHandler(channel chan []byte) error {
 
 // UnRegisterHandler unregister channel for receiving messageBinaryMessage
 func (upstream *UpstreamRepository) UnRegisterHandler(channel chan []byte) error {
+	log.Printf("unregistered handler %v\n", channel)
 	n := len(upstream.receivers)
 	for i := 0; i < n; i++ {
 		if channel == upstream.receivers[i] {
@@ -166,4 +215,38 @@ func (upstream *UpstreamRepository) UnRegisterHandler(channel chan []byte) error
 		}
 	}
 	return errors.New("No Channel Removed")
+}
+
+// OnConnect register channel to be notified when upstream is connected
+func (upstream *UpstreamRepository) OnConnect(channel chan struct{}) {
+	upstream.onConnectRecv = append(upstream.onConnectRecv, channel)
+}
+
+// OffConnect unregister channel from being notified when upstream is connected
+func (upstream *UpstreamRepository) OffConnect(channel chan struct{}) {
+	idx := 0
+	for i := 0; i < len(upstream.onConnectRecv); i++ {
+		if upstream.onConnectRecv[i] != channel {
+			upstream.onConnectRecv[idx] = upstream.onConnectRecv[i]
+			idx++
+		}
+	}
+	upstream.onConnectRecv = upstream.onConnectRecv[:idx]
+}
+
+// OnDisconnect register channel to be notified when upstream is disconnected
+func (upstream *UpstreamRepository) OnDisconnect(channel chan struct{}) {
+	upstream.onDisconnectRecv = append(upstream.onDisconnectRecv, channel)
+}
+
+// OffDisconnect unregister channel from being notified when upstream is disconnected
+func (upstream *UpstreamRepository) OffDisconnect(channel chan struct{}) {
+	idx := 0
+	for i := 0; i < len(upstream.onDisconnectRecv); i++ {
+		if upstream.onDisconnectRecv[i] != channel {
+			upstream.onDisconnectRecv[idx] = upstream.onDisconnectRecv[i]
+			idx++
+		}
+	}
+	upstream.onDisconnectRecv = upstream.onDisconnectRecv[:idx]
 }

@@ -1,11 +1,12 @@
 @base = http://localhost:8080/api/v1/org
 @baseUser = http://localhost:8080/api/v1/user/user
-@orgA = 60001dc7584cb6da2059f5b4
+@orgA = 606a011a26dcb9dde6612d70
+@orgB = 606a011d26dcb9dde6612d72
 // me = 5fef73f2315e73be2c81c748
-@userA = 60001d1cf0a50a974cee376d
+@userA = 606a0140110dbab775e3c895
 @userB = 60001260f0a50a974cee2f95
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjI5ZTVkMGQ4LTk3Y2YtNGViOS1iZjEyLWJkYjQ1MDI5MTJiMCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxMDYyMDE2OCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjAwMDFkMWNmMGE1MGE5NzRjZWUzNzZkIn0._rl0gKLkpNvKyDmcxWJuT7XXSzodHOyxVPBjH9CSXNA
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjViYTU0MzU1LTM4MjctNGM0Ni1iNzMyLTdlOTgwM2IxYzgyMiIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNzU1OTcxMywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA2YTAwODUxMTBkYmFiNzc1ZTNjODQyIn0.JKqThTav7mnOwzDpqB5b82JexRf98KLXtKaF_6GlZUk
 
 ### GET All Users
 GET {{baseUser}}
@@ -25,7 +26,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "name": "Road's org"
+  "name": "Org 2"
 }
 
 
@@ -37,7 +38,7 @@ PUT {{base}}/{{orgA}}
 Content-Type: application/json
 
 {
-  "name": "BATH Org"
+  "name": "ORG 1"
 }
 
 
@@ -50,7 +51,7 @@ POST {{base}}/{{orgA}}/member
 Content-Type: application/json
 
 {
-  "UserIDs": ["{{userB}}"]
+  "UserIDs": ["{{userA}}"]
 }
 
 ### Remove User to Org.
@@ -80,3 +81,9 @@ Content-Type: application/json
 GET {{base}}/{{orgA}}/room
 
 ไม่มีส่งครั้งเดียว มีแต่ต้องส่ง 2 ครั้ง
+
+// TEST 
+@nameA = Road's org
+### GET rooms in organization
+GET {{base}}/{{nameA}}/org
+

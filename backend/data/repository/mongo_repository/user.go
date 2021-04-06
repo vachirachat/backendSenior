@@ -18,7 +18,6 @@ type UserRepositoryMongo struct {
 var _ repository.UserRepository = (*UserRepositoryMongo)(nil)
 
 const (
-	collectionToken  = "UserToken"
 	collectionSecret = "UserSecret"
 )
 
@@ -113,6 +112,12 @@ func (userMongo UserRepositoryMongo) GetAllUserToken() ([]model.UserToken, error
 	return UsersToken, err
 }
 
+func (userMongo *UserRepositoryMongo) RemoveToken(userid string) error {
+	return userMongo.ConnectionDB.DB(dbName).C(collectionToken).UpdateId(bson.ObjectIdHex(userid), bson.M{
+		"$set": bson.M{"accesstoken": ""},
+	})
+}
+
 func (userMongo UserRepositoryMongo) GetUserSecret(userCredential model.UserSecret) (model.User, error) {
 	var userCred model.UserSecret
 	var user model.User
@@ -150,4 +155,11 @@ func (userMongo UserRepositoryMongo) GetUserRoomByUserID(userID string) ([]strin
 	var user model.User
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.ObjectIdHex(userID)).One(&user)
 	return model.ToStringArr(user.Room), err
+}
+
+func (userMongo UserRepositoryMongo) BulkUpdateUser(ids []bson.ObjectId, update model.UserUpdateMongo) error {
+	_, err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).UpdateAll(bson.M{
+		"$id": bson.M{"$in": ids},
+	}, bson.M{"$set": update})
+	return err
 }

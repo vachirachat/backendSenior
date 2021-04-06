@@ -81,7 +81,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	var opts []grpc.ServerOption
-	opts = []grpc.ServerOption{}w
+	opts = []grpc.ServerOption{}
 
 	grpcServer := grpc.NewServer(opts...)
 	proto.RegisterBackupServer(grpcServer, NewBackupServer())

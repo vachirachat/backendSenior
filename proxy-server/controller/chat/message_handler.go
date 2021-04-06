@@ -8,9 +8,10 @@ import (
 	"backendSenior/domain/model/chatsocket/room"
 	"encoding/json"
 	"fmt"
-	"log"
 	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
+	"proxySenior/domain/service/key_service"
+	"time"
 )
 
 // MessageHandler handle message from controller
@@ -19,61 +20,56 @@ type MessageHandler struct {
 	upstreamService     *service.ChatUpstreamService   // recv message from controlller
 	downstreamService   *service.ChatDownstreamService // bcast message to user
 	roomUserRepo        repository.RoomUserRepository  // update room on event from controller
-	encryption          *service.EncryptionService     // for decrypting message
+	key                 *key_service.KeyService        // for getting key to decrypt the messages
 	onMessagePortPlugin *plugin.OnMessagePortPlugin
+	encryption          *service.EncryptionService
 }
 
 // NewMessageHandler creates new MessageHandler
-func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository, encryption *service.EncryptionService, onMessagePortPlugin *plugin.OnMessagePortPlugin) *MessageHandler {
+func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, roomUserRepo repository.RoomUserRepository, key *key_service.KeyService, onMessagePortPlugin *plugin.OnMessagePortPlugin, enc *service.EncryptionService) *MessageHandler {
 	return &MessageHandler{
 		upstreamService:     upstream,
 		downstreamService:   downstream,
 		roomUserRepo:        roomUserRepo,
-		encryption:          encryption,
 		onMessagePortPlugin: onMessagePortPlugin,
+		key:                 key,
+		encryption:          enc,
 	}
 }
 
+// Start listen message from upstream
 func (h *MessageHandler) Start() {
 	pipe := make(chan []byte, 100)
-	h.upstreamService.RegsiterHandler(pipe)
-	defer h.upstreamService.UnRegsiterHandler(pipe)
-	log.Println("Start", "Chat Service")
+	h.upstreamService.RegisterHandler(pipe)
+	defer h.upstreamService.UnRegisterHandler(pipe)
+
 	for {
-		data := <-pipe
-		fmt.Printf("[upstream] <-- %s\n", data)
-
+		incMessage := <-pipe
 		var rawMessage chatmodel.RawMessage
-		err := json.Unmarshal(data, &rawMessage)
-
+		err := json.Unmarshal(incMessage, &rawMessage)
 		if err != nil {
 			fmt.Println("error parsing message from upstream", err)
-			fmt.Printf("the message was [%s]\n", data)
+			fmt.Printf("the message was [%s]\n", incMessage)
 			continue
 		}
 
 		if rawMessage.Type == message_types.Chat {
 			var msg model.Message
-			err := json.Unmarshal(rawMessage.Payload, &msg)
-			if err != nil {
+			if err := json.Unmarshal(rawMessage.Payload, &msg); err != nil {
 				fmt.Println("error parsing message *payload* from upstream", err)
-				fmt.Printf("the message was [%s]\n", data)
+				fmt.Printf("the message was [%s]\n", incMessage)
 				continue
 			}
-			//  Task: Plugin-Encryption : Forward to Decryption
-			msg, err = h.encryption.DecryptController(msg)
-			if err != nil {
-				fmt.Println("Error decrpyting", err)
+			// decrypt message (either by plugin or
+			if err := h.encryption.DecryptController(&msg); err != nil {
+				fmt.Printf("room %s, msgId %s, decrypt error: %s\n", msg.RoomID.Hex(), msg.MessageID.Hex(), err)
 				continue
 			}
-			fmt.Println("The decrypted message is", msg)
 
-			fmt.Println("try call on message", h.onMessagePortPlugin, h.onMessagePortPlugin.IsEnabled())
 			if h.onMessagePortPlugin != nil && h.onMessagePortPlugin.IsEnabled() {
 				err := h.onMessagePortPlugin.OnMessagePortPlugin(msg)
-				fmt.Println("[plugin] called on message", err)
+				fmt.Println("[plugin] called on message error", err)
 			}
-
 			err = h.downstreamService.BroadcastMessageToRoom(msg.RoomID.Hex(), msg)
 			if err != nil {
 				fmt.Println("Error BCasting", err)
@@ -84,7 +80,7 @@ func (h *MessageHandler) Start() {
 			err = json.Unmarshal(rawMessage.Payload, &event)
 			if err != nil {
 				fmt.Println("error parsing room event *payload* from upstream", err)
-				fmt.Printf("the message was [%s]\n", data)
+				fmt.Printf("the message was [%s]\n", incMessage)
 				continue
 			}
 
@@ -97,9 +93,27 @@ func (h *MessageHandler) Start() {
 			} else {
 				fmt.Println("[handle room event] unkown event type", event.Type)
 			}
-
+		} else if rawMessage.Type == message_types.InvalidateMaster {
+			// TODO: this is work around to wait master to disconnect, ensuring that master is changed
+			time.Sleep(100 * time.Millisecond)
+			var roomID string
+			err := json.Unmarshal(rawMessage.Payload, &roomID)
+			if err != nil {
+				fmt.Println("bad payload", err)
+				continue
+			}
+			fmt.Println("invalidate master", roomID)
+			h.key.RevalidateRoomMaster(roomID)
+		} else if rawMessage.Type == message_types.InvalidateKey {
+			var roomID string
+			err := json.Unmarshal(rawMessage.Payload, &roomID)
+			if err != nil {
+				fmt.Println("bad payload", err)
+				continue
+			}
+			fmt.Println("invalidate KEY", roomID)
+			h.key.RevalidateKeyCache(roomID)
 		}
 
 	}
-
 }

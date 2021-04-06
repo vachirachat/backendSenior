@@ -1,8 +1,16 @@
 @base = http://localhost:8080/api/v1/message
 @baseProxy = http://localhost:8090/api/v1/message
 
+# rod
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjViYTU0MzU1LTM4MjctNGM0Ni1iNzMyLTdlOTgwM2IxYzgyMiIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNzU1OTcxMywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA2YTAwODUxMTBkYmFiNzc1ZTNjODQyIn0.JKqThTav7mnOwzDpqB5b82JexRf98KLXtKaF_6GlZUk
+# 1.1
+# @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjhiYjQyMzk5LTZlNWEtNDYxMS1hNGU5LTNhMjUwZmE0Mjc4NCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNzU2MDQxMiwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA2YTAxNDAxMTBkYmFiNzc1ZTNjODk1In0.t6zJy-PjoMCfh5SHG01q5D29hXpi6khmi6gQFdG-GC8
+# 2.1
+# @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImZhNDhlNzE0LWUyZWUtNGM2Yy05MmRkLTBlOTBmYjExZDhhZCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNzU2MDk1Miwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA2YTA1YTgxMTBkYmFiNzc1ZTNjYTQ0In0.6NC_R1rLMZJ_jfcScYeBUazLm_zUKEh3wgUx4I8ZhvY
+
+
 ### GET message from controller => encrypted
-GET {{base}}/?roomId=60001e33584cb6da2059f5b7
+GET {{base}}/?roomId=606a021826dcb9dde6612d76
 # Room  dbName             = "mychat"
 	#   collectionMessage  = "messages"
 
@@ -10,4 +18,5 @@ GET {{base}}/?roomId=60001e33584cb6da2059f5b7
 GET {{baseProxy}}/?roomId=60001e33584cb6da2059f5b7
 
 ###
-GET {{base}}/5fde1d9e26dcb9712a4706e9
+DELETE {{base}}/606b40f926dcb96a7b89265d
+Authorization: Bearer {{token}}

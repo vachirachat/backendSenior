@@ -2,9 +2,14 @@ package main
 
 import (
 	"backendSenior/data/repository/chatsocket"
+	"common/rmq"
+	"context"
+	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"proxySenior/controller/chat"
 	"proxySenior/controller/route"
 	"proxySenior/data/repository/delegate"
@@ -13,11 +18,16 @@ import (
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
+	"proxySenior/domain/service/key_service"
 	"proxySenior/utills"
+	"syscall"
+	"time"
 
-	"github.com/joho/godotenv"
+	"github.com/gin-gonic/gin"
 
+	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -26,17 +36,28 @@ func main() {
 		log.Fatalln("Can't load .env file, does it exist ?")
 	}
 
+	// Still Hardcode
+	connectionDB, err := mgo.Dial("mongodb://localhost:27017")
+	if err != nil {
+		log.Panic("Can no connect Database", err.Error())
+	}
+
+	// Init Repository
+	keystore := mongo_repository.NewKeyRepositoryMongo(connectionDB)
+
 	// Repo
-	roomUserRepo := delegate.NewDelegateRoomUserRepository(utills.CONTROLLER_ORIGIN)
+	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.ControllerOrigin)
 	pool := chatsocket.NewConnectionPool()
-	msgRepo := delegate.NewDelegateMessageRepository(utills.CONTROLLER_ORIGIN)
+	msgRepo := delegate.NewDelegateMessageRepository(utils.ControllerOrigin)
+	proxyMasterAPI := delegate.NewRoomProxyAPI(utils.ControllerOrigin)
+	keyAPI := delegate.NewKeyAPI(utils.ControllerOrigin)
 
 	// Service
-	clientID := os.Getenv("CLIENT_ID")
+	clientID := utils.ClientID
 	if !bson.IsObjectIdHex(clientID) {
 		log.Fatalln("error: please set valid CLIENT_ID")
 	}
-	clientSecret := os.Getenv("CLIENT_SECRET")
+	clientSecret := utils.ClientSecret
 	if clientSecret == "" {
 		log.Fatalln("error: please set client secret")
 	}
@@ -47,7 +68,7 @@ func main() {
 		EnablePlugin:    false,
 		EnablePluginEnc: false,
 		PluginPort:      os.Getenv("PLUGIN_PORT"),
-		DockerID:        "08392baafeb2",
+		DockerID:        "",
 	}
 
 	if os.Getenv("PLUGIN_ACTIVE") == "True" {
@@ -57,20 +78,58 @@ func main() {
 		proxyConfig.EnablePluginEnc = true
 	}
 
-	if proxyConfig.PluginPort == "" {
-		proxyConfig.EnablePlugin = false
-		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PATH is not set")
+	pluginPort := os.Getenv("PLUGIN_PORT")
+
+	if pluginPort == "" {
+		enablePlugin = false
+		fmt.Println("[NOTICE] Plugin is not enabled since PLUGIN_PORT is not set")
 	}
 
 	onMessagePlugin := plugin.NewOnMessagePortPlugin(proxyConfig)
-	upstream := upstream.NewUpStreamController(utills.CONTROLLER_ORIGIN, clientID, clientSecret)
-	keystore := &mongo_repository.KeyRepository{}
 
-	enc := service.NewEncryptionService(keystore, onMessagePlugin)
+	upStreamController := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)
+	defer upStreamController.Stop()
+	upstreamService := service.NewChatUpstreamService(upStreamController)
+
+	conn := make(chan struct{}, 10)
+	upstreamService.OnConnect(conn)
+	defer upstreamService.OffConnect(conn)
+
+	if enablePlugin {
+		log.Println("waiting plugin")
+		err = onMessagePlugin.Wait()
+		if err != nil {
+			log.Fatalln("Wait for onMessagePlugin Error")
+		}
+
+	}
+
+	rabbit := rmq.New("amqp://guest:guest@localhost:5672/")
+	if err := rabbit.Connect(); err != nil {
+		log.Fatalf("can't connect to rabbitmq %s\n", err)
+	}
+	for _, q := range []string{"upload_task", "upload_result"} {
+		if err := rabbit.EnsureQueue(q); err != nil {
+			log.Fatalf("error ensuring queue %s: %s\n", q, err)
+		}
+	}
+	keyService := key_service.New(keystore, keyAPI, proxyMasterAPI, clientID)
+	keyService.InitKeyPair()
+
+	enc := service.NewEncryptionService(keyService, onMessagePlugin)
+
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
-	upstreamService := service.NewChatUpstreamService(upstream, enc)
-	delegateAuth := service.NewDelegateAuthService(utills.CONTROLLER_ORIGIN)
-	messageService := service.NewMessageService(msgRepo, enc)
+	delegateAuth := service.NewDelegateAuthService(utils.ControllerOrigin)
+
+	messageService := service.NewMessageService(msgRepo)
+	fileService := service.NewFileService("localhost:8080", rabbit)
+
+	go func() {
+		err := fileService.Run() // go routing waiting for message
+		if err != nil {
+			log.Println("file service: ", err)
+		}
+	}()
 
 	configService := service.NewConfigService(enc, proxyConfig, onMessagePlugin)
 	// Fix Real Use
@@ -82,12 +141,54 @@ func main() {
 		AuthService:       delegateAuth,
 		MessageService:    messageService,
 		ConfigService:     configService,
+		KeyService:        keyService,
+		FileService:       fileService,
+		Encrpytion:        enc,
 	}).NewRouter()
 
+	router.GET("/debug/conns", func(c *gin.Context) {
+
+		c.JSON(200, pool.DebugNumOfConns())
+	})
+
 	// websocket messasge handler
-	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, enc, onMessagePlugin)
+	messageHandler := chat.NewMessageHandler(upstreamService, downstreamService, roomUserRepo, keyService, onMessagePlugin, enc)
 	go messageHandler.Start()
 
-	router.Run(utills.LISTEN_ADDRESS)
-	defer onMessagePlugin.CloseConnection()
+	// TODO; refactor
+	// auto reset key
+	go func() {
+		for {
+			<-conn
+			keyService.RevalidateAll()
+		}
+	}()
+
+	httpSrv := &http.Server{
+		Addr:    utils.ListenAddress,
+		Handler: router,
+	}
+
+	go func() {
+		if err := httpSrv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+			log.Printf("Listen: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	// The context is used to inform the server it has 5 seconds to finish
+	// the request it is currently handling
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := httpSrv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server exiting")
+
 }

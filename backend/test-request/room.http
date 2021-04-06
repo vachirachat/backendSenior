@@ -1,7 +1,7 @@
 @base = http://localhost:8080/api/v1/room
 
 // org id to create room in
-@orgA = 60001dc7584cb6da2059f5b4
+@org = 606a011a26dcb9dde6612d70
 
 
 @roomA = 6066d82dbc4da71de4a1ecd4
@@ -25,7 +25,7 @@ GET {{base}}?me=true
 Authorization: Bearer {{token}}
 
 ### CREATE ROOM
-POST {{base}}/
+POST {{base}}/create-group
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
@@ -35,38 +35,50 @@ Authorization: Bearer {{token}}
   "orgId": "{{orgA}}"
 }
 
+### CREATE ROOM
+POST {{base}}/create-private-chat
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "roomName": "Last group",
+  "orgId": "{{org}}",
+  "userId": "{{userB}}"
+}
 
 ### GET room by ID
-GET {{base}}/{{roomA}}
+GET {{base}}/id/{{roomA}}
 
 ###
-DELETE {{base}}/{{roomA}}    
+DELETE {{base}}/id/{{roomA}}    
 
 ### EDIT room
-POST {{base}}/{{roomA}}/name
+POST {{base}}/id/{{roomA}}/name
 Content-Type: application/json
 
 {
-  "roomName": "EDIT ROOM"
+  "roomName": "TEST ADD ADMIN"
 }
 
 ### Get Member
-GET {{base}}/{{roomA}}/member   
+GET {{base}}/id/{{roomA}}/member   
 
 ### Get Member as object
-GET {{base}}/{{roomA}}/member?full=true
+GET {{base}}/id/{{roomA}}/member?full=true
 
 ### Add Member
-POST {{base}}/{{roomA}}/member   
+POST {{base}}/id/{{roomA}}/member   
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-  "userIds": ["{{userB}}", "{{userA}}"]
+  "userIds": ["{{userC}}"]
 }
 
 ### remove user
-DELETE {{base}}/{{roomA}}/member   
+DELETE {{base}}/id/{{roomA}}/member   
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "userIds": ["{{userA}}"]
@@ -82,10 +94,39 @@ Content-Type: application/json
   "proxyIds": ["{{proxyA}}"]
 }
 
+
+
 ###
-DELETE {{base}}/{{roomA}}/proxy    
+DELETE {{base}}/id/{{roomA}}/proxy    
 Content-Type: application/json
 
 {
   "proxyIds": ["{{proxyA}}"]
+}
+###
+DELETE {{base}}/id/{{roomA}}
+
+
+### Get ADmin
+GET {{base}}/id/{{roomA}}/admin   
+Authorization: Bearer {{token}}
+
+{}
+
+### Add admin
+POST {{base}}/id/{{roomA}}/admin   
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userIds": ["{{userB}}"]
+}
+
+### remove user
+DELETE {{base}}/id/{{roomA}}/admin   
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userIds": ["{{userB}}"]
 }

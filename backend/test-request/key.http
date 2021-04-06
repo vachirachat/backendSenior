@@ -1,0 +1,45 @@
+@base = http://localhost:8080/api/v1/key
+
+# @roomId = 5fef767926dcb936c4e0b6d9
+# @roomId = 5ffac45f26dcb94e81f37fe4
+@roomId = 606a021826dcb9dde6612d76
+
+@proxyA = 5fef76ad26dcb936c4e0b6dc
+@proxyB = 5ffd0a7c26dcb9a228363902
+
+### get key from master proxy
+POST {{base}}/room-key/{{roomId}}
+Content-Type: application/json
+
+{
+  "publicKey": "asdd=="
+}
+
+
+### tell proxy to generate key
+POST {{base}}/room-key/{{roomId}}/generate
+Content-Type: application/json
+
+###  GET master proxy
+GET {{base}}/master-proxy/{{roomId}}
+
+
+### get priority
+GET {{base}}/priority/{{roomId}}
+
+
+
+# "606b2b3d26dcb9fb60c25cea",
+#         "606b2b6a26dcb9fb60c25cec",
+#         "606b2ba226dcb9fb60c25ced"
+
+###
+POST {{base}}/priority/{{roomId}}/{{proxyB}}
+Content-Type: application/json
+
+{
+  "priority": 3
+}
+
+
+

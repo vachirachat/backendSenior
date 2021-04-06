@@ -35,6 +35,7 @@ func (chat *ChatDownstreamService) SaveMessage(message model.Message) (string, e
 // IsUserInRoom return whether `userID` is in `roomID`
 func (chat *ChatDownstreamService) IsUserInRoom(userID string, roomID string) (bool, error) {
 	rooms, err := chat.mapRoom.GetUserRooms(userID)
+
 	if err != nil {
 		return false, err
 	}
@@ -87,7 +88,7 @@ func (chat *ChatDownstreamService) BroadcastMessageToRoom(roomID string, message
 				// fmt.Printf("\\-- User %s: conn %s\n", userID, connID)
 				connWg.Add(1)
 				go func(connID string, wg *sync.WaitGroup) {
-					fmt.Printf("[%s] --> %+v\n", connID, wsMessage)
+					//fmt.Printf("[%s] --> %+v\n", connID, wsMessage)
 					err := chat.send.SendMessage(connID, wsMessage)
 					if err != nil {
 						fmt.Printf("Error sending message: %s\n", err)

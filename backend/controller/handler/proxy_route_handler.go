@@ -15,12 +15,14 @@ import (
 
 type ProxyRouteHandler struct {
 	proxyService *service.ProxyService
+	roomService  *service.RoomService // get master proxy
 }
 
 // NewProxyRouteHandler create new handler for proxy
-func NewProxyRouteHandler(proxyService *service.ProxyService) *ProxyRouteHandler {
+func NewProxyRouteHandler(proxyService *service.ProxyService, roomService *service.RoomService) *ProxyRouteHandler {
 	return &ProxyRouteHandler{
 		proxyService: proxyService,
+		roomService:  roomService,
 	}
 }
 
@@ -30,6 +32,7 @@ func (handler *ProxyRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/", handler.createProxy)
 	routerGroup.POST("/:id/", handler.updateProxy)
 	routerGroup.GET("/:id/", handler.getProxyByID)
+	// routerGroup.GET("/:id/master-rooms", handler.getMasterRooms)
 	routerGroup.POST("/:id/reset", handler.resetSecret)
 	routerGroup.POST("/:id/vm/file", handler.forwardProxyVMFile)
 	routerGroup.POST("/:id/vm/status", handler.forwardProxyVMStatus)

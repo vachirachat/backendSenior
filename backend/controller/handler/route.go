@@ -19,6 +19,8 @@ type RouterDeps struct {
 	ProxyAuth           *auth.ProxyAuth
 	OraganizeService    *service.OrganizeService
 	NotificationService *service.NotificationService
+	KeyExchangeService  *service.KeyExchangeService
+	FileService         *service.FileService
 }
 
 // NewRouter create new router (gin server) with various handler
@@ -30,13 +32,16 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	// create handler (some require middleware)
 	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, authMiddleware, deps.UserService, deps.ProxyService, deps.ChatService, deps.OraganizeService)
 	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.JWTService, authMiddleware)
-	messageRouteHandler := NewMessageRouteHandler(deps.MessageService)
-	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService)
-	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService)
-	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.RoomService)
+	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.FileService, deps.RoomService, authMiddleware)
+	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService, deps.KeyExchangeService)
+	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService, deps.RoomService)
+	organizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.RoomService)
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
-	r := gin.Default()
+	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService)
+	fileRouteHandler := NewFileRouteHandler(deps.FileService, deps.RoomService, authMiddleware)
+	r := gin.New()
+	r.Use(gin.Recovery())
 
 	subgroup := r.Group("/api/v1")
 
@@ -45,8 +50,14 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	messageRouteHandler.Mount(subgroup.Group("/message"))
 	chatRouteHandler.Mount(subgroup.Group("/chat"))
 	proxyRouteHandler.Mount(subgroup.Group("/proxy"))
-	OrganizeRouteHandler.Mount(subgroup.Group("/org"))
+	organizeRouteHandler.Mount(subgroup.Group("/org"))
 	fcmTokenRouteHandler.Mount(subgroup.Group("/fcm"))
 	connStateRouteHandler.Mount(subgroup.Group("/conn"))
+	keyRouteHandler.Mount(subgroup.Group("/key"))
+	fileRouteHandler.Mount(subgroup.Group("/file"))
+
+	v2 := r.Group("/api/v2")
+	organizeRouteHandler.MountV2(v2.Group("/org"))
+
 	return r
 }

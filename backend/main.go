@@ -3,8 +3,8 @@ package main
 import (
 	route "backendSenior/controller/handler"
 	"backendSenior/data/repository/chatsocket"
+	"backendSenior/data/repository/file"
 	"backendSenior/data/repository/mongo_repository"
-	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
@@ -19,7 +19,7 @@ import (
 var app *firebase.App
 
 func initFirebase() {
-	opt := option.WithCredentialsFile("./account-secret-key.json")
+	opt := option.WithCredentialsFile("../../account-secret-key.json")
 	config := &firebase.Config{ProjectID: "senior-project-mychat"}
 	var err error
 	app, err = firebase.NewApp(context.Background(), config, opt)
@@ -83,6 +83,23 @@ func main() {
 	fcmTokenRepo := mongo_repository.NewFCMTokenRepository(connectionDB)
 	fcmUserRepo := mongo_repository.NewFCMUserRepository(connectionDB)
 
+	tokenRepo := mongo_repository.NewTokenRepository(connectionDB)
+	fileStore, err := file.NewFileStore(&file.MinioConfig{
+		Endpoint:  "localhost:9000",
+		AccessID:  "minioadmin",
+		SecretKey: "minioadmin",
+		UseSSL:    false,
+	})
+
+	if err != nil {
+		log.Fatal("error creating fileStore:", err)
+	}
+	if err = fileStore.Init(); err != nil {
+		log.Fatal("error init fileStore:", err)
+	}
+
+	fileMetaRepo := mongo_repository.NewFileMetaRepositoryMongo(connectionDB)
+
 	clnt, err := app.Messaging(context.Background())
 	if err != nil {
 		log.Fatalln("Error getting messaging instance", err)
@@ -91,7 +108,7 @@ func main() {
 	// Init service
 
 	// TODO: implement token repo, no hardcode secret
-	jwtSvc := auth.NewJWTService((repository.TokenRepository)(nil), []byte("secret_access"), []byte("secret_refresh"))
+	jwtSvc := auth.NewJWTService(tokenRepo, []byte("secret_access"), []byte("secret_refresh"))
 
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo, jwtSvc)
@@ -104,6 +121,9 @@ func main() {
 
 	proxySvc := service.NewProxyService(proxyRepo)
 	proxyAuthSvc := auth.NewProxyAuth(proxyRepo)
+	keyExSvc := service.NewKeyExchangeService(mongo_repository.KeyVersionCollection(connectionDB))
+
+	fileSvc := service.NewFileService(fileStore, fileMetaRepo)
 
 	routerDeps := route.RouterDeps{
 		RoomService:         roomSvc,
@@ -115,6 +135,8 @@ func main() {
 		ProxyAuth:           proxyAuthSvc,
 		OraganizeService:    organizeSvc,
 		NotificationService: notifSvc,
+		KeyExchangeService:  keyExSvc,
+		FileService:         fileSvc,
 	}
 
 	router := routerDeps.NewRouter()

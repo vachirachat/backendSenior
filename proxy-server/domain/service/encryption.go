@@ -2,153 +2,144 @@ package service
 
 import (
 	"backendSenior/domain/model"
-	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"crypto/rand"
-	"encoding/base64"
-	"errors"
 	"fmt"
-	"io"
-	"log"
+	"proxySenior/domain/encryption"
+	model_proxy "proxySenior/domain/model"
+	"proxySenior/domain/service/key_service"
+	"time"
 
-	"github.com/mergermarket/go-pkcs7"
-
-	"proxySenior/domain/interface/repository"
 	"proxySenior/domain/plugin"
 )
 
 // EncryptionService is service for encrpyting and decrypting message
 type EncryptionService struct {
-	keystore repository.Keystore
-	plugin   *plugin.OnMessagePortPlugin
+	key    *key_service.KeyService
+	plugin *plugin.OnMessagePortPlugin
 }
 
 // NewEncryptionService create instance of encryption service
-func NewEncryptionService(keystore repository.Keystore, onMessagePortPlugin *plugin.OnMessagePortPlugin) *EncryptionService {
+func NewEncryptionService(key *key_service.KeyService, onMessagePortPlugin *plugin.OnMessagePortPlugin) *EncryptionService {
 	return &EncryptionService{
-		keystore: keystore,
-		plugin:   onMessagePortPlugin,
+		key:    key,
+		plugin: onMessagePortPlugin,
 	}
 }
 
 // source: https://gist.github.com/brettscott/2ac58ab7cb1c66e2b4a32d6c1c3908a7
-
-func (enc *EncryptionService) EncryptController(message model.Message) (model.Message, error) {
+func (enc *EncryptionService) EncryptController(msg *model.Message) error {
 
 	if enc.plugin.IsEnabledEncryption() {
-		log.Println("Test IsEnabledEncryption Select", "True")
-		return enc.plugin.CustomEncryptionPlugin(message)
+
+		decrypted, err := enc.plugin.CustomEncryptionPlugin(*msg)
+		if err != nil {
+			return fmt.Errorf("plugin encrypt: %w", err)
+		}
+		msg.Data = decrypted.Data
+		return nil
+
 	} else {
-		log.Println("Test Select", "False")
-		return enc.EncryptBase(message)
+		//log.Println("Test Select", "False")
+		return enc.encryptBase(msg)
 	}
 }
 
-func (enc *EncryptionService) DecryptController(message model.Message) (model.Message, error) {
+func (enc *EncryptionService) DecryptController(msg *model.Message) error {
 	if enc.plugin.IsEnabledEncryption() {
-		log.Println("Test DecryptController Select", "True")
-		return enc.plugin.CustomDecryptionPlugin(message)
+		//log.Println("Test DecryptController Select", "True")
+		decrypted, err := enc.plugin.CustomDecryptionPlugin(*msg)
+		if err != nil {
+			return fmt.Errorf("plugin decrypt: %w", err)
+		}
+		msg.Data = decrypted.Data
+		return nil
+
 	} else {
-		log.Println("Test Select", "False")
-		return enc.DecryptBase(message)
+		//log.Println("Test Select", "False")
+		return enc.decryptBase(msg)
 	}
 }
 
-// Encrypt takes a message, then return message with data encrypted
-// Task: Plugin-Encryption :: Use As base Encryption
-func (enc *EncryptionService) EncryptBase(message model.Message) (model.Message, error) {
-	keyRec, err := enc.keystore.GetKeyForMessage(message.RoomID.Hex(), message.TimeStamp)
+// encryptBase encrypt message using standard logic
+func (enc *EncryptionService) encryptBase(msg *model.Message) error {
+	// get key
+	keys, err := enc.getKeyFromRoom(msg.RoomID.Hex())
 	if err != nil {
-		return message, fmt.Errorf("getting key: %s", err.Error())
+		return fmt.Errorf("getting key for room: %w", err)
 	}
+	now := time.Now()
+	key := keyFor(keys, now)
 
-	key := keyRec.Key
-	plainText := []byte(message.Data)
-	plainText, err = pkcs7.Pad(plainText, aes.BlockSize)
+	// encrypt and encode afterwards
+	encrypted, err := encryption.AESEncrypt([]byte(msg.Data), key)
 	if err != nil {
-		return message, fmt.Errorf("padding plaintext: %s", err.Error())
+		return fmt.Errorf("encrypting message: %w", err)
 	}
+	encrypted = encryption.B64Encode(encrypted)
 
-	if len(plainText)%aes.BlockSize != 0 {
-		return message, fmt.Errorf("padding error: wrong size")
-	}
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return message, err
-	}
-
-	cipherText := make([]byte, len(plainText)+aes.BlockSize)
-	iv := cipherText[:aes.BlockSize]
-	_, err = io.ReadFull(rand.Reader, iv)
-	if err != nil {
-		return message, fmt.Errorf("error init iv: %s", err.Error())
-	}
-
-	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(cipherText[aes.BlockSize:], plainText)
-
-	// encode base 64 before send
-	var result bytes.Buffer
-	b64 := base64.NewEncoder(base64.StdEncoding, &result)
-	b64.Write(cipherText)
-	b64.Close()
-
-	message.Data = result.String()
-
-	return message, nil
+	msg.Data = string(encrypted)
+	return nil
 }
 
-// Decrypt takes a message, then return message with data decrypted with appropiate key
-func (enc *EncryptionService) DecryptBase(message model.Message) (model.Message, error) {
-	// fmt.Printf("[Decode] original message text is [%s]\n", message.Data)
-	// decoder := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))
-	// decoded, err := ioutil.ReadAll(decoder)
-	// if err != nil {
-	// 	message.Data = "Error Decoding: " + err.Error()
-	// } else {
-	// 	message.Data = string(decoded)
-	// }
-	keyRec, err := enc.keystore.GetKeyForMessage(message.RoomID.Hex(), message.TimeStamp)
+// decryptBase decrypt message using standard logic
+func (enc *EncryptionService) decryptBase(msg *model.Message) error {
+	// get key
+	keys, err := enc.getKeyFromRoom(msg.RoomID.Hex())
 	if err != nil {
-		return message, fmt.Errorf("getting key: %s", err.Error())
+		return fmt.Errorf("getting key for room: %w", err)
 	}
+	key := keyFor(keys, msg.TimeStamp)
 
-	key := keyRec.Key
-
-	// b64 := base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(message.Data)))
-	cipherText, err := base64.StdEncoding.DecodeString(message.Data)
+	// encrypt and encode afterwards
+	cipherText, err := encryption.B64Decode([]byte(msg.Data))
 	if err != nil {
-		return message, fmt.Errorf("decode b64: %s", err.Error())
+		return fmt.Errorf("b64decode error: %w", err)
 	}
-
-	block, err := aes.NewCipher(key)
+	decrypted, err := encryption.AESDecrypt(cipherText, key)
 	if err != nil {
-		return message, err
+		return fmt.Errorf("encrypting message: %w", err)
 	}
+	msg.Data = string(decrypted)
+	return nil
+}
 
-	if len(cipherText) < aes.BlockSize {
-		return message, errors.New("cipher text too short")
-	}
-
-	iv := cipherText[:aes.BlockSize]
-	data := cipherText[aes.BlockSize:]
-	if len(data)%aes.BlockSize != 0 {
-		return message, errors.New("wrong cipher text size")
-	}
-
-	mode := cipher.NewCBCDecrypter(block, iv)
+// getKeyFromRoom helper function for retreiving key for
+func (enc *EncryptionService) getKeyFromRoom(roomID string) ([]model_proxy.KeyRecord, error) {
+	local, err := enc.key.IsLocal(roomID)
 	if err != nil {
-		return message, err
+		return nil, fmt.Errorf("error deftermining locality ok key %v", err)
 	}
 
-	decrypted := make([]byte, len(data))
+	var keys []model_proxy.KeyRecord
+	if local {
+		//fmt.Println("[message] use LOCAL key for", roomID)
+		keys, err = enc.key.GetKeyLocal(roomID)
+		if err != nil {
+			return nil, fmt.Errorf("error getting key locally %v", err)
+		}
+	} else {
+		//fmt.Println("[message] use REMOTE key for room", roomID)
+		keys, err = enc.key.GetKeyRemote(roomID)
+		if err != nil {
+			return nil, fmt.Errorf("error getting key remotely %v", err)
+		}
+	}
 
-	mode.CryptBlocks(decrypted, data)
+	return keys, nil
+}
 
-	decrypted, _ = pkcs7.Unpad(decrypted, aes.BlockSize)
-	message.Data = string(decrypted)
-
-	return message, nil
+// keyFor is helper function for finding key in array by time
+func keyFor(keys []model_proxy.KeyRecord, timestamp time.Time) []byte {
+	var key []byte
+	found := false
+	for _, k := range keys {
+		if k.ValidFrom.Before(timestamp) && (k.ValidTo.IsZero() || k.ValidTo.After(timestamp)) {
+			key = k.Key
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil
+	}
+	return key
 }

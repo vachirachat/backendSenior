@@ -12,16 +12,27 @@ const (
 	collectionUser     = "users"
 	collectionRoom     = "rooms"
 	collectionProxy    = "proxies"
+	collectionToken    = "usertokens"
 	collectionOrganize = "organize"
 	collectionFCMToken = "fcmTokens"
 	// for mgo/txn
 	collectionTXNRoomUser = "txnRoomUser"
+	collectionKeyVersion  = "keyVersions"
+	// meta
+	collectionMeta = "filemeta"
 )
 
 // return filter of {_id: {$in: ... }}, query that match multiple ID
 func idInArr(ids []string) interface{} {
 	return bson.M{
 		"_id": inArr(ids),
+	}
+}
+
+// return filter of {_id: {$in: ... }}, query that match multiple ID
+func nameOrg(orgName string) interface{} {
+	return bson.M{
+		"name": orgName,
 	}
 }
 

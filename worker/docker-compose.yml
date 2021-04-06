@@ -1,0 +1,12 @@
+version: '3'
+services:
+  rabbitmq:
+    image: rabbitmq:3.8.12-management-alpine
+    ports:
+      - 5672:5672
+    hostname: "my-rabbitmq"
+    # environment:
+    #   - "RABBITMQ_DEFAULT_USER=user"
+    #   - "RABBITMQ_DEFAULT_PASSWORD=password"
+    volumes:
+      - "./data:/var/lib/rabbitmq"

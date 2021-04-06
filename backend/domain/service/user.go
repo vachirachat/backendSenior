@@ -132,6 +132,9 @@ func (service *UserService) Signup(user model.User) error {
 		return errors.New("User already exists")
 	}
 
+	user.Room = []bson.ObjectId{}
+	user.Organize = []bson.ObjectId{}
+
 	// Add User to DB
 	user.Password = utills.HashPassword(user.Password)
 	user.UserType = "user"
@@ -144,4 +147,17 @@ func (service *UserService) Signup(user model.User) error {
 	}
 
 	return nil
+}
+
+func (service *UserService) IsUserInOrg(user model.User, orgID string) error {
+	for _, v := range user.Organize {
+		if v.Hex() == orgID {
+			return nil
+		}
+	}
+	return errors.New("User not exists in org")
+}
+
+func (service *UserService) BulkUpdateUsers(IDs []bson.ObjectId, update model.UserUpdateMongo) error {
+	return service.userRepository.BulkUpdateUser(IDs, update)
 }
