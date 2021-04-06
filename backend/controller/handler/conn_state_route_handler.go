@@ -146,7 +146,13 @@ func (c *simpleClient) writePump() {
 
 	for {
 		select {
-		case msg := <-c.sendChan:
+		case msg, ok := <-c.sendChan:
+			// hub closed connection
+			if !ok {
+				c.conn.WriteMessage(websocket.TextMessage, []byte{})
+				return
+			}
+
 			err := c.conn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
 				log.Printf("error writing: %v", err)

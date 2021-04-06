@@ -1,8 +1,13 @@
 package route
 
 import (
+	"backendSenior/controller/middleware/auth"
 	"backendSenior/domain/model"
 	"backendSenior/domain/service"
+	g "common/utils/ginutils"
+	"errors"
+	"github.com/ahmetb/go-linq/v3"
+	"github.com/globalsign/mgo"
 	"log"
 	"net/http"
 
@@ -13,12 +18,23 @@ import (
 // MessageRouteHandler is Handler (controller) for message related route
 type MessageRouteHandler struct {
 	messageService *service.MessageService
+	fileService    *service.FileService
+	roomService    *service.RoomService
+	auth           *auth.JWTMiddleware
 }
 
 // NewMessageRouteHandler create handler for message route
-func NewMessageRouteHandler(msgService *service.MessageService) *MessageRouteHandler {
+func NewMessageRouteHandler(
+	msgService *service.MessageService,
+	fileService *service.FileService,
+	roomService *service.RoomService,
+	auth *auth.JWTMiddleware,
+) *MessageRouteHandler {
 	return &MessageRouteHandler{
 		messageService: msgService,
+		fileService:    fileService,
+		roomService:    roomService,
+		auth:           auth,
 	}
 }
 
@@ -27,7 +43,7 @@ func (handler *MessageRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.messageListHandler)
 	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.addMessageHandeler)
 	// route.PUT("/message/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/ ,handler.editMessageHandler)
-	routerGroup.DELETE("/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/, handler.deleteMessageByIDHandler)
+	routerGroup.DELETE("/:message_id", handler.auth.AuthRequired(), g.InjectGin(handler.deleteMessageByIDHandler))
 }
 
 // MessageListHandler return all messages
@@ -93,12 +109,44 @@ func (handler *MessageRouteHandler) addMessageHandeler(context *gin.Context) {
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
 }
 
-func (handler *MessageRouteHandler) deleteMessageByIDHandler(context *gin.Context) {
+func (handler *MessageRouteHandler) deleteMessageByIDHandler(context *gin.Context, req struct{}) error {
 	messageID := context.Param("message_id")
-	err := handler.messageService.DeleteMessageByID(messageID)
+	if !bson.IsObjectIdHex(messageID) {
+		return g.NewError(400, "invalid room ID")
+	}
+
+	msg, err := handler.messageService.GetMessageByID(messageID)
 	if err != nil {
+		if errors.Is(err, mgo.ErrNotFound) {
+			return g.NewError(404, "message not found")
+		}
+	}
+	userID := bson.ObjectIdHex(context.GetString(auth.UserIdField))
+	if msg.UserID != userID {
+		return g.NewError(403, "not your message")
+	}
+	room, err := handler.roomService.GetRoomByID(msg.RoomID.Hex())
+	if err != nil {
+		return err
+	}
+	if !linq.From(room.ListUser).Contains(userID) {
+		return g.NewError(403, "not in the room")
+	}
+
+	if msg.Type == model.MsgFile {
+		if err := handler.fileService.DeleteFile(msg.FileID); err != nil && !errors.Is(err, mgo.ErrNotFound) {
+			return err
+		}
+	} else if msg.Type == model.MsgImage {
+		if err := handler.fileService.DeleteImage(msg.FileID); err != nil && !errors.Is(err, mgo.ErrNotFound) {
+			return err
+		}
+	}
+
+	if err := handler.messageService.DeleteMessageByID(messageID); err != nil {
 		log.Println("error DeleteMessageHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 	}
-	context.JSON(http.StatusNoContent, gin.H{"status": "success"})
+	context.JSON(200, g.Response{Success: true, Message: "deleted file"})
+	return nil
 }

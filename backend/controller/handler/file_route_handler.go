@@ -203,14 +203,14 @@ func (h *FileRouteHandler) deleteFile(c *gin.Context, input struct {
 	meta, err := h.fs.GetAnyFileMeta(b.FileID)
 	if err != nil {
 		if errors.Is(err, mgo.ErrNotFound) {
-			return g.NewError(404, err)
+			return g.NewError(404, err.Error())
 		}
-		return g.NewError(500, err)
+		return g.NewError(500, err.Error())
 	}
 
 	userID := c.GetString(auth.UserIdField)
 	if rooms, err := h.room.GetUserRooms(userID); err != nil {
-		return g.NewError(500, fmt.Errorf("error checking user in room: %s", err))
+		return g.NewError(500, fmt.Sprintf("error checking user in room: %s", err))
 	} else {
 		found := false
 		for _, roomID := range rooms {
@@ -220,14 +220,14 @@ func (h *FileRouteHandler) deleteFile(c *gin.Context, input struct {
 		}
 
 		if !found {
-			return g.NewError(403, errors.New("forbidden: not in room"))
+			return g.NewError(403, "you are not in the room")
 		} else {
 			if meta.UserID.Hex() != userID {
-				return g.NewError(403, errors.New("forbidden: not your file"))
+				return g.NewError(403, "forbidden: not your file")
 			}
 
 			if err := h.fs.DeleteFile(b.FileID); err != nil {
-				return g.NewError(500, fmt.Errorf("error deleting file: %s", err))
+				return g.NewError(500, fmt.Sprintf("error deleting file: %s", err))
 			} else {
 				c.JSON(200, g.Response{true, "deleted file", nil})
 				return nil
@@ -248,14 +248,14 @@ func (h *FileRouteHandler) deleteImage(c *gin.Context, input struct {
 	meta, err := h.fs.GetAnyFileMeta(b.FileID)
 	if err != nil {
 		if errors.Is(err, mgo.ErrNotFound) {
-			return g.NewError(404, err)
+			return g.NewError(404, err.Error())
 		}
-		return g.NewError(500, err)
+		return g.NewError(500, err.Error())
 	}
 
 	userID := c.GetString(auth.UserIdField)
 	if rooms, err := h.room.GetUserRooms(userID); err != nil {
-		return g.NewError(500, fmt.Errorf("error checking user in room: %s", err))
+		return g.NewError(500, fmt.Sprintf("error checking user in room: %s", err))
 	} else {
 		found := false
 		for _, roomID := range rooms {
@@ -265,14 +265,14 @@ func (h *FileRouteHandler) deleteImage(c *gin.Context, input struct {
 		}
 
 		if !found {
-			return g.NewError(403, errors.New("forbidden: not in room"))
+			return g.NewError(403, "forbidden: not in room")
 		} else {
 			if meta.UserID.Hex() != userID {
-				return g.NewError(403, errors.New("forbidden: not your image"))
+				return g.NewError(403, "forbidden: not your image")
 			}
 
 			if err := h.fs.DeleteImage(b.FileID); err != nil {
-				return g.NewError(500, fmt.Errorf("error deleting image: %s", err))
+				return g.NewError(500, fmt.Sprintf("error deleting image: %s", err))
 			} else {
 				c.JSON(200, g.Response{true, "deleted image", nil})
 				return nil

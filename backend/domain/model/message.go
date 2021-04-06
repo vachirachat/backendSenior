@@ -14,6 +14,7 @@ type MessagesResponse struct {
 
 type Message struct {
 	MessageID bson.ObjectId `json:"messageId" bson:"_id,omitempty"`
+	FileID    bson.ObjectId `json:"fileId,omitempty" bson:"fileId,omitempty"`
 	TimeStamp time.Time     `json:"timestamp" bson:"timestamp"`
 	RoomID    bson.ObjectId `json:"roomId" bson:"roomId"`
 	UserID    bson.ObjectId `json:"userId" bson:"userId"`

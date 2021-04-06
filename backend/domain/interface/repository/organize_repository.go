@@ -13,6 +13,7 @@ type OrganizeRepository interface {
 	GetOrganizesByIDs(organizeIDs []string) ([]model.Organize, error)
 
 	UpdateOrganize(organizeID string, name string) error
+	FindOrg(filter interface{}) ([]model.Organize, error)
 }
 
 type OrganizeUserRepository interface {

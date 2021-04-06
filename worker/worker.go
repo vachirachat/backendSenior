@@ -309,7 +309,6 @@ func main() {
 	// TODO: multithread
 	go func() {
 		for d := range msgs {
-			fmt.Printf("recv message %s\n", d.Body)
 			var task model.UploadFileTask
 			if err := json.Unmarshal(d.Body, &task); err != nil {
 				d.Ack(false) // ack anyway, to discard malform message

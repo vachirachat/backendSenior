@@ -3,7 +3,6 @@ package service
 import (
 	"backendSenior/domain/model"
 	"fmt"
-	"log"
 	"proxySenior/domain/encryption"
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/service/key_service"
@@ -39,14 +38,14 @@ func (enc *EncryptionService) EncryptController(msg *model.Message) error {
 		return nil
 
 	} else {
-		log.Println("Test Select", "False")
+		//log.Println("Test Select", "False")
 		return enc.encryptBase(msg)
 	}
 }
 
 func (enc *EncryptionService) DecryptController(msg *model.Message) error {
 	if enc.plugin.IsEnabledEncryption() {
-		log.Println("Test DecryptController Select", "True")
+		//log.Println("Test DecryptController Select", "True")
 		decrypted, err := enc.plugin.CustomDecryptionPlugin(*msg)
 		if err != nil {
 			return fmt.Errorf("plugin decrypt: %w", err)
@@ -55,7 +54,7 @@ func (enc *EncryptionService) DecryptController(msg *model.Message) error {
 		return nil
 
 	} else {
-		log.Println("Test Select", "False")
+		//log.Println("Test Select", "False")
 		return enc.decryptBase(msg)
 	}
 }
@@ -112,13 +111,13 @@ func (enc *EncryptionService) getKeyFromRoom(roomID string) ([]model_proxy.KeyRe
 
 	var keys []model_proxy.KeyRecord
 	if local {
-		fmt.Println("[message] use LOCAL key for", roomID)
+		//fmt.Println("[message] use LOCAL key for", roomID)
 		keys, err = enc.key.GetKeyLocal(roomID)
 		if err != nil {
 			return nil, fmt.Errorf("error getting key locally %v", err)
 		}
 	} else {
-		fmt.Println("[message] use REMOTE key for room", roomID)
+		//fmt.Println("[message] use REMOTE key for room", roomID)
 		keys, err = enc.key.GetKeyRemote(roomID)
 		if err != nil {
 			return nil, fmt.Errorf("error getting key remotely %v", err)

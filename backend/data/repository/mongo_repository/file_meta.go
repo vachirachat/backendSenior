@@ -34,7 +34,7 @@ func (r *FileMetaRepositoryMongo) FindFile(filter model.FileMetaFilter) ([]model
 	var files []model.FileMeta
 	err := r.col.Find(filter).All(&files)
 	if err != nil {
-		return nil, fmt.Errorf("insert file meta error: %w", err) // TODO: do this for other repo
+		return nil, fmt.Errorf("find file meta error: %w", err) // TODO: do this for other repo
 	}
 	return files, nil
 }

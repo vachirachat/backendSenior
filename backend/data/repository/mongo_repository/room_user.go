@@ -167,7 +167,8 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 			Id: bson.ObjectIdHex(roomID),
 			Update: bson.M{
 				"$pullAll": model.RoomUpdateMongo{
-					ListUser: utills.ToObjectIdArr(userIDs),
+					ListUser:  utills.ToObjectIdArr(userIDs),
+					ListAdmin: utills.ToObjectIdArr(userIDs),
 				},
 			},
 		},
@@ -198,6 +199,99 @@ func (repo *CachedRoomUserRepository) RemoveUsersFromRoom(roomID string, userIDs
 	}
 
 	delete(repo.roomToUsers, roomID)
+
+	return nil
+}
+
+func (repo *CachedRoomUserRepository) AddAdminsToRoom(roomID bson.ObjectId, userIDs []bson.ObjectId) (err error) {
+	// Preconfition check
+	n, err := repo.connection.DB(dbName).C(collectionUser).FindId(bson.M{"$in": userIDs}).Count()
+
+	if err != nil {
+		return err
+	}
+	if n != len(userIDs) {
+		return fmt.Errorf("Invalid userIDs, some of them not exists %d/%d", n, len(userIDs))
+	}
+
+	n, err = repo.connection.DB(dbName).C(collectionRoom).FindId(roomID).Count()
+	if n != 1 {
+		return errors.New("Invalid Room ID")
+	}
+
+	ops := []txn.Op{
+		{
+			C:  collectionRoom,
+			Id: roomID,
+			Update: bson.M{
+				"$addToSet": model.RoomUpdateMongo{
+					ListUser:  bson.M{"$each": userIDs},
+					ListAdmin: bson.M{"$each": userIDs},
+				},
+			},
+		},
+	}
+	for _, userID := range userIDs {
+		ops = append(ops, txn.Op{
+			C:  collectionUser,
+			Id: userID,
+			Update: bson.M{
+				"$addToSet": model.UserUpdateMongo{
+					Room: roomID,
+				},
+			},
+		})
+	}
+
+	err = repo.txnRunner.Run(ops, "", nil)
+	if err != nil {
+		return err
+	}
+
+	repo.lock.Lock()
+	repo.lock.Unlock()
+
+	// Invalidate cache
+	for _, uid := range userIDs {
+		delete(repo.userToRooms, uid.Hex())
+	}
+
+	delete(repo.roomToUsers, roomID.Hex())
+
+	return nil
+}
+
+func (repo *CachedRoomUserRepository) RemoveAdminsFromRoom(roomID bson.ObjectId, userIDs []bson.ObjectId) (err error) {
+	// Precondition check
+	n, err := repo.connection.DB(dbName).C(collectionUser).FindId(bson.M{"$in": userIDs}).Count()
+	if err != nil {
+		return err
+	}
+	if n != len(userIDs) {
+		return errors.New("Invalid userIDs, some of them not exists")
+	}
+
+	n, err = repo.connection.DB(dbName).C(collectionRoom).FindId(roomID).Count()
+	if n != 1 {
+		return errors.New("Invalid Room ID")
+	}
+
+	ops := []txn.Op{
+		{
+			C:  collectionRoom,
+			Id: roomID,
+			Update: bson.M{
+				"$pullAll": model.RoomUpdateMongo{
+					ListAdmin: userIDs,
+				},
+			},
+		},
+	}
+
+	err = repo.txnRunner.Run(ops, "", nil)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

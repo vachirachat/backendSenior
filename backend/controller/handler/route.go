@@ -30,12 +30,12 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	proxyMw := authMw.NewProxyMiddleware(deps.ProxyAuth)
 
 	// create handler (some require middleware)
-	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, authMiddleware, deps.UserService, deps.ProxyService)
+	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, authMiddleware, deps.UserService, deps.ProxyService, deps.ChatService, deps.OraganizeService)
 	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.JWTService, authMiddleware)
-	messageRouteHandler := NewMessageRouteHandler(deps.MessageService)
+	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.FileService, deps.RoomService, authMiddleware)
 	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService, deps.KeyExchangeService)
 	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService, deps.RoomService)
-	OrganizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.RoomService)
+	organizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.RoomService)
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
 	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService)
@@ -50,10 +50,14 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	messageRouteHandler.Mount(subgroup.Group("/message"))
 	chatRouteHandler.Mount(subgroup.Group("/chat"))
 	proxyRouteHandler.Mount(subgroup.Group("/proxy"))
-	OrganizeRouteHandler.Mount(subgroup.Group("/org"))
+	organizeRouteHandler.Mount(subgroup.Group("/org"))
 	fcmTokenRouteHandler.Mount(subgroup.Group("/fcm"))
 	connStateRouteHandler.Mount(subgroup.Group("/conn"))
 	keyRouteHandler.Mount(subgroup.Group("/key"))
 	fileRouteHandler.Mount(subgroup.Group("/file"))
+
+	v2 := r.Group("/api/v2")
+	organizeRouteHandler.MountV2(v2.Group("/org"))
+
 	return r
 }

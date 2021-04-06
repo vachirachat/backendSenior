@@ -3,6 +3,7 @@ package key_service
 // manage local key
 
 import (
+	"backendSenior/domain/model"
 	"errors"
 	"fmt"
 	model_proxy "proxySenior/domain/model"
@@ -30,7 +31,8 @@ func (s *KeyService) GetKeyLocal(roomID string) ([]model_proxy.KeyRecord, error)
 		return nil, errors.New("can't get local key for remote room")
 	}
 
-	if keys, ok := s.keyCache[roomID]; ok {
+	if _keys, ok := s.keyCache.Get(roomID); ok {
+		keys := _keys.([]model_proxy.KeyRecord)
 		return copyKeysSlice(keys), nil
 	}
 
@@ -42,7 +44,7 @@ func (s *KeyService) GetKeyLocal(roomID string) ([]model_proxy.KeyRecord, error)
 		keys = []model_proxy.KeyRecord{}
 	}
 
-	s.keyCache[roomID] = keys
+	s.keyCache.Set(roomID, keys)
 	return copyKeysSlice(keys), nil
 }
 
@@ -70,7 +72,8 @@ func (s *KeyService) NewKeyForRoom(roomID string) error {
 
 // IsLocal return whether key from `roomID` can be fetched locally (by key store)
 func (s *KeyService) IsLocal(roomID string) (bool, error) {
-	if proxy, ok := s.roomMasterCache[roomID]; ok {
+	if _proxy, ok := s.roomMasterCache.Get(roomID); ok {
+		proxy := _proxy.(model.Proxy)
 		return proxy.ProxyID.Hex() == utils.ClientID, nil
 	}
 
@@ -79,20 +82,20 @@ func (s *KeyService) IsLocal(roomID string) (bool, error) {
 		return false, err
 	}
 	isLocal := proxy.ProxyID.Hex() == s.clientID
-	s.roomMasterCache[roomID] = proxy
+	s.roomMasterCache.Set(roomID, proxy)
 	return isLocal, nil
 }
 
 // RevalidateRoomMaster revalidate cached query of locality
 func (s *KeyService) RevalidateRoomMaster(roomID string) {
-	delete(s.roomMasterCache, roomID)
+	s.roomMasterCache.Del(roomID)
 	time.Sleep(100 * time.Millisecond) // have some buffer time
 	_, _ = s.IsLocal(roomID)
 }
 
 // RevalidateKeyCache revalidate cached key (delete and get key again)
 func (s *KeyService) RevalidateKeyCache(roomID string) {
-	delete(s.keyCache, roomID)
+	s.keyCache.Del(roomID)
 	time.Sleep(100 * time.Millisecond)
 	s._ensureKey(roomID)
 }
@@ -111,11 +114,11 @@ func (s *KeyService) _ensureKey(roomID string) {
 // additionally, it also get key of all rooms that proxy is in
 func (s *KeyService) RevalidateAll() {
 	fmt.Println("invalidating and re-getting all keys")
-	for roomID := range s.roomMasterCache {
-		s.RevalidateRoomMaster(roomID)
+	for kv := range s.roomMasterCache.Iter() {
+		go s.RevalidateRoomMaster(kv.Key.(string))
 	}
-	for roomID := range s.keyCache {
-		s.RevalidateKeyCache(roomID)
+	for kv := range s.keyCache.Iter() {
+		go s.RevalidateKeyCache(kv.Key.(string))
 	}
 
 	proxy, err := s.proxy.GetProxyByID(utils.ClientID)

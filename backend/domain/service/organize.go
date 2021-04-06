@@ -1,6 +1,7 @@
 package service
 
 import (
+	"backendSenior/domain/dto"
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 )
@@ -107,4 +108,10 @@ func (service *OrganizeService) DeleteRoomsFromOrg(orgID string, roomIDs []strin
 func (service *OrganizeService) GetOrgRoomIDs(orgID string) ([]string, error) {
 	roomIDs, err := service.orgRoomRepo.GetOrgRooms(orgID)
 	return roomIDs, err
+}
+
+// FindOrgByName: provide query org by name usecase
+func (service *OrganizeService) FindOrgByName(dto dto.FindOrgByNameDto) ([]model.Organize, error) {
+	orgs, err := service.organizeRepo.FindOrg(dto.ToFilter())
+	return orgs, err
 }

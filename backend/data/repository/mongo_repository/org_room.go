@@ -58,7 +58,7 @@ func (repo *OrgRoomRepository) AddRoomsToOrg(orgID string, roomIDs []string) err
 			C:  collectionOrganize,
 			Id: bson.ObjectIdHex(orgID),
 			Update: bson.M{
-				"$addToSet": model.OrganizationUpdateMongo{
+				"$addToSet": model.OrganizationT{
 					Rooms: bson.M{
 						"$each": utills.ToObjectIdArr(roomIDs),
 					},
@@ -113,7 +113,7 @@ func (repo *OrgRoomRepository) RemoveRoomsFromOrg(orgID string, roomIDs []string
 			C:  collectionOrganize,
 			Id: bson.ObjectIdHex(orgID),
 			Update: bson.M{
-				"$pullAll": model.OrganizationUpdateMongo{
+				"$pullAll": model.OrganizationT{
 					Rooms: utills.ToObjectIdArr(roomIDs),
 				},
 			},

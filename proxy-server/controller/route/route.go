@@ -3,6 +3,8 @@ package route
 import (
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
+	"runtime"
+	"time"
 
 	"proxySenior/controller/middleware"
 
@@ -39,6 +41,13 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	messageRouteHandler.Mount(subgroup.Group("/message"))
 	keyRouteHandler.Mount(subgroup.Group("/key"))
 	fileRouteHandler.Mount(subgroup.Group("/file"))
+
+	r.GET("/debug/gc", func(c *gin.Context) {
+		t1 := time.Now()
+		runtime.GC()
+		t2 := time.Now()
+		c.JSON(200, gin.H{"took": t2.Sub(t1).Milliseconds()})
+	})
 
 	return r
 }

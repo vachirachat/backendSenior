@@ -7,7 +7,7 @@ import (
 	"backendSenior/domain/model/chatsocket/exception"
 	"backendSenior/domain/model/chatsocket/message_types"
 	"backendSenior/domain/service"
-	"bytes"
+	"common/ws"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -59,19 +59,16 @@ func NewChatRouteHandler(chatService *service.ChatService, proxyMw *auth.ProxyMi
 	}
 }
 
-// client abstraction
+// client is like chat socket, but added handler field to allow access to handler related function
 type client struct {
 	chatsocket *chatsocket.Connection
 	handler    *ChatRouteHandler // reference to handler to call
-	connID     string
-	proxyID    string
 }
 
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	routerGroup.GET("/ws", handler.proxyMw.AuthRequired(), func(context *gin.Context) {
-		// fmt.Println("new connection!")
 		w := context.Writer
 		r := context.Request
 
@@ -83,130 +80,111 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 			},
 		}
 
-		clientID := context.GetString(auth.UserIdField)
+		proxyID := context.GetString(auth.UserIdField)
 
-		wsConn, err := upgrader.Upgrade(w, r, nil)
+		rawConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			log.Println(err)
 			return
 		}
+		wsConn := ws.FromConnection(rawConn)
+		wsConn.StartLoop()
 
 		var conn = &chatsocket.Connection{
 			Conn:   wsConn,
-			UserID: clientID,
+			UserID: proxyID,
 		}
 
-		id, err := handler.chatService.OnConnect(conn)
-		handler.keyEx.SetOnline(clientID, true)
+		_, err = handler.chatService.OnConnect(conn)
+		handler.keyEx.SetOnline(proxyID, true)
 
 		clnt := client{
-			chatsocket: conn, // chatsocket model
+			chatsocket: conn,
 			handler:    handler,
-			connID:     id,
-			proxyID:    clientID,
 		}
 
-		go clnt.readPump()
+		clnt.handleMessage()
+		conn.Conn.Observable().DoOnCompleted(func() {
+			handler.chatService.OnDisconnect(conn)
+			// here we assume that proxy has ONLY ONE connection
+			handler.keyEx.SetOnline(proxyID, false)
+
+		})
+
 	})
 }
 
+func wsErrorMessage(reason string, data ...interface{}) chatsocket.Message {
+	var d interface{}
+	if len(data) > 0 {
+		d = data[0]
+	}
+	return chatsocket.Message{
+		Type: message_types.Error,
+		Payload: exception.Event{
+			Reason: reason,
+			Data:   d,
+		},
+	}
+}
+
 // TODO: some how move this to connection pool so it's centralized
-// readPump is for reading message and call handler
+// handleMessage is for reading message and call handler
 // write pump code is in connection pool
 // for more information about read/writePump, see https://github.com/gorilla/websocket/tree/master/examples/chat
-func (c *client) readPump() {
-	defer func() {
+func (c *client) handleMessage() {
+	wsConn := c.chatsocket.Conn
+	proxyID := c.chatsocket.UserID
+	handler := c.handler
 
-		c.handler.chatService.OnDisconnect(c.chatsocket)
-		// here we assume that proxy has ONLY ONE connection
-		c.handler.keyEx.SetOnline(c.proxyID, false)
-
-		c.chatsocket.Conn.Close()
-	}()
-	c.chatsocket.Conn.SetReadLimit(maxMessageSize)
-	c.chatsocket.Conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.chatsocket.Conn.SetPongHandler(func(string) error { c.chatsocket.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-	for {
-		_, message, err := c.chatsocket.Conn.ReadMessage()
-		// fmt.Printf("[chat] <-- %s\n", message)
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
-			}
-			break
-		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-
-		// handle message here
-		fmt.Printf("[%s] <-- %s\n", c.connID, message)
+	<-wsConn.Observable().DoOnNext(func(i interface{}) {
+		message := i.([]byte)
 
 		var rawMessage chatsocket.RawMessage
-		err = json.Unmarshal(message, &rawMessage)
-		if err != nil {
-			c.handler.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
-				Type: message_types.Error,
-				Payload: exception.Event{
-					Reason: "Bad socket message structure",
-				},
-			})
-			continue
+		if err := json.Unmarshal(message, &rawMessage); err != nil {
+			wsConn.SendJSON(wsErrorMessage("bad socket message structure", err.Error()))
+			return
 		}
 
 		switch rawMessage.Type {
 		case message_types.Chat:
 			var msg model.Message
-			err = json.Unmarshal(rawMessage.Payload, &msg)
-			if err != nil {
-				c.handler.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
-					Type: message_types.Error,
-					Payload: exception.Event{
-						Reason: "bad message payload format",
-						Data:   err.Error(),
-					},
-				})
-				continue
+			if err := json.Unmarshal(rawMessage.Payload, &msg); err != nil {
+				wsConn.SendJSON(wsErrorMessage("bad message payload format", err.Error()))
+				return
 			}
-			if ok, err := c.handler.chatService.IsProxyInRoom(c.proxyID, msg.RoomID.Hex()); err != nil {
-				c.handler.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
-					Type: message_types.Error,
-					Payload: exception.Event{
-						Reason: "unable to check room",
-						Data:   err.Error(),
-					},
-				})
-				continue
+
+			if ok, err := handler.chatService.IsProxyInRoom(proxyID, msg.RoomID.Hex()); err != nil {
+				wsConn.SendJSON(wsErrorMessage("can't check room", err.Error()))
+				return
 			} else if !ok {
-				c.handler.chatService.SendMessageToConnection(c.connID, chatsocket.Message{
-					Type: message_types.Error,
-					Payload: exception.Event{
-						Reason: "unauthorized to send message to the room",
-					},
-				})
-				continue
+				wsConn.SendJSON(wsErrorMessage("unauthorized"))
+				return
 			}
+
 			// Saving messag
 			msg.TimeStamp = time.Now()
 			if msg.UserID == "" {
-				fmt.Println("Bad Message, No User ID (proxy must fill it)")
-				continue
+				wsConn.SendJSON(wsErrorMessage("bad message: missing user ID"))
+				return
 			}
 
-			messageID, err := c.handler.chatService.SaveMessage(msg)
+			messageID, err := handler.chatService.SaveMessage(msg)
 			if err != nil {
 				fmt.Printf("error saving message %s\n", err.Error())
-				continue
+				wsConn.SendJSON(wsErrorMessage("send failed: error saving message"))
+				return
 			}
-			msg.MessageID = bson.ObjectIdHex(messageID)
 
-			err = c.handler.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), chatsocket.Message{
+			msg.MessageID = bson.ObjectIdHex(messageID)
+			if err = handler.chatService.BroadcastMessageToRoom(msg.RoomID.Hex(), chatsocket.Message{
 				Type:    message_types.Chat,
 				Payload: msg,
-			})
-			if err != nil {
+			}); err != nil {
 				fmt.Printf("Error bcasting message: %s\n", err.Error())
 			}
 
-			c.handler.chatService.SendNotificationToRoomExceptUser(msg.RoomID.Hex(), msg.UserID.Hex(), &model.Notification{
+			handler.chatService.SendNotificationToRoomExceptUser(msg.RoomID.Hex(), msg.UserID.Hex(), &model.Notification{
 				// Title: "New Message in room " + msg.RoomID.Hex(),
 				// Body:  fmt.Sprintf("[%s]: %s", msg.UserID.Hex(), msg.Data),
 				Data: map[string]string{
@@ -216,10 +194,10 @@ func (c *client) readPump() {
 					"timestamp": msg.TimeStamp.Format("2006-01-02T15:04:05Z"),
 				},
 			}, 1*time.Second)
-
 		default:
 			fmt.Printf("INFO: unrecognized message\n==\n%s\n==\n", message)
 		}
 
-	}
+	})
+
 }

@@ -70,8 +70,6 @@ func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{})
 		return fmt.Errorf("getting room's users: %s", err)
 	}
 
-	chat.log.Println("room", roomID, "has users", userIDs)
-
 	var allWg sync.WaitGroup
 
 	for _, uid := range userIDs {
@@ -86,11 +84,10 @@ func (chat *ChatService) BroadcastMessageToRoom(roomID string, data interface{})
 			allWg.Add(1)
 			go func(connID string, wg *sync.WaitGroup) {
 				defer wg.Done()
-				chat.log.Println("sending message to conn", connID)
 				// loop to all connection of user
 				err := chat.send.SendMessage(connID, data)
 				if err != nil {
-					fmt.Println("Error sending message", err)
+					chat.log.Println("error sending message connid=", connID, err)
 				}
 			}(connID, &allWg)
 		}
@@ -115,7 +112,6 @@ func (chat *ChatService) SendNotificationToRoomExceptUser(roomID string, userID 
 	cnt := 0
 	for _, uid := range userIDs {
 		if uid == userID {
-			fmt.Println("excluded user", uid, "as it's sender")
 			continue
 		}
 		cnt += 1
@@ -133,7 +129,6 @@ func (chat *ChatService) SendNotificationToRoomExceptUser(roomID string, userID 
 		for _, tok := range <-resultChan {
 			online := chat.notifService.GetOnlineStatus(tok.Token)
 			if online {
-				fmt.Print("ignore device", tok.Token[:10], "since it's online")
 				continue
 			}
 			lastSeen := chat.notifService.GetLastSeenTime(tok.Token)
@@ -151,7 +146,9 @@ func (chat *ChatService) SendNotificationToRoomExceptUser(roomID string, userID 
 	}
 
 	success, err := chat.notifService.SendNotifications(allFCMTokens, notification)
-	fmt.Printf("[notification] successfully sent %d of %d notifications\n", success, len(allFCMTokens))
+	if len(allFCMTokens) != 0 {
+		fmt.Printf("[notification] successfully sent %d of %d notifications\n", success, len(allFCMTokens))
+	}
 	return err
 }
 

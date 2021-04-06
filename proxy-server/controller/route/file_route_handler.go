@@ -170,11 +170,12 @@ func (h *FileRouteHandler) uploadFile(c *gin.Context) {
 		metaBytes = encryption.B64Encode(metaBytes)
 		h.upstreamChat.SendMessage(model.Message{
 			TimeStamp: now,
+			FileID:    meta.FileID,
 			RoomID:    bson.ObjectIdHex(roomID),
 			UserID:    bson.ObjectIdHex(userID),
 			ClientUID: "foo",             // TODO: this isn't needed?
 			Data:      string(metaBytes), // tell client the meta
-			Type:      "FILE",
+			Type:      model.MsgFile,
 		})
 	}()
 
@@ -259,11 +260,12 @@ func (h *FileRouteHandler) uploadImage(c *gin.Context) {
 		metaBytes = encryption.B64Encode(metaBytes)
 		h.upstreamChat.SendMessage(model.Message{
 			TimeStamp: now,
+			FileID:    meta.FileID,
 			RoomID:    bson.ObjectIdHex(roomID),
 			UserID:    bson.ObjectIdHex(userID),
 			ClientUID: "foo",             // TODO: this isn't needed?
 			Data:      string(metaBytes), // tell client the meta
-			Type:      "IMAGE",
+			Type:      model.MsgImage,
 		})
 	}()
 
@@ -282,13 +284,13 @@ func (h *FileRouteHandler) getKeyFromRoom(roomID string) ([]model_proxy.KeyRecor
 
 	var keys []model_proxy.KeyRecord
 	if local {
-		fmt.Println("[message] use LOCAL key for", roomID)
+		//fmt.Println("[message] use LOCAL key for", roomID)
 		keys, err = h.key.GetKeyLocal(roomID)
 		if err != nil {
 			return nil, fmt.Errorf("error getting key locally %v", err)
 		}
 	} else {
-		fmt.Println("[message] use REMOTE key for room", roomID)
+		//fmt.Println("[message] use REMOTE key for room", roomID)
 		keys, err = h.key.GetKeyRemote(roomID)
 		if err != nil {
 			return nil, fmt.Errorf("error getting key remotely %v", err)

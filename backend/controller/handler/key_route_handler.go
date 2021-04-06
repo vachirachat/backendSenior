@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 
@@ -49,7 +50,6 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context) {
 		c.JSON(400, gin.H{"status": "bad room id"})
 		return
 	}
-	fmt.Println("[get key] incoming request for", roomID)
 
 	pid, err := r.keyEx.GetMaster(roomID)
 	if err != nil {
@@ -80,8 +80,9 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context) {
 	}
 
 	if res.StatusCode >= 400 {
-		fmt.Println("keyRoute/getRoomKeyForProxy: proxy retured non OK status " + fmt.Sprint(res.StatusCode))
-		c.JSON(500, gin.H{"status": "proxy retured non OK status " + fmt.Sprint(res.StatusCode)})
+		body, _ := ioutil.ReadAll(res.Body)
+		fmt.Printf("keyRoute/getRoomKeyForProxy: proxy retured non OK status %d\nbody%s\n", res.StatusCode, body)
+		c.Data(res.StatusCode, res.Header.Get("Content-Type"), body)
 		return
 	}
 
@@ -148,9 +149,11 @@ func (r *KeyRoute) generateRoomKey(c *gin.Context) {
 		return
 	}
 
+	// Proxy responded, but non-ok, should forward messasge to requester
 	if res.StatusCode >= 400 {
-		fmt.Println("keyRoute/generateRoomKey: proxy retured non OK status " + fmt.Sprint(res.StatusCode))
-		c.JSON(500, gin.H{"status": "proxy retured non OK status " + fmt.Sprint(res.StatusCode)})
+		body, _ := ioutil.ReadAll(res.Body)
+		log.Printf("proxy returned non ok status: %d\nbody\n", res.StatusCode, body)
+		c.Data(res.StatusCode, res.Header.Get("Content-Type"), body)
 		return
 	}
 

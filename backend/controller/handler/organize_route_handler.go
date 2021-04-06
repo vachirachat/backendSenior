@@ -2,9 +2,11 @@ package route
 
 import (
 	"backendSenior/controller/middleware/auth"
+	"backendSenior/domain/dto"
 	"backendSenior/domain/model"
 	"backendSenior/domain/service"
 	"backendSenior/utills"
+	g "common/utils/ginutils"
 	"fmt"
 	"log"
 	"net/http"
@@ -34,12 +36,12 @@ func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authMw *a
 //Mount make OrganizeRouteHandler handler request from specific `RouterGroup`
 func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getOrganizeByIDHandler)
-	routerGroup.GET("/:id/org" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getOrganizeByNameHandler)
+	routerGroup.GET("/:id", handler.getOrganizeByIDHandler)
+	routerGroup.GET("/:id/org", handler.getOrganizeByNameHandler)
 	routerGroup.POST("/", handler.authMw.AuthRequired(), handler.addOrganizeHandler)
 	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.getOrganizations)
-	routerGroup.PUT("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editOrganizeNameHandler)
-	routerGroup.DELETE("/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteOrganizeByIDHandler)
+	routerGroup.PUT("/:id", handler.editOrganizeNameHandler)
+	routerGroup.DELETE("/:id", handler.deleteOrganizeByIDHandler)
 
 	routerGroup.GET("/:id/member", handler.getOrganizationMembers)
 	routerGroup.POST("/:id/member", handler.addMemberToOrganize)
@@ -50,6 +52,28 @@ func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.DELETE("/:id/admin", handler.deleteAdminsFromOrganize)
 
 	routerGroup.GET("/:id/room", handler.getOrgRooms)
+}
+
+func (handler *OrganizeRouteHandler) MountV2(rg *gin.RouterGroup) {
+
+	rg.GET("/id/:id", handler.getOrganizeByIDHandler)
+	rg.GET("/id/:id/org", handler.getOrganizeByNameHandler)
+	rg.POST("/create-org", handler.authMw.AuthRequired(), handler.addOrganizeHandler)
+	rg.GET("/", handler.authMw.AuthRequired(), handler.getOrganizations)
+	rg.PUT("/id/:id", handler.editOrganizeNameHandler)
+	rg.DELETE("/id/:id", handler.deleteOrganizeByIDHandler)
+
+	rg.GET("/id/:id/member", handler.getOrganizationMembers)
+	rg.POST("/id/:id/member", handler.addMemberToOrganize)
+	rg.DELETE("/id/:id/member", handler.deleteMemberFromOrganize)
+
+	rg.GET("/id/:id/admin", handler.getOrganizationAdmins)
+	rg.POST("/id/:id/admin", handler.addAdminsToOrganize)
+	rg.DELETE("/id/:id/admin", handler.deleteAdminsFromOrganize)
+
+	rg.GET("/id/:id/room", handler.getOrgRooms)
+
+	rg.POST("/find-org", g.InjectGin(handler.findOrgByName))
 }
 
 // return array of User that is admin of the organization
@@ -103,15 +127,6 @@ func (handler *OrganizeRouteHandler) getOrganizationMembers(context *gin.Context
 	context.JSON(http.StatusOK, gin.H{
 		"members": users,
 	})
-}
-
-func isInObjArr(id bson.ObjectId, arr []bson.ObjectId) bool {
-	for _, x := range arr {
-		if id == x {
-			return true
-		}
-	}
-	return false
 }
 
 func (handler *OrganizeRouteHandler) getOrganizations(context *gin.Context) {
@@ -384,4 +399,18 @@ func (handler *OrganizeRouteHandler) getOrgRooms(c *gin.Context) {
 		"rooms": rooms,
 	})
 
+}
+
+func (handler *OrganizeRouteHandler) findOrgByName(c *gin.Context, req struct {
+	Body dto.FindOrgByNameDto
+}) error {
+	if orgs, err := handler.organizeService.FindOrgByName(req.Body); err != nil {
+		return err
+	} else {
+		if len(orgs) > 20 {
+			orgs = orgs[:20] // limit don't show too much, privacy
+		}
+		c.JSON(200, orgs)
+		return nil
+	}
 }

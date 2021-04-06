@@ -27,5 +27,6 @@ scenarios:
               uid: "TODO"
               data: "hello world"
               type: "TEXT"
+        - think: 0.2
         count: 20
 

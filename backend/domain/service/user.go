@@ -157,3 +157,7 @@ func (service *UserService) IsUserInOrg(user model.User, orgID string) error {
 	}
 	return errors.New("User not exists in org")
 }
+
+func (service *UserService) BulkUpdateUsers(IDs []bson.ObjectId, update model.UserUpdateMongo) error {
+	return service.userRepository.BulkUpdateUser(IDs, update)
+}

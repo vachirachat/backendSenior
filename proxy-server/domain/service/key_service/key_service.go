@@ -1,16 +1,16 @@
 package key_service
 
 import (
-	"backendSenior/domain/model"
 	"backendSenior/domain/model/chatsocket/key_exchange"
 	"crypto/rand"
 	"crypto/rsa"
-	"encoding/json"
 	"fmt"
+	"github.com/cornelk/hashmap"
 	"proxySenior/domain/encryption"
 	"proxySenior/domain/interface/repository"
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/utils"
+	"strings"
 )
 
 // KeyService is service for managing key
@@ -21,24 +21,12 @@ type KeyService struct {
 	remote          repository.RemoteKeyStore
 	proxy           repository.ProxyMasterAPI
 	clientID        string // clientID of this proxy
-	keyCache        map[string][]model_proxy.KeyRecord
-	pubKeyCache     map[string]*rsa.PublicKey
-	roomMasterCache map[string]model.Proxy
+	keyCache        *hashmap.HashMap
+	pubKeyCache     *hashmap.HashMap
+	roomMasterCache *hashmap.HashMap
 	public          *rsa.PublicKey
 	privateKey      *rsa.PrivateKey
 }
-
-// // keyCacheEntry is used for caching key with expire time
-// type keyCacheEntry struct {
-// 	data    []model_proxy.KeyRecord // keys
-// 	expires time.Time               // cache expires
-// }
-
-// // isLocalEntry is used for caching answer for `IsLocal`
-// type isLocalEntry struct {
-// 	data    bool      // whether room is local
-// 	expires time.Time // cache expires
-// }
 
 // New create new key service
 func New(local repository.Keystore, remote repository.RemoteKeyStore, proxy repository.ProxyMasterAPI, clientID string) *KeyService {
@@ -48,23 +36,27 @@ func New(local repository.Keystore, remote repository.RemoteKeyStore, proxy repo
 		proxy:    proxy,
 		clientID: clientID,
 		// cache
-		keyCache:        make(map[string][]model_proxy.KeyRecord), // cache room key
-		pubKeyCache:     make(map[string]*rsa.PublicKey),          // cache proxy public key
-		roomMasterCache: make(map[string]model.Proxy),             // ca
+		keyCache:        hashmap.New(32), // cache room key make(map[string][]model_proxy.KeyRecord)
+		pubKeyCache:     hashmap.New(32), // make(map[string]*rsa.PublicKey)          // cache proxy public key
+		roomMasterCache: hashmap.New(32), // make(map[string]model.Proxy),             // ca
 		// keypair
 		public:     nil,
 		privateKey: nil,
 	}
 }
 
+const (
+	badStatusErrorMessage = "server return with non OK status"
+)
+
 // GetKeyRemote get room-key from room remotely.
 // it determine proxy from room automatically.
 // sendKey determine whether we will additionally exchange public key
 func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error) {
 	// memoization
-	if keys, ok := s.keyCache[roomID]; ok {
+	if keys, ok := s.keyCache.Get(roomID); ok {
 		fmt.Println("[REMOTE] cached key")
-		return keys, nil
+		return keys.([]model_proxy.KeyRecord), nil
 	}
 
 	proxy, err := s.proxy.GetRoomMasterProxy(roomID)
@@ -73,14 +65,15 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 	}
 
 	// get past proxy key for the proxy
-	_, ok := s.pubKeyCache[proxy.ProxyID.Hex()]
+	_, ok := s.pubKeyCache.Get(proxy.ProxyID.Hex())
 
 	// key not exists (ok) then send key
+
 	resp, err := s.getRoomKey(roomID, !ok)
 	// fmt.Println("response is", resp)
 	if err != nil {
 		// if otherside have lost the key, the send key gain
-		if resp.ErrorMessage == "ERR_NO_KEY" {
+		if strings.HasPrefix(err.Error(), badStatusErrorMessage) && resp.ErrorMessage == "ERR_NO_KEY" {
 			resp, err = s.getRoomKey(roomID, true)
 			if err != nil {
 				return nil, err
@@ -104,18 +97,14 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 		}
 	}
 
-	_respJSON, _ := json.Marshal(resp) // so we can see byte message easier
-	fmt.Printf("[get-key-remote] roomId: %s\ndecrypted keys: %s\n", roomID, _respJSON)
-
 	// if success we cache the key to DB and report to controller
-	fmt.Println(resp.Keys[0].RoomID.Hex())
 	err = s.local.ReplaceKey(roomID, resp.Keys)
 	if err != nil {
 		fmt.Println("update key error:", err)
 	}
 	s.remote.CatchUp(roomID)
 
-	s.keyCache[roomID] = resp.Keys
+	s.keyCache.Set(roomID, resp.Keys)
 
 	return resp.Keys, nil
 }
@@ -140,13 +129,13 @@ func (s *KeyService) InitKeyPair() {
 
 // GetProxyPublicKey return cached public key for proxy
 func (s *KeyService) GetProxyPublicKey(proxyID string) (*rsa.PublicKey, bool) {
-	key, ok := s.pubKeyCache[proxyID]
-	return key, ok
+	key, ok := s.pubKeyCache.Get(proxyID)
+	return key.(*rsa.PublicKey), ok
 }
 
 // SetProxyPublicKey set public key to cache
 func (s *KeyService) SetProxyPublicKey(proxyID string, key *rsa.PublicKey) {
-	s.pubKeyCache[proxyID] = key
+	s.pubKeyCache.Set(proxyID, key)
 }
 
 // PK utils

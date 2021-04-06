@@ -5,7 +5,6 @@ import (
 	"backendSenior/domain/model/chatsocket"
 	"backendSenior/domain/model/chatsocket/message_types"
 	"encoding/json"
-	"fmt"
 	"log"
 	"proxySenior/domain/interface/repository"
 )
@@ -31,20 +30,19 @@ func (service *ChatUpstreamService) SendMessage(message model.Message) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("[upstream] --> %+v\n", data)
 	err = service.upstream.SendMessage(data)
 	return err
 }
 
 // Task: Plugin-Encryption
 
-// RegsiterHandler add channel to be notified when message is received
-func (service *ChatUpstreamService) RegsiterHandler(channel chan []byte) error {
+// RegisterHandler add channel to be notified when message is received
+func (service *ChatUpstreamService) RegisterHandler(channel chan []byte) error {
 	return service.upstream.RegisterHandler(channel)
 }
 
-// UnRegsiterHandler remove channel from being notified when message is received
-func (service *ChatUpstreamService) UnRegsiterHandler(channel chan []byte) error {
+// UnRegisterHandler remove channel from being notified when message is received
+func (service *ChatUpstreamService) UnRegisterHandler(channel chan []byte) error {
 	return service.upstream.UnRegisterHandler(channel)
 }
 

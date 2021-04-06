@@ -3,7 +3,6 @@ package plugin
 import (
 	"backendSenior/domain/model"
 	"errors"
-	"fmt"
 	"proxySenior/data/external"
 )
 
@@ -54,7 +53,7 @@ func (p *OnMessagePortPlugin) OnMessagePortPlugin(message model.Message) error {
 		return errors.New("Plugin not enabled")
 	}
 	err := p.plugin.OnMessageIn(message)
-	fmt.Printf("on message in: %v\nreturned: %v\n", message, err)
+	//fmt.Printf("on message in: %v\nreturned: %v\n", message, err)
 	return err
 }
 
@@ -67,7 +66,7 @@ func (p *OnMessagePortPlugin) CustomEncryptionPlugin(message model.Message) (mod
 		return model.Message{}, errors.New("Custom Encryption Plugin not enabled")
 	}
 	EncMessage, err := p.plugin.CustomEncryption(message)
-	fmt.Printf("on message in: %v\nreturned: %v\n", message, err)
+	//fmt.Printf("on message in: %v\nreturned: %v\n", message, err)
 	return EncMessage, err
 }
 
@@ -82,7 +81,7 @@ func (p *OnMessagePortPlugin) CustomDecryptionPlugin(message model.Message) (mod
 	}
 
 	DecMessage, err := p.plugin.CustomDecryption(message)
-	fmt.Printf("on message in: %v\nreturned: %v\n", message, err)
+	//fmt.Printf("on message in: %v\nreturned: %v\n", message, err)
 	return DecMessage, err
 }
 
