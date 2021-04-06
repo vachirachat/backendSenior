@@ -1,5 +1,5 @@
 @base = http://localhost:8080/api/v1/proxy
-@proxyId = 600025c6584cb6da2059f5bb
+@proxyId = 606b2b3d26dcb9fb60c25cea
 @proxyId2 = 
 
 
@@ -12,8 +12,8 @@ POST {{base}}
 Content-Type: application/json
 
 {
-  "name": "Local Proxy",
-  "ip": "192.168.43.213",
+  "name": "Localhost",
+  "ip": "127.0.0.1",
   "port": 8090
 }
 
