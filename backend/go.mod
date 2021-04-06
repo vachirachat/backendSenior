@@ -11,7 +11,7 @@ replace backendSenior => ../backend
 require (
 	common v0.0.0-00010101000000-000000000000
 	firebase.google.com/go/v4 v4.1.0
-	github.com/ahmetb/go-linq/v3 v3.2.0 // indirect
+	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.6.3
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
