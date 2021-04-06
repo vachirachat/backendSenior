@@ -96,5 +96,8 @@ func (handler *ConfigRouteHandler) configPluginNetworkStatus(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
 	}
+	if resp == "" {
+		c.JSON(http.StatusOK, gin.H{"status": "NO", "connect plugin with port": resp})
+	}
 	c.JSON(http.StatusOK, gin.H{"status": "OK", "connect plugin with port": resp})
 }

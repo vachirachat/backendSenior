@@ -1,25 +1,28 @@
 @base = http://localhost:8090
 
 
-### Run code -file
-POST {{base}}/config/runcode
-Content-Type: application/json
+# ### Run code -file
+# POST {{base}}/config/runcode
+# Content-Type: application/json
 
-{
-    "Filename":"file",
-    "Lang" : "go"
-}
-
-### Run Execfile
-GET {{base}}/api/v1/config/process/start?file=to_zip_docker_exec
-
-
-### Kill Process
-POST {{base}}/api/v1/config/process/kill?process_name=to_zip_docker_e
+# {
+#     "Filename":"file",
+#     "Lang" : "go"
+# }
+# ### Kill Process
+GET {{base}}/api/v1/config/process/kill?process_name=docker_exec
 
 #js -> node
 #python -> python3
 #go -> go / file
+
+### GET Proxy-Plugin Enable
+GET {{base}}/api/v1/config/plugin/start
+
+
+### GET Proxy-Plugin disable
+GET {{base}}/api/v1/config/plugin/stop
+
 
 ### REGSITER
 POST {{base}}/api/v1/config/docker/status
@@ -29,31 +32,4 @@ Content-Type: application/json
     "server":"docker_upload"
 }
 
-### New port REGSITER
-POST {{base}}/api/v1/config/process/check
-Content-Type: application/json
 
-{
-    "server":"docker_upload"
-}
-
-### New port REGSITER
-GET {{base}}/api/v1/config/startimage
-
-### New port REGSITER
-POST {{base}}/api/v1/config/containerprocess
-Content-Type: application/json
-
-{
-    "dockerid":"08392baafeb2"
-}
-
-### New port REGSITER
-GET {{base}}/api/v1/config/status/set/false
-
-
-### New port REGSITER
-GET {{base}}/api/v1/config/status/set
-
-### New port REGSITER
-GET {{base}}/api/v1/config/status/callplugin

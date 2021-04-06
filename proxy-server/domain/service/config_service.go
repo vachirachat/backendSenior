@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -89,9 +90,9 @@ func (confService *ConfigService) ConfigFileProxy(file io.Reader, fileHandler *m
 		log.Fatal(err)
 		return err
 	}
-	log.Println("docker", "cp", utills.PATH_ORIGIN_ZIP+"to_zip_"+utills.DOCKEREXEC_FILE_NAME, "08392baafeb2"+":"+utills.DOCKER_PATH_ORIGIN+"/exec-module")
+	log.Println("docker", "cp", utills.PATH_ORIGIN_ZIP+"to_zip_"+utills.DOCKEREXEC_FILE_NAME, confService.proxyConfig.DockerID+":"+utills.DOCKER_PATH_ORIGIN+"/exec-module")
 	// cmdDockerCopy := exec.Command("docker", "cp", utills.PATH_ORIGIN_ZIP+"to_zip_"+fileHandler.Filename, *confService.proxyConfig.DockerID+":"+utills.DOCKER_PATH_ORIGIN+"/exec-module")
-	cmdDockerCopy := exec.Command("docker", "cp", utills.PATH_ORIGIN_ZIP+"to_zip_"+utills.DOCKEREXEC_FILE_NAME, "08392baafeb2"+":"+utills.DOCKER_PATH_ORIGIN+"/exec-module")
+	cmdDockerCopy := exec.Command("docker", "cp", utills.PATH_ORIGIN_ZIP+"to_zip_"+utills.DOCKEREXEC_FILE_NAME, confService.proxyConfig.DockerID+":"+utills.DOCKER_PATH_ORIGIN+"/exec-module")
 
 	_, err = cmdDockerCopy.Output()
 	if err != nil {
@@ -149,7 +150,9 @@ func (confService *ConfigService) ConfigPluginNetworkStatus(storage model_proxy.
 	); err != nil {
 		return "", err
 	}
-
+	if len(b.String()) < 30 {
+		return "", nil
+	}
 	return b.String()[32:42], nil
 }
 
@@ -216,6 +219,9 @@ func (confService *ConfigService) configImageInfo() (string, error) {
 		exec.Command("grep", utills.DOCKERIMAGE_NAME),
 	); err != nil {
 		return "", err
+	}
+	if len(b.String()) < 12 {
+		return "", errors.New("No DockerImage start")
 	}
 	return b.String()[:12], nil
 }
