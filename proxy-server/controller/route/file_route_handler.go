@@ -2,17 +2,21 @@ package route
 
 import (
 	"backendSenior/domain/model"
+	g "common/utils/ginutils"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
+	"github.com/go-resty/resty/v2"
 	"log"
 	"math/rand"
+	"net/url"
 	"proxySenior/controller/middleware"
 	"proxySenior/domain/encryption"
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
+	"proxySenior/utils"
 	"time"
 )
 
@@ -38,7 +42,7 @@ func (h *FileRouteHandler) Mount(rg *gin.RouterGroup) {
 	rg.POST("/room/:roomId/files", h.authMw.AuthRequired(), h.uploadFile)
 	rg.POST("/room/:roomId/images", h.authMw.AuthRequired(), h.uploadImage)
 
-	//rg.GET("/room/:roomID/files", h.authMw.AuthRequired(), h.getFiles)
+	rg.GET("/room/:roomID/files", h.authMw.AuthRequired(), g.InjectGin(h.listFiles))
 	//rg.GET("/room/:roomID/images", h.authMw.AuthRequired(), h.getImages)
 }
 
@@ -274,6 +278,27 @@ func (h *FileRouteHandler) uploadImage(c *gin.Context) {
 	c.JSON(202, gin.H{
 		"fileId": imageID,
 	})
+}
+
+func (h *FileRouteHandler) listFiles(c *gin.Context, req struct{}) error {
+	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		return g.NewError(400, "bad room Id")
+	}
+
+	endPoint := url.URL{
+		Scheme: "http",
+		Host:   utils.ControllerOrigin,
+		Path:   fmt.Sprintf("/api/v1/file/room/%s/files", id),
+	}
+
+	clnt := resty.New()
+	var res []model.FileMeta
+	if _, err := clnt.R().SetResult(&res).Get(endPoint.String()); err != nil {
+		// TODO[ROAD]: finish this
+	}
+
+	return nil
 }
 
 // TODO: duplicated code
