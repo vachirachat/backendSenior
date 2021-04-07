@@ -42,7 +42,8 @@ func (h *FileRouteHandler) Mount(rg *gin.RouterGroup) {
 	rg.POST("/room/:roomId/files", h.authMw.AuthRequired(), h.uploadFile)
 	rg.POST("/room/:roomId/images", h.authMw.AuthRequired(), h.uploadImage)
 
-	rg.GET("/room/:roomID/files", h.authMw.AuthRequired(), g.InjectGin(h.listFiles))
+	rg.GET("/room/:id/files", h.authMw.AuthRequired(), g.InjectGin(h.listFiles))
+	rg.GET("/room/:id/images", h.authMw.AuthRequired(), g.InjectGin(h.listImages))
 	//rg.GET("/room/:roomID/images", h.authMw.AuthRequired(), h.getImages)
 }
 
@@ -293,11 +294,86 @@ func (h *FileRouteHandler) listFiles(c *gin.Context, req struct{}) error {
 	}
 
 	clnt := resty.New()
-	var res []model.FileMeta
-	if _, err := clnt.R().SetResult(&res).Get(endPoint.String()); err != nil {
-		// TODO[ROAD]: finish this
+	keys, err := h.getKeyFromRoom(id)
+	if err != nil {
+		log.Printf("err getting key to decrypt: %s", err)
+		return fmt.Errorf("err getting key to decrypt: %s", err)
 	}
 
+	var res []model.FileMeta
+	if _, err := clnt.R().SetResult(&res).Get(endPoint.String()); err != nil {
+		log.Printf("can't get file list from controller: %s", err)
+		return fmt.Errorf("can't get file list from controller: %s", err)
+
+	}
+	for i := range res {
+		date := res[i].CreatedAt
+		key := keyFor(keys, date)
+		if key == nil {
+			res[i].FileName = "bad_file_timestamp"
+			continue
+		}
+		encryptedFileName, err := encryption.B64Decode([]byte(res[i].FileName))
+		if err != nil {
+			res[i].FileName = "bad_base64_filename"
+			continue
+		}
+		fileName, err := encryption.AESDecrypt(encryptedFileName, key)
+		if err != nil {
+			res[i].FileName = "error_decrypting_filename"
+		}
+		res[i].FileName = string(fileName)
+	}
+
+	c.JSON(200, res)
+	return nil
+}
+
+func (h *FileRouteHandler) listImages(c *gin.Context, req struct{}) error {
+	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		return g.NewError(400, "bad room Id")
+	}
+
+	endPoint := url.URL{
+		Scheme: "http",
+		Host:   utils.ControllerOrigin,
+		Path:   fmt.Sprintf("/api/v1/file/room/%s/images", id),
+	}
+
+	clnt := resty.New()
+	keys, err := h.getKeyFromRoom(id)
+	if err != nil {
+		log.Printf("err getting key to decrypt: %s", err)
+		return fmt.Errorf("err getting key to decrypt: %s", err)
+	}
+
+	var res []model.FileMeta
+	if _, err := clnt.R().SetResult(&res).Get(endPoint.String()); err != nil {
+		log.Printf("can't get file list from controller: %s", err)
+		return fmt.Errorf("can't get file list from controller: %s", err)
+
+	}
+	for i := range res {
+		date := res[i].CreatedAt
+		key := keyFor(keys, date)
+		if key == nil {
+			res[i].FileName = "bad_file_timestamp"
+			continue
+		}
+		encryptedFileName, err := encryption.B64Decode([]byte(res[i].FileName))
+		if err != nil {
+			res[i].FileName = "bad_base64_filename"
+			continue
+		}
+		fileName, err := encryption.AESDecrypt(encryptedFileName, key)
+		if err != nil {
+			res[i].FileName = "error_decrypting_filename"
+		}
+		res[i].FileName = string(fileName)
+	}
+
+	c.JSON(200, res)
 	return nil
 }
 
