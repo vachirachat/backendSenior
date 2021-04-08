@@ -2,8 +2,11 @@ package file
 
 import (
 	"backendSenior/domain/interface/repository"
+	"bytes"
 	"fmt"
 	"github.com/minio/minio-go/pkg/credentials"
+	"io"
+	"io/ioutil"
 	"net/url"
 	"time"
 
@@ -144,4 +147,29 @@ func (s *MinioStore) PostPresignedURL(bucketName string, objectName string) (str
 func (s *MinioStore) DeleteObject(bucketName string, objectName string) (err error) {
 	err = s.clnt.RemoveObject(bucketName, objectName)
 	return err
+}
+
+func (s *MinioStore) PutObject(bucketName string, objectName string, data io.Reader) (err error) {
+	b, err := ioutil.ReadAll(data)
+	if err != nil {
+		return fmt.Errorf("read error: %w", err)
+	}
+	r := bytes.NewReader(b)
+	_, err = s.clnt.PutObject(bucketName, objectName, r, r.Size(), minio.PutObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("upload error: %w", err)
+	}
+	return nil
+}
+
+func (s *MinioStore) GetObject(bucketName string, objectName string) ([]byte, error) {
+	obj, err := s.clnt.GetObject(bucketName, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("get object: %w", err)
+	}
+	data, err := ioutil.ReadAll(obj)
+	if err != nil {
+		return nil, fmt.Errorf("read object content: %w", err)
+	}
+	return data, nil
 }
