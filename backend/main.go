@@ -90,6 +90,7 @@ func main() {
 		SecretKey: "minioadmin",
 		UseSSL:    false,
 	})
+	stickerRepo := mongo_repository.NewStickerRepository(connectionDB)
 
 	if err != nil {
 		log.Fatal("error creating fileStore:", err)
@@ -124,6 +125,7 @@ func main() {
 	keyExSvc := service.NewKeyExchangeService(mongo_repository.KeyVersionCollection(connectionDB))
 
 	fileSvc := service.NewFileService(fileStore, fileMetaRepo)
+	stickerSvc := service.NewStickerService(stickerRepo, stickerRepo, fileStore)
 
 	routerDeps := route.RouterDeps{
 		RoomService:         roomSvc,
@@ -137,6 +139,7 @@ func main() {
 		NotificationService: notifSvc,
 		KeyExchangeService:  keyExSvc,
 		FileService:         fileSvc,
+		StickerService:      stickerSvc,
 	}
 
 	router := routerDeps.NewRouter()

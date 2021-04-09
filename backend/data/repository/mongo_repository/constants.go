@@ -20,6 +20,9 @@ const (
 	collectionKeyVersion  = "keyVersions"
 	// meta
 	collectionMeta = "filemeta"
+	// sticker
+	collectionStickerSet = "stickerSets"
+	collectionSticker    = "stickers"
 )
 
 // return filter of {_id: {$in: ... }}, query that match multiple ID

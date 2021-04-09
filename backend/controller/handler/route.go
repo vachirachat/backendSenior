@@ -21,6 +21,7 @@ type RouterDeps struct {
 	NotificationService *service.NotificationService
 	KeyExchangeService  *service.KeyExchangeService
 	FileService         *service.FileService
+	StickerService      *service.StickerService
 }
 
 // NewRouter create new router (gin server) with various handler
@@ -40,6 +41,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
 	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService)
 	fileRouteHandler := NewFileRouteHandler(deps.FileService, deps.RoomService, authMiddleware)
+	StickerRouteHandler := NewStickerRouteHandler(deps.StickerService)
 	r := gin.New()
 	r.Use(gin.Recovery())
 
@@ -55,6 +57,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	connStateRouteHandler.Mount(subgroup.Group("/conn"))
 	keyRouteHandler.Mount(subgroup.Group("/key"))
 	fileRouteHandler.Mount(subgroup.Group("/file"))
+	StickerRouteHandler.Mount(subgroup.Group("/sticker"))
 
 	v2 := r.Group("/api/v2")
 	organizeRouteHandler.MountV2(v2.Group("/org"))
