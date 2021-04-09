@@ -140,6 +140,8 @@ func resizeImage(imgData []byte) ([]byte, error) {
 		} else {
 			img = imaging.Resize(src, 0, 256, imaging.Lanczos)
 		}
+	} else {
+		img = imaging.Clone(src)
 	}
 
 	buf := new(bytes.Buffer)
