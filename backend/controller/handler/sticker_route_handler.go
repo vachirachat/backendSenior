@@ -3,10 +3,14 @@ package route
 import (
 	"backendSenior/domain/dto"
 	"backendSenior/domain/service"
+	"bytes"
 	g "common/utils/ginutils"
 	"fmt"
+	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
+	"image"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -47,7 +51,7 @@ func (h *StickerRouteHandler) checkSticker(c *gin.Context, req struct {
 }) error {
 	id := c.Param("id")
 	if !bson.IsObjectIdHex(id) {
-		return g.NewError(400, "bad room id")
+		return g.NewError(400, "bad param id")
 	}
 
 	exists, err := h.sticker.StickerExists(bson.ObjectIdHex(id))
@@ -98,6 +102,57 @@ func (h *StickerRouteHandler) getStickerSet(c *gin.Context, req struct{}) error 
 	return nil
 }
 
+var mapFormat = map[string]imaging.Format{
+	"jpg":  imaging.JPEG,
+	"jpeg": imaging.JPEG,
+	"png":  imaging.PNG,
+	"bmp":  imaging.BMP,
+	"gif":  imaging.GIF,
+	"tif":  imaging.TIFF,
+	"tiff": imaging.TIFF,
+}
+
+func resizeImage(imgData []byte) ([]byte, error) {
+
+	r := bytes.NewReader(imgData)
+	// determine type
+	_, format, err := image.DecodeConfig(r)
+	if err != nil {
+		log.Printf("image: error determining image type: %s, is it corrupt?", err)
+		return nil, fmt.Errorf("image: error determining image type: %s, is it corrupt?", err)
+	}
+	//
+	r.Seek(0, io.SeekStart) // reset seek
+	src, err := imaging.Decode(r)
+	if err != nil {
+		log.Printf("imaging: error decoing image: %s, is it corrupt?", err)
+		return nil, fmt.Errorf("imaging: error decoing image: %s, is it corrupt?", err)
+	}
+
+	size := src.Bounds().Size()
+	width := size.X
+	height := size.Y
+	var img *image.NRGBA
+
+	if width > 256 || height > 256 {
+		if width > height {
+			img = imaging.Resize(src, 256, 0, imaging.Lanczos)
+		} else {
+			img = imaging.Resize(src, 0, 256, imaging.Lanczos)
+		}
+	}
+
+	buf := new(bytes.Buffer)
+	err = imaging.Encode(buf, img, mapFormat[format])
+	if err != nil {
+		log.Printf("error encoding to %s:%s\n", format, err)
+		return nil, fmt.Errorf("error encoding to %s:%s\n", format, err)
+	}
+
+	resizedImage := buf.Bytes()
+	return resizedImage, nil
+}
+
 func (h *StickerRouteHandler) addStickerToSet(c *gin.Context, req struct {
 }) error {
 	setID := c.Param("id")
@@ -116,12 +171,17 @@ func (h *StickerRouteHandler) addStickerToSet(c *gin.Context, req struct {
 		return fmt.Errorf("error opening file: %w", err)
 	}
 	defer f.Close()
-	bytes, err := ioutil.ReadAll(f)
+	imageData, err := ioutil.ReadAll(f)
 	if err != nil {
 		return fmt.Errorf("error reading file: %w", err)
 	}
 
-	newId, err := h.sticker.AddStickerToSet(bson.ObjectIdHex(setID), dto.CreateStickerDto{}, bytes)
+	resized, err := resizeImage(imageData)
+	if err != nil {
+		return g.NewError(400, fmt.Sprintf("error resizing image: %s", err))
+	}
+
+	newId, err := h.sticker.AddStickerToSet(bson.ObjectIdHex(setID), dto.CreateStickerDto{}, resized)
 	if err != nil {
 		return err
 	}
