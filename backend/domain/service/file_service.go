@@ -4,9 +4,14 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	file_payload "backendSenior/domain/payload/file"
+	"bytes"
 	"errors"
 	"fmt"
+	"github.com/disintegration/imaging"
 	"github.com/globalsign/mgo"
+	"image"
+	"io"
+	"log"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -230,4 +235,61 @@ func (s *FileService) DeleteImage(imageFileID bson.ObjectId) error {
 		}
 		return nil
 	}
+}
+
+func (s *FileService) UploadProfileImage(userID string, file []byte) error {
+
+	r := bytes.NewReader(file)
+
+	// decode & process
+	r.Seek(0, io.SeekStart) // reset seek
+	src, err := imaging.Decode(r)
+	if err != nil {
+		log.Printf("imaging: error decoing image: %s, is it corrupt?", err)
+		return fmt.Errorf("imaging: error decoing image: %s, is it corrupt?", err)
+	}
+
+	size := src.Bounds().Size()
+	width := size.X
+	height := size.Y
+	var img *image.NRGBA
+	if width > height {
+		img = imaging.Resize(src, 400, 0, imaging.Lanczos)
+	} else {
+		img = imaging.Resize(src, 0, 400, imaging.Lanczos)
+	}
+
+	buf := new(bytes.Buffer)
+	err = imaging.Encode(buf, img, imaging.JPEG) // force JPEG !!
+	if err != nil {
+		log.Printf("error encoding to %s:%s\n", imaging.JPEG, err)
+		return fmt.Errorf("error encoding to %s:%s", imaging.JPEG, err)
+	}
+
+	r.Seek(0, io.SeekStart)
+	if err := s.file.PutObject("profile", "profile_"+userID, r); err != nil {
+		return fmt.Errorf("error uploading full image, %w", err)
+	}
+	if err := s.file.PutObject("profile", "thumb_"+userID, buf); err != nil {
+		return fmt.Errorf("error uploading thumbnail image, %w", err)
+	}
+
+	return nil
+}
+
+func (s *FileService) GetProfileImage(userID string, isThumbnail bool) ([]byte, error) {
+	bucket := "profile"
+	var fileName string
+	if isThumbnail {
+		fileName = "thumb_" + userID
+	} else {
+		fileName = "profile_" + userID
+	}
+
+	data, err := s.file.GetObject(bucket, fileName)
+	if err != nil {
+		return nil, fmt.Errorf("error getting file: %w", err)
+	}
+	return data, nil
+
 }

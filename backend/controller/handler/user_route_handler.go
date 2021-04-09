@@ -5,6 +5,9 @@ import (
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
+	g "common/utils/ginutils"
+	"fmt"
+	"io/ioutil"
 
 	"backendSenior/domain/model"
 	"log"
@@ -20,13 +23,20 @@ type UserRouteHandler struct {
 	userService    *service.UserService
 	jwtService     *auth.JWTService
 	authMiddleware *authMw.JWTMiddleware
+	fileService    *service.FileService
 }
 
-func NewUserRouteHandler(userService *service.UserService, jwtService *auth.JWTService, authMiddleware *authMw.JWTMiddleware) *UserRouteHandler {
+func NewUserRouteHandler(
+	userService *service.UserService,
+	jwtService *auth.JWTService,
+	authMiddleware *authMw.JWTMiddleware,
+	fileService *service.FileService,
+) *UserRouteHandler {
 	return &UserRouteHandler{
 		userService:    userService,
 		jwtService:     jwtService,
 		authMiddleware: authMiddleware,
+		fileService:    fileService,
 	}
 }
 
@@ -46,10 +56,13 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/login/:orgid/org", handler.loginOrgHandle)
 	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
 	routerGroup.GET("/me", handler.authMiddleware.AuthRequired(), handler.getMeHandler)
+	routerGroup.POST("/me/profile", handler.authMiddleware.AuthRequired(), g.InjectGin(handler.uploadProfileImage))
 
 	// (for proxy)
 	routerGroup.POST("/verify", handler.verifyToken)
 	routerGroup.GET("/byid/:id", handler.getUserByIDHandler)
+
+	routerGroup.GET("/byid/:id/profile", g.InjectGin(handler.getProfileImage))
 }
 
 func (handler *UserRouteHandler) getMeHandler(context *gin.Context) {
@@ -285,4 +298,53 @@ func (handler *UserRouteHandler) verifyToken(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{
 		"userId": claim.UserId,
 	})
+}
+
+func (handler *UserRouteHandler) getProfileImage(c *gin.Context, req struct{}) error {
+	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		return g.NewError(400, "bad user id in param")
+	}
+
+	isThumbnail := c.Query("thumbnail") == "true"
+
+	img, err := handler.fileService.GetProfileImage(id, isThumbnail)
+	if err != nil {
+		return err
+	}
+
+	c.Header("Content-Disposition", "inline")
+	c.Header("Content-Length", fmt.Sprint(len(img)))
+	c.Data(200, "image/jpeg", img)
+	return nil
+}
+
+func (handler *UserRouteHandler) uploadProfileImage(c *gin.Context, req struct{}) error {
+	userID := c.GetString(authMw.UserIdField)
+
+	file, err := c.FormFile("image")
+	if err != nil {
+		return fmt.Errorf("error getting form file: %w", err)
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		return fmt.Errorf("error opening file: %w", err)
+	}
+	defer f.Close()
+	bytes, err := ioutil.ReadAll(f)
+	if err != nil {
+		return fmt.Errorf("error reading file: %w", err)
+	}
+
+	if err := handler.fileService.UploadProfileImage(userID, bytes); err != nil {
+		return fmt.Errorf("error uploading image: %w", err)
+	}
+
+	c.JSON(200, g.Response{
+		Success: true,
+		Message: "successfully uploaded profile",
+		Data:    nil,
+	})
+	return nil
 }

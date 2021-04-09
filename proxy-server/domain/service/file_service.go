@@ -3,6 +3,7 @@ package service
 import (
 	"backendSenior/domain/model"
 	file_payload "backendSenior/domain/payload/file"
+	"backendSenior/domain/service"
 	"common/rmq"
 	"encoding/json"
 	"fmt"
@@ -14,7 +15,10 @@ import (
 	"net/http"
 	_ "net/http/httputil"
 	"net/url"
+	"proxySenior/domain/encryption"
 	"proxySenior/utils"
+	"strings"
+	"time"
 )
 
 type FileService struct {
@@ -220,13 +224,22 @@ func (s *FileService) UploadFile(roomID string, userID string, key []byte, fileD
 	go func() {
 		defer close(metaAsync)
 		<-w
+
+		newName := addDateToName(fileDetail.Name)
+		fileNameEnc, err := encryption.AESEncrypt([]byte(newName), key)
+		if err != nil {
+			log.Println("upload image: encrypt meta: %w\n", err)
+			return
+		}
+		fileNameEnc = encryption.B64Encode(fileNameEnc)
+
 		meta := model.FileMeta{
 			FileID:      bson.ObjectIdHex(uploadFileRes.FileID),
 			ThumbnailID: "",
 			UserID:      bson.ObjectIdHex(userID),
 			RoomID:      bson.ObjectIdHex(roomID),
 			BucketName:  "file",
-			FileName:    fileDetail.Name,
+			FileName:    newName,
 			Size:        fileDetail.Size,
 			CreatedAt:   fileDetail.CreatedTime,
 		}
@@ -237,24 +250,40 @@ func (s *FileService) UploadFile(roomID string, userID string, key []byte, fileD
 		}
 
 		res, err := s.clnt.R().
-			SetBody(meta).
+			SetBody(service.UploadFileMeta{
+				Name:      string(fileNameEnc),
+				RoomID:    bson.ObjectIdHex(roomID),
+				UserID:    bson.ObjectIdHex(userID),
+				Size:      fileDetail.Size,
+				CreatedAt: fileDetail.CreatedTime,
+			}).
 			SetHeader("Content-Type", "application/json").
 			Post(afterUploadUrl.String())
 
+		if err != nil {
+			fmt.Printf("[UPLOAD ERROR] request error: %s", err)
+			return
+		}
 		if !res.IsSuccess() {
 			fmt.Printf("[UPLOAD ERROR] after upload: server responded with status %d", res.StatusCode())
 			return
 			//return metaAsync,
-		}
-		if err != nil {
-			fmt.Printf("[UPLOAD ERROR] request error: %s", err)
-			return
 		}
 
 		metaAsync <- meta
 	}()
 
 	return uploadFileRes.FileID, metaAsync, nil
+}
+
+func addDateToName(fileName string) string {
+	parts := strings.Split(fileName, ".")
+	idx := len(parts) - 2
+	if idx < 0 {
+		idx = 0
+	}
+	parts[idx] = fmt.Sprintf("%s.%d.%d", parts[idx], time.Now().Unix(), rand.Int())
+	return strings.Join(parts, ".")
 }
 
 func (s *FileService) UploadImage(roomID string, userID string, key []byte, fileDetail model.FileDetail) (string, chan model.FileMeta, error) {
@@ -289,13 +318,22 @@ func (s *FileService) UploadImage(roomID string, userID string, key []byte, file
 	go func() {
 		defer close(metaAsync)
 		<-w
+		newName := addDateToName(fileDetail.Name)
+		fileNameEnc, err := encryption.AESEncrypt([]byte(newName), key)
+		if err != nil {
+			log.Println("upload image: encrypt meta: %w\n", err)
+			return
+		}
+		fileNameEnc = encryption.B64Encode(fileNameEnc)
+
+		// meta is returned to caller (but not sent to backend)
 		meta := model.FileMeta{
 			FileID:      bson.ObjectIdHex(uploadImageRes.ImageID),
 			ThumbnailID: bson.ObjectIdHex(uploadImageRes.ThumbID),
 			UserID:      bson.ObjectIdHex(userID),
 			RoomID:      bson.ObjectIdHex(roomID),
 			BucketName:  "image",
-			FileName:    fileDetail.Name,
+			FileName:    newName,
 			Size:        fileDetail.Size,
 			CreatedAt:   fileDetail.CreatedTime,
 		}
@@ -306,18 +344,24 @@ func (s *FileService) UploadImage(roomID string, userID string, key []byte, file
 		}
 
 		res, err := s.clnt.R().
-			SetBody(meta).
+			SetBody(service.UploadFileMeta{
+				Name:      string(fileNameEnc),
+				RoomID:    bson.ObjectIdHex(roomID),
+				UserID:    bson.ObjectIdHex(userID),
+				Size:      fileDetail.Size,
+				CreatedAt: fileDetail.CreatedTime,
+			}).
 			SetHeader("Content-Type", "application/json").
 			Post(afterUploadUrl.String())
 
+		if err != nil {
+			fmt.Printf("[UPLOAD ERROR] request error: %s", err)
+			return
+		}
 		if !res.IsSuccess() {
 			fmt.Printf("[UPLOAD ERROR] after upload: server responded with status %d", res.StatusCode())
 			return
 			//return metaAsync,
-		}
-		if err != nil {
-			fmt.Printf("[UPLOAD ERROR] request error: %s", err)
-			return
 		}
 
 		metaAsync <- meta
