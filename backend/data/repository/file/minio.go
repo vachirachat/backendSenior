@@ -91,7 +91,7 @@ func (s *MinioStore) ensureBucket(name string) error {
 }
 
 func (s *MinioStore) Init() error {
-	for _, bucket := range []string{"image", "file", "profile"} {
+	for _, bucket := range []string{"image", "file", "profile", "sticker"} {
 		if err := s.ensureBucket(bucket); err != nil {
 			return fmt.Errorf("error ensuring bucket %s: %w", bucket, err)
 		}
