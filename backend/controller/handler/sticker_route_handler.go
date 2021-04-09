@@ -38,6 +38,9 @@ func (h *StickerRouteHandler) Mount(rg *gin.RouterGroup) {
 	s2.POST("/:id/add-sticker", g.InjectGin(h.addStickerToSet))
 	s2.POST("/:id/remove-sticker", g.InjectGin(h.removeStickerFromSet))
 
+	s3 := rg.Group("/img")
+	s3.GET("/:id", g.InjectGin(h.getStickerImage))
+
 }
 
 func (h *StickerRouteHandler) checkSticker(c *gin.Context, req struct {
@@ -96,12 +99,12 @@ func (h *StickerRouteHandler) getStickerSet(c *gin.Context, req struct{}) error 
 }
 
 func (h *StickerRouteHandler) addStickerToSet(c *gin.Context, req struct {
-	Body dto.CreateStickerDto
 }) error {
 	setID := c.Param("id")
 	if !bson.IsObjectIdHex(setID) {
 		return g.NewError(400, "bad param id")
 	}
+	// TODO: manual bind CreateStickerDto
 
 	file, err := c.FormFile("image")
 	if err != nil {
@@ -118,12 +121,29 @@ func (h *StickerRouteHandler) addStickerToSet(c *gin.Context, req struct {
 		return fmt.Errorf("error reading file: %w", err)
 	}
 
-	newId, err := h.sticker.AddStickerToSet(bson.ObjectIdHex(setID), req.Body, bytes)
+	newId, err := h.sticker.AddStickerToSet(bson.ObjectIdHex(setID), dto.CreateStickerDto{}, bytes)
 	if err != nil {
 		return err
 	}
 
 	c.JSON(200, gin.H{"id": newId})
+	return nil
+}
+
+func (h *StickerRouteHandler) getStickerImage(c *gin.Context, req struct{}) error {
+	stickerID := c.Param("id")
+	if !bson.IsObjectIdHex(stickerID) {
+		return g.NewError(400, "bad param id")
+	}
+	// TODO: manual bind CreateStickerDto
+
+	image, err := h.sticker.GetStickerImage(bson.ObjectIdHex(stickerID))
+	if err != nil {
+		return err
+	}
+
+	// TODO[ROAD]: just let application decide 4 head?
+	c.Data(200, "image/png", image)
 	return nil
 }
 

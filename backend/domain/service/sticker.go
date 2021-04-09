@@ -65,9 +65,24 @@ func (s *StickerService) AddStickerToSet(setID bson.ObjectId, meta dto.CreateSti
 	if err != nil {
 		return "", fmt.Errorf("add to database: %w", err)
 	}
+	// TODO[ROAD]: limit sticker size
 	reader := bytes.NewReader(image)
-	if err := s.objectStore.PutObject("sticker", fmt.Sprintf("%s/%s", setID, id), reader); err != nil {
+	if err := s.objectStore.PutObject("sticker", id.Hex(), reader); err != nil {
 		return "", err
 	}
 	return id, nil
+}
+
+func (s *StickerService) GetStickerImage(ID bson.ObjectId) ([]byte, error) {
+	if exists, err := s.StickerExists(ID); err != nil {
+		return nil, fmt.Errorf("can't check sticker: %w", err)
+	} else if !exists {
+		return nil, errors.New("sticker not exist")
+	}
+
+	data, err := s.objectStore.GetObject("sticker", ID.Hex())
+	if err != nil {
+		return nil, fmt.Errorf("reading sticker image: %w", err)
+	}
+	return data, nil
 }
