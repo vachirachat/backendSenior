@@ -33,7 +33,9 @@ func NewConfigService(enc *EncryptionService, proxyConfig *model_proxy.ProxyConf
 		encryption:          enc,
 	}
 	// Create DockerImage when-start proxy
-	// configService.startDockerImage()
+	if proxyConfig.EnablePlugin {
+		configService.startDockerImage()
+	}
 	return configService
 
 }
