@@ -27,6 +27,8 @@ func requiredEnv(key string) string {
 var (
 	// ControllerOrigin is contrller's IP + port
 	ControllerOrigin string
+	// ControllerBasePath is schene://host:port of controller
+	ControllerBasePath string
 	// MongoConnString is connection string mongo in form mongodb://host:port
 	MongoConnString string
 	// ListenAddress usually ":PORT"
@@ -49,6 +51,7 @@ func init() {
 	}
 
 	ControllerOrigin = "localhost:8080"
+	ControllerBasePath = "http://localhost:8080"
 	MongoConnString = "mongodb://localhost:27017"
 	ListenAddress = defaultEnv("PORT", ":8090")
 	ClientID = requiredEnv("CLIENT_ID")

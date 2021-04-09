@@ -123,6 +123,7 @@ func main() {
 	}()
 
 	configService := service.NewConfigService(enc, proxyConfig, onMessagePlugin)
+	stickerService := service.NewStickerService(utils.ControllerBasePath)
 	// Fix Real Use
 	// configService := service.NewConfigService(enc, proxyConfig)
 	// create router from service
@@ -135,6 +136,7 @@ func main() {
 		KeyService:        keyService,
 		FileService:       fileService,
 		Encrpytion:        enc,
+		StickerService:    stickerService,
 	}).NewRouter()
 
 	router.GET("/debug/conns", func(c *gin.Context) {

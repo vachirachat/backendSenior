@@ -21,6 +21,7 @@ type RouterDeps struct {
 	KeyService        *key_service.KeyService
 	FileService       *service.FileService
 	Encrpytion        *service.EncryptionService
+	StickerService    *service.StickerService
 }
 
 // NewRouter create router from deps
@@ -28,7 +29,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	authMiddleware := middleware.NewAuthMiddleware(deps.AuthService)
 	r := gin.Default()
 
-	chatRouteHandler := NewChatRouteHandler(deps.UpstreamService, deps.DownstreamService, authMiddleware, deps.Encrpytion)
+	chatRouteHandler := NewChatRouteHandler(deps.UpstreamService, deps.DownstreamService, authMiddleware, deps.Encrpytion, deps.StickerService)
 	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.KeyService)
 	pingRouteHandler := NewPingRouteHandler()
 	configRouteHandler := NewConfigRouteHandler(deps.ConfigService)

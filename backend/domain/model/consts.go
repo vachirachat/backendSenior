@@ -1,9 +1,10 @@
 package model
 
 const (
-	MsgFile  = "FILE"
-	MsgImage = "IMAGE"
-	MsgText  = "TEXT"
+	MsgFile    = "FILE"
+	MsgImage   = "IMAGE"
+	MsgText    = "TEXT"
+	MsgSticker = "STICKER"
 )
 
 const (

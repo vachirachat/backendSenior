@@ -25,14 +25,21 @@ type ChatRouteHandler struct {
 	authMiddleware *middleware.AuthMiddleware
 	//key            *key_service.KeyService
 	encryption *service.EncryptionService
+	sticker    *service.StickerService
 }
 
-func NewChatRouteHandler(upstream *service.ChatUpstreamService, downstream *service.ChatDownstreamService, authMw *middleware.AuthMiddleware, enc *service.EncryptionService) *ChatRouteHandler {
+func NewChatRouteHandler(upstream *service.ChatUpstreamService,
+	downstream *service.ChatDownstreamService,
+	authMw *middleware.AuthMiddleware,
+	enc *service.EncryptionService,
+	sticker *service.StickerService,
+) *ChatRouteHandler {
 	return &ChatRouteHandler{
 		upstream:       upstream,
 		downstream:     downstream,
 		authMiddleware: authMw,
 		encryption:     enc,
+		sticker:        sticker,
 	}
 }
 
@@ -134,6 +141,24 @@ func (c *client) readLoop() {
 			} else if !ok {
 				conn.SendJSON(wsErrorMessage("unauthorized"))
 				return
+			}
+
+			if msg.Type == model.MsgSticker {
+				stickerID := msg.Data
+				if !bson.IsObjectIdHex(stickerID) {
+					conn.SendJSON(wsErrorMessage("bad sticker id"))
+					return
+				}
+				if ok, err := c.handlerRef.sticker.CheckSticker(stickerID); err != nil {
+					fmt.Println("can't verify sticker", err)
+					conn.SendJSON(wsErrorMessage(fmt.Sprintf("can't verify sticker %s", err)))
+					return
+				} else if !ok {
+					fmt.Println("unknown sticker", stickerID)
+					conn.SendJSON(wsErrorMessage(fmt.Sprintf("unknown sticker id: %s", stickerID)))
+					return
+				}
+
 			}
 
 			now := time.Now()
