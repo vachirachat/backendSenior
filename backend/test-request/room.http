@@ -4,7 +4,7 @@
 @org = 606a011a26dcb9dde6612d70
 
 
-@roomA = 6066d82dbc4da71de4a1ecd4
+@roomA = 607311f626dcb948f4c544f4
 @roomB = 
 
 @proxyA = 6066d5c7bc4da719f0c4de2f
@@ -14,7 +14,7 @@
 @userA = 6036f05799a05bbc180bd3cb
 # @userB = 60001260f0a50a974cee2f95
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImVhNmY1Y2VlLTNmNjYtNGVmOC1iZWRiLTllNjAyMDYwMmE2ZSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNzM1MjYyOSwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjAzNmYwNTc5OWEwNWJiYzE4MGJkM2NiIn0.eV7mWBaZonXWQ-_aay16PzNXz2hsKdJeDFs3WsRePE8
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjczYTYyMzgwLTlmYWUtNDc2YS04MmU5LWFhNzMzNzM1MzQ1OSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxODE1MzgwMCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA2YTAwODUxMTBkYmFiNzc1ZTNjODQyIn0.o55KRNcgqMSJqFOGMwyVPSNrsXW8Fjgo8aL6ZB3YET0
 
 ### GET ALL ROOMS
 GET {{base}}
@@ -30,9 +30,8 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "roomName": "TEST_TOP",
-  "roomType": "GROUP",
-  "orgId": "{{orgA}}"
+  "roomName": "LOAD TEST",
+  "orgId": "{{org}}"
 }
 
 ### CREATE ROOM
@@ -72,7 +71,8 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "userIds": ["{{userC}}"]
+  "userIds": ["606a0140110dbab775e3c895", "607311a54d193fb8fa6dc3ec", "607311a94d193fb8fa6dc3f1",
+  "607311ad4d193fb8fa6dc3f5", "607311b04d193fb8fa6dc3f8"]
 }
 
 ### remove user
@@ -87,11 +87,11 @@ Authorization: Bearer {{token}}
 ### get proxy full
 GET {{base}}/{{roomA}}/proxy    
 ### Add proxy to Room
-POST {{base}}/{{roomA}}/proxy    
+POST {{base}}/id/{{roomA}}/proxy    
 Content-Type: application/json
 
 {
-  "proxyIds": ["{{proxyA}}"]
+  "proxyIds": ["606b2b3d26dcb9fb60c25cea"]
 }
 
 

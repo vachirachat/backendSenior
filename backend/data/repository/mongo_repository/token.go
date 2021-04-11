@@ -3,56 +3,42 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
-	"unsafe"
-
 	"github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
 )
 
 type TokenRepository struct {
 	conn *mgo.Session
+	col  *mgo.Collection // shortcut to access token collection
 }
 
 // NewFCMUserRepository create new instance of FCMUserRepository
 func NewTokenRepository(conn *mgo.Session) *TokenRepository {
 	return &TokenRepository{
 		conn: conn,
+		col:  conn.DB(dbName).C(collectionToken),
 	}
 }
 
 var _ repository.TokenRepository = (*TokenRepository)(nil)
 
-func (repo *TokenRepository) GetAllToken() ([]model.TokenDB, error) {
-	var tokens []model.TokenDB
-	err := repo.conn.DB(dbName).C(collectionToken).Find(nil).All(&tokens)
-	return tokens, err
+func (repo *TokenRepository) CountToken(filter interface{}) (int, error) {
+	cnt, err := repo.col.Find(filter).Count()
+	return cnt, err
 }
 
-func (repo *TokenRepository) VerifyDBToken(userid string, accessToken string) (string, error) {
-	var token model.TokenDB
-	err := repo.conn.DB(dbName).C(collectionToken).FindId(bson.ObjectIdHex(userid)).One(&token)
-	return token.AccessToken, err
-}
+func (repo *TokenRepository) InsertToken(token model.TokenDB) error {
 
-func (repo *TokenRepository) AddToken(userid string, accessToken string) error {
-	var token model.TokenDB
-	token.AccessToken = accessToken
-	token.UserID = bson.ObjectIdHex(userid)
-	tokenInsert := *(*model.TokenDBInsert)(unsafe.Pointer(&token))
-	err := repo.conn.DB(dbName).C(collectionToken).Insert(tokenInsert)
+	err := repo.col.Insert(token)
 	if err != nil {
-		update := map[string]interface{}{
-			"accesstoken": accessToken,
-		}
-		// err = repo.conn.DB(dbName).C(collectionToken).UpdateId(bson.ObjectIdHex(userid), bson.M{"$set": update})
-		err = repo.conn.DB(dbName).C(collectionToken).Update(bson.M{"_id": bson.ObjectIdHex(userid)}, bson.M{"$set": update})
+		return err
 	}
-	return err
+	return nil
 }
 
-func (repo *TokenRepository) RemoveToken(userid string) error {
-	update := map[string]interface{}{
-		"accesstoken": "",
+func (repo *TokenRepository) RemoveTokens(filter interface{}) (int, error) {
+	info, err := repo.col.RemoveAll(filter)
+	if err != nil {
+		return 0, err
 	}
-	return repo.conn.DB(dbName).C(collectionToken).UpdateId(bson.ObjectIdHex(userid), bson.M{"$set": update})
+	return info.Removed, nil
 }
