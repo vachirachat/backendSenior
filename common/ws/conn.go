@@ -68,11 +68,9 @@ func (c *Connection) readLoop() {
 		close(c.readChannel) // imply that observable is closed too
 		c.conn.Close()
 	}()
-
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-
 loop:
 	for {
 		_, data, err := c.conn.ReadMessage()
