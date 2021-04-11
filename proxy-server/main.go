@@ -28,6 +28,8 @@ import (
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 	"github.com/joho/godotenv"
+
+	_ "net/http/pprof"
 )
 
 func main() {
@@ -162,9 +164,21 @@ func main() {
 		Handler: router,
 	}
 
+	pprofServer := &http.Server{
+		Addr:    "localhost:6060",
+		Handler: nil,
+	}
+
+	go func() {
+
+		if err := pprofServer.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+			log.Printf("pprof: Listen: %s\n", err)
+		}
+	}()
+
 	go func() {
 		if err := httpSrv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
-			log.Printf("Listen: %s\n", err)
+			log.Printf("main: Listen: %s\n", err)
 		}
 	}()
 
@@ -179,6 +193,9 @@ func main() {
 	defer cancel()
 
 	if err := httpSrv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+	if err := pprofServer.Shutdown(ctx); err != nil {
 		log.Fatal("Server forced to shutdown:", err)
 	}
 

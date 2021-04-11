@@ -95,8 +95,9 @@ func (c *Connection) writeLoop() {
 		c.conn.Close()
 
 		// drain channel
-		close(c.writeChannel)
-		for cmd := range c.writeChannel {
+		n := len(c.writeChannel)
+		for i := 0; i < n; i++ {
+			cmd := <-c.writeChannel
 			if cmd.close { // close always success
 				cmd.resp <- true
 			} else { // send failed coz channel is closed
@@ -108,10 +109,7 @@ func (c *Connection) writeLoop() {
 loop:
 	for {
 		select {
-		case cmd, ok := <-c.writeChannel:
-			if !ok {
-				break loop
-			}
+		case cmd := <-c.writeChannel:
 			if cmd.close { // manually closed, send close message, and bye
 				c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 				c.conn.WriteMessage(websocket.CloseMessage, nil)
@@ -139,13 +137,12 @@ var ErrConnClosed = errors.New("send error, connection closed")
 
 // TODO: ensure no send to closed channel
 func (c *Connection) Send(message []byte) error {
+	respChan := make(chan bool, 1)
 	select {
 	case <-c.closed:
 		return ErrConnClosed
 	default:
 	}
-
-	respChan := make(chan bool, 1)
 	c.writeChannel <- writeCmd{data: message, resp: respChan}
 	if ok := <-respChan; ok {
 		return nil
