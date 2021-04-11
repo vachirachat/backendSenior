@@ -8,13 +8,19 @@ config:
     - duration: 200
       arrivalRate: 200
       name: load
+  # payload:
+  #   path: "tokens.csv"
+  #   fields:
+  #     - "token"
   ws:
     headers:
-      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjBmNDA1MzFiLWI3YjMtNGY0MC1iZTYwLTAzNzE0M2M3MzA2ZiIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNzcwNTUzNCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA2YTAwODUxMTBkYmFiNzc1ZTNjODQyIn0.R8YGb_WRV5cLPB3wxSeae8liiDtNFRWCls5puhYuGuc"
-
+      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjczYTYyMzgwLTlmYWUtNDc2YS04MmU5LWFhNzMzNzM1MzQ1OSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxODE1MzgwMCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA2YTAwODUxMTBkYmFiNzc1ZTNjODQyIn0.o55KRNcgqMSJqFOGMwyVPSNrsXW8Fjgo8aL6ZB3YET0"
+    
+  
 scenarios:
   - name: test chatting
     engine: ws
+    
     flow:
       - loop:
         - send:
@@ -22,7 +28,7 @@ scenarios:
             payload:
               messageId: "605259e826dcb9e43396db05"
               timestamp: "2021-03-18T02:35:04.005382742+07:00"
-              roomId: "606a021826dcb9dde6612d76"
+              roomId: "607311f626dcb948f4c544f4"
               userId: "5fef73eb315e73be2c81c745"
               uid: "TODO"
               data: "hello world"
