@@ -10,6 +10,7 @@ import (
 const (
 	UserIdField   = "userId"
 	UserRoleField = "role"
+	TokenField    = "token"
 )
 
 // JWTMiddleware provide function for creating various middleware for verifying JWT Token
@@ -44,6 +45,7 @@ func (mw *JWTMiddleware) AuthRequired() gin.HandlerFunc {
 
 		c.Set(UserIdField, claim.UserId)
 		c.Set(UserRoleField, claim.Role)
+		c.Set(TokenField, token)
 		c.Next()
 
 	}

@@ -200,8 +200,7 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 }
 
 func (handler *UserRouteHandler) logoutHandle(context *gin.Context) {
-	id := context.GetString(authMw.UserIdField)
-	err := handler.jwtService.RemoveToken(id)
+	err := handler.jwtService.InvalidateToken(context.GetString(authMw.TokenField))
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "remove token error: " + err.Error()})
 		return
@@ -210,15 +209,15 @@ func (handler *UserRouteHandler) logoutHandle(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 }
 
-func (handler *UserRouteHandler) getAllTokenHandle(context *gin.Context) {
-	tokens, err := handler.jwtService.GetAllToken()
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "remove token error: " + err.Error()})
-		return
-	}
-
-	context.JSON(http.StatusOK, gin.H{"status": tokens})
-}
+//func (handler *UserRouteHandler) getAllTokenHandle(context *gin.Context) {
+//	tokens, err := handler.jwtService.GetAllToken()
+//	if err != nil {
+//		context.JSON(http.StatusBadRequest, gin.H{"status": "remove token error: " + err.Error()})
+//		return
+//	}
+//
+//	context.JSON(http.StatusOK, gin.H{"status": tokens})
+//}
 
 func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
 	var credentials model.UserSecret

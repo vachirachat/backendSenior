@@ -63,10 +63,6 @@ func (service *JWTService) CreateToken(userDetail model.UserDetail) (*model.Toke
 	if err != nil {
 		return nil, err
 	}
-	err = service.tokenRepository.AddToken(userDetail.UserId, td.AccessToken)
-	if err != nil {
-		return nil, err
-	}
 	return td, nil
 }
 
@@ -82,41 +78,48 @@ func (service *JWTService) VerifyToken(token string) (model.JWTClaim, error) {
 		}
 		return service.accessSecret, nil
 	})
-
-	tokenDB, err := service.tokenRepository.VerifyDBToken(claim.UserId, token)
-	if err != nil || token != tokenDB {
-		return model.JWTClaim{}, errors.New("token is invalid")
-	}
-
 	if err != nil {
-		return model.JWTClaim{}, err
+		return model.JWTClaim{}, fmt.Errorf("token is invalid: %w", err)
+	}
+	if !jwtToken.Valid {
+		return model.JWTClaim{}, fmt.Errorf("token is invalid: %w", jwtToken.Claims.Valid())
 	}
 
-	if !jwtToken.Valid {
-		return model.JWTClaim{}, errors.New("token is invalid" + jwtToken.Claims.Valid().Error())
+	if cnt, err := service.tokenRepository.CountToken(model.TokenDBFilter{
+		Token: token,
+	}); err != nil {
+		return model.JWTClaim{}, fmt.Errorf("can't check token: %w", err)
+	} else if cnt != 0 {
+		return model.JWTClaim{}, errors.New("token is invalid")
 	}
 
 	return claim, nil
 }
 
-// DeleteToken verify token string and return error
-func (service *JWTService) RemoveToken(userid string) error {
-	err := service.tokenRepository.RemoveToken(userid)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// DeleteToken verify token string and return error
-func (service *JWTService) GetAllToken() ([]model.TokenDB, error) {
+// DeleteToken invalidate the token
+func (service *JWTService) InvalidateToken(token string) error {
 	// token extracted will be stored in this struct directly
-	var tokens []model.TokenDB
+	var claim model.JWTClaim
 
-	tokens, err := service.tokenRepository.GetAllToken()
+	jwtToken, err := jwt.ParseWithClaims(token, &claim, func(token *jwt.Token) (interface{}, error) {
+		//Make sure that the token method conform to "SigningMethodHMAC"
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return service.accessSecret, nil
+	})
 	if err != nil {
-		return []model.TokenDB{}, err
+		return fmt.Errorf("token is invalid: %w", err)
+	}
+	if !jwtToken.Valid {
+		return fmt.Errorf("token is invalid: %w", jwtToken.Claims.Valid())
 	}
 
-	return tokens, nil
+	if err := service.tokenRepository.InsertToken(model.TokenDB{
+		Token: token,
+	}); err != nil {
+		return fmt.Errorf("error inserting invalidated token: %w", err)
+	}
+
+	return nil
 }

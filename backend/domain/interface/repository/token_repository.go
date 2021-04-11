@@ -5,8 +5,7 @@ import (
 )
 
 type TokenRepository interface {
-	VerifyDBToken(userid string, accessToken string) (string, error)
-	AddToken(userid string, accessToken string) error
-	RemoveToken(userid string) error
-	GetAllToken() ([]model.TokenDB, error)
+	CountToken(filter interface{}) (int, error)
+	InsertToken(token model.TokenDB) error
+	RemoveTokens(filter interface{}) (int, error)
 }
