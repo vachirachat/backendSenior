@@ -15,4 +15,19 @@ type RemoveStickersDto struct {
 // CreateStickerDto is meta data for creating sticker
 // TODO: might be more field in sticker in the future
 type CreateStickerDto struct {
+	Name string `json:"name" validate:"required"`
+}
+
+// EditStickerDto for editing sticker
+type EditStickerDto struct {
+	Name string `json:"name" validate:"required"`
+}
+
+// EditStickerSetDto for editing sticker Set
+type EditStickerSetDto struct {
+	Name string `json:"name" validate:"required"`
+}
+
+type FindStickerSetDto struct {
+	Name string `json:"name" validate:"required,min=3"`
 }

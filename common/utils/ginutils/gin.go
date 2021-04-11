@@ -15,6 +15,30 @@ type Response struct {
 	Data    interface{} `json:"data"`
 }
 
+// OK shortcut for creating OK message, with optinal data
+func OK(message string, data ...interface{}) Response {
+	res := Response{
+		Success: true,
+		Message: message,
+	}
+	if len(data) > 0 {
+		res.Data = data[0]
+	}
+	return res
+}
+
+// Error shortcut for creating Error message, with optinal data
+func Error(message string, data ...interface{}) Response {
+	res := Response{
+		Success: false,
+		Message: message,
+	}
+	if len(data) > 0 {
+		res.Data = data[0]
+	}
+	return res
+}
+
 // for response
 type StatusI interface {
 	Status() int
@@ -73,7 +97,7 @@ func Resp(resp interface{}) *Data {
 	}
 }
 func (d *Data) WithCode(code int) *Data {
-	d.Code = 200
+	d.Code = code
 	return d
 }
 func (d *Data) WithCType(ctype string) *Data {

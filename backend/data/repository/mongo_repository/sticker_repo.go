@@ -3,6 +3,7 @@ package mongo_repository
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
+	"common/utils/db"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
 )
@@ -50,6 +51,19 @@ func (s StickerRepository) InsertStickerSet(stickerSet model.StickerSet) (bson.O
 	return id, nil
 }
 
+func (s StickerRepository) RemoveStickerSets(filter interface{}) (int, error) {
+	if info, err := s.stickerSet.RemoveAll(filter); err != nil {
+		return 0, err
+	} else {
+		return info.Removed, nil
+	}
+}
+
+func (s StickerRepository) UpdateStickerSetByID(ID bson.ObjectId, update interface{}) error {
+	err := s.stickerSet.UpdateId(ID, db.Set(update))
+	return err
+}
+
 // Implement Sticker repository
 
 func (s StickerRepository) FindSticker(filter interface{}) ([]model.Sticker, error) {
@@ -73,7 +87,20 @@ func (s StickerRepository) InsertSticker(sticker model.Sticker) (bson.ObjectId, 
 	return id, nil
 }
 
-func (s StickerRepository) RemoveStickers(filter interface{}) error {
-	_, err := s.sticker.RemoveAll(filter)
+func (s StickerRepository) RemoveStickers(filter interface{}) (int, error) {
+	if info, err := s.sticker.RemoveAll(filter); err != nil {
+		return 0, err
+	} else {
+		return info.Removed, err
+	}
+}
+
+func (s StickerRepository) UpdateStickerByID(ID bson.ObjectId, update interface{}) error {
+	err := s.sticker.UpdateId(ID, db.Set(update))
 	return err
+}
+
+func (s StickerRepository) CountSticker(filter interface{}) (int, error) {
+	cnt, err := s.sticker.Find(filter).Count()
+	return cnt, err
 }

@@ -35,20 +35,25 @@ func (h *StickerRouteHandler) Mount(rg *gin.RouterGroup) {
 
 	s1 := rg.Group("/sets")
 	s1.GET("/", g.InjectGin(h.listStickerSet))
+	s1.POST("/find", g.InjectGin(h.findStickerSet))
 	s1.POST("/create", g.InjectGin(h.createStickerSet))
 
 	s2 := rg.Group("/set")
 	s2.GET("/:id", g.InjectGin(h.getStickerSet))
+	s2.DELETE("/:id", g.InjectGin(h.removeStickerSet))
 	s2.POST("/:id/add-sticker", g.InjectGin(h.addStickerToSet))
 	s2.POST("/:id/remove-sticker", g.InjectGin(h.removeStickerFromSet))
+	s2.POST("/:id/edit", g.InjectGin(h.editStickerSet))
 
 	s3 := rg.Group("/img")
 	s3.GET("/:id", g.InjectGin(h.getStickerImage))
 
+	s4 := rg.Group("/byid")
+	s4.POST("/:id/edit", g.InjectGin(h.editSticker))
+
 }
 
-func (h *StickerRouteHandler) checkSticker(c *gin.Context, req struct {
-}) error {
+func (h *StickerRouteHandler) checkSticker(c *gin.Context, req struct{}) error {
 	id := c.Param("id")
 	if !bson.IsObjectIdHex(id) {
 		return g.NewError(400, "bad param id")
@@ -213,6 +218,79 @@ func (h *StickerRouteHandler) removeStickerFromSet(c *gin.Context, req struct {
 	Body dto.RemoveStickersDto
 }) error {
 
-	panic("TODO")
+	errors := make([]string, 0, len(req.Body.IDs))
+	for _, id := range req.Body.IDs {
+		err := h.sticker.RemoveSticker(id)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("error deleting %s: %s", id.Hex(), err.Error()))
+		}
+	}
+
+	c.JSON(200, gin.H{
+		"errors": errors,
+	})
+	return nil
+}
+
+func (h *StickerRouteHandler) editStickerSet(c *gin.Context, req struct {
+	Body dto.EditStickerSetDto
+}) error {
+	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		return g.NewError(400, "bad param id")
+	}
+
+	if err := h.sticker.EditStickerSetInfo(bson.ObjectIdHex(id), req.Body); err != nil {
+		return err
+	}
+
+	c.JSON(200, g.OK("updated sticker set"))
+	return nil
+}
+
+func (h *StickerRouteHandler) editSticker(c *gin.Context, req struct {
+	Body dto.EditStickerDto
+}) error {
+	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		return g.NewError(400, "bad param roomId")
+	}
+
+	if err := h.sticker.EditStickerInfo(bson.ObjectIdHex(id), req.Body); err != nil {
+		return err
+	}
+
+	c.JSON(200, g.OK("updated sticker"))
+	return nil
+}
+
+func (h *StickerRouteHandler) removeStickerSet(c *gin.Context, req struct{}) error {
+	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		return g.NewError(400, "bad param stickerSet")
+	}
+
+	if empty, err := h.sticker.StickerSetIsEmpty(bson.ObjectIdHex(id)); err != nil {
+		return err
+	} else if !empty {
+		return g.NewError(400, fmt.Sprintf("specified sticker set %s is not empty", id))
+	}
+
+	if err := h.sticker.RemoveStickerSet(bson.ObjectIdHex(id)); err != nil {
+		return err
+	}
+
+	c.JSON(200, g.OK("removed sticker set"))
+	return nil
+}
+
+func (h *StickerRouteHandler) findStickerSet(c *gin.Context, req struct {
+	Body dto.FindStickerSetDto
+}) error {
+	stickers, err := h.sticker.FindStickerSet(req.Body)
+	if err != nil {
+		return err
+	}
+	c.JSON(200, stickers)
 	return nil
 }

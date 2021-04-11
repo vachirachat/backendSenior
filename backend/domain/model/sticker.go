@@ -12,6 +12,7 @@ type StickerSet struct {
 type Sticker struct {
 	ID    bson.ObjectId `json:"id" bson:"_id,omitempty"`
 	SetID bson.ObjectId `json:"setId" bson:"setId"`
+	Name  string        `json:"name" bson:"name"`
 }
 
 type StickerSetFilter struct {
@@ -22,4 +23,5 @@ type StickerSetFilter struct {
 type StickerFilter struct {
 	ID    interface{} `bson:"_id,omitempty"`
 	SetID interface{} `bson:"setId,omitempty"`
+	Name  interface{} `bson:"name,omitempty"`
 }

@@ -5,16 +5,20 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"bytes"
+	"common/utils/db"
 	"errors"
 	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
+	"log"
+	"os"
 )
 
 type StickerService struct {
 	stickerRepo    repository.StickerRepository
 	stickerSetRepo repository.StickerSetRepository
 	objectStore    repository.ObjectStore
+	l              *log.Logger
 }
 
 func NewStickerService(
@@ -26,6 +30,7 @@ func NewStickerService(
 		stickerRepo:    stickerRepo,
 		stickerSetRepo: stickerSetRepo,
 		objectStore:    objectStore,
+		l:              log.New(os.Stdout, "StickerService", log.LstdFlags|log.Lshortfile),
 	}
 }
 
@@ -89,4 +94,59 @@ func (s *StickerService) GetStickerImage(ID bson.ObjectId) ([]byte, error) {
 		return nil, fmt.Errorf("reading sticker image: %w", err)
 	}
 	return data, nil
+}
+
+func (s *StickerService) RemoveSticker(ID bson.ObjectId) error {
+	if cnt, err := s.stickerRepo.RemoveStickers(model.StickerFilter{ID: ID}); err != nil {
+		s.l.Println("[ERROR] error deleting sticker meta", err)
+		return fmt.Errorf("error deleting sticker: %w", err)
+	} else if cnt == 0 {
+		return fmt.Errorf("sticker not found")
+	}
+
+	if err := s.objectStore.DeleteObject("sticker", ID.Hex()); err != nil {
+		s.l.Println("[WARN] error deleting sticker file, file will be \"dangling\":", err)
+	}
+
+	return nil
+}
+
+func (s *StickerService) RemoveStickerSet(ID bson.ObjectId) error {
+	if cnt, err := s.stickerSetRepo.RemoveStickerSets(model.StickerSetFilter{ID: ID}); err != nil {
+		s.l.Println("[ERROR] error deleting sticker set meta", err)
+		return fmt.Errorf("error deleting sticker set: %w", err)
+	} else if cnt == 0 {
+		return fmt.Errorf("sticker not found")
+	}
+	return nil
+}
+
+func (s *StickerService) EditStickerSetInfo(ID bson.ObjectId, editInfo dto.EditStickerSetDto) error {
+	err := s.stickerSetRepo.UpdateStickerSetByID(ID, model.StickerSetFilter{
+		Name: editInfo.Name,
+	})
+	return err
+}
+
+func (s *StickerService) EditStickerInfo(ID bson.ObjectId, editInfo dto.EditStickerDto) error {
+	err := s.stickerRepo.UpdateStickerByID(ID, model.StickerFilter{
+		Name: editInfo.Name,
+	})
+	return err
+}
+
+func (s *StickerService) StickerSetIsEmpty(setID bson.ObjectId) (bool, error) {
+	cnt, err := s.stickerRepo.CountSticker(model.StickerFilter{
+		SetID: setID,
+	})
+	if err != nil {
+		return false, err
+	}
+	return cnt == 0, nil
+}
+
+func (s *StickerService) FindStickerSet(query dto.FindStickerSetDto) ([]model.StickerSet, error) {
+	return s.stickerSetRepo.FindStickerSet(model.StickerSetFilter{
+		Name: db.Contains(query.Name, db.CaseInsensitive),
+	})
 }
