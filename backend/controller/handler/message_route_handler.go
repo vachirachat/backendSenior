@@ -4,12 +4,14 @@ import (
 	"backendSenior/controller/middleware/auth"
 	"backendSenior/domain/model"
 	"backendSenior/domain/service"
+	"backendSenior/utills"
 	g "common/utils/ginutils"
 	"errors"
-	"github.com/ahmetb/go-linq/v3"
-	"github.com/globalsign/mgo"
 	"log"
 	"net/http"
+
+	"github.com/ahmetb/go-linq/v3"
+	"github.com/globalsign/mgo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
@@ -21,6 +23,7 @@ type MessageRouteHandler struct {
 	fileService    *service.FileService
 	roomService    *service.RoomService
 	auth           *auth.JWTMiddleware
+	validate       *utills.StructValidator
 }
 
 // NewMessageRouteHandler create handler for message route
@@ -29,18 +32,20 @@ func NewMessageRouteHandler(
 	fileService *service.FileService,
 	roomService *service.RoomService,
 	auth *auth.JWTMiddleware,
+	validate *utills.StructValidator,
 ) *MessageRouteHandler {
 	return &MessageRouteHandler{
 		messageService: msgService,
 		fileService:    fileService,
 		roomService:    roomService,
 		auth:           auth,
+		validate:       validate,
 	}
 }
 
 //Mount make messageRouteHandler handler request from specific `RouterGroup`
 func (handler *MessageRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.messageListHandler)
+	// routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.messageListHandler)
 	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.addMessageHandeler)
 	// route.PUT("/message/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/ ,handler.editMessageHandler)
 	routerGroup.DELETE("/:message_id", handler.auth.AuthRequired(), g.InjectGin(handler.deleteMessageByIDHandler))

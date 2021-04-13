@@ -10,10 +10,11 @@ import (
 	g "common/utils/ginutils"
 	"errors"
 	"fmt"
-	"github.com/ahmetb/go-linq/v3"
-	"github.com/globalsign/mgo"
 	"os"
 	"time"
+
+	"github.com/ahmetb/go-linq/v3"
+	"github.com/globalsign/mgo"
 
 	"backendSenior/domain/model"
 	"log"
@@ -33,6 +34,7 @@ type RoomRouteHandler struct {
 	orgService   *service.OrganizeService
 	logger       *log.Logger
 	keyService   *service.KeyExchangeService
+	validate     *utills.StructValidator
 }
 
 // NewRoomHandler create new handler for room
@@ -43,6 +45,7 @@ func NewRoomRouteHandler(roomService *service.RoomService,
 	chatService *service.ChatService,
 	orgService *service.OrganizeService,
 	keyService *service.KeyExchangeService,
+	validate *utills.StructValidator,
 ) *RoomRouteHandler {
 	return &RoomRouteHandler{
 		roomService:  roomService,
@@ -53,13 +56,14 @@ func NewRoomRouteHandler(roomService *service.RoomService,
 		orgService:   orgService,
 		keyService:   keyService,
 		logger:       log.New(os.Stdout, "RoomRouteHandler ", log.LstdFlags|log.Lshortfile),
+		validate:     validate,
 	}
 }
 
 //Mount make RoomRouteHandler handler request from specific `RouterGroup`
 func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/id/:id/member", handler.getRoomMember)
+	routerGroup.GET("/id/:id/member", g.InjectGin(handler.getRoomMember))
 	routerGroup.POST("/id/:id/member", handler.authMw.AuthRequired(), g.InjectGin(handler.addMemberToRoom))
 	routerGroup.DELETE("/id/:id/member", handler.authMw.AuthRequired(), g.InjectGin(handler.deleteMemberFromRoom))
 	// room admin API
@@ -67,21 +71,21 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/id/:id/admin", handler.authMw.AuthRequired(), g.InjectGin(handler.addAdminsToRoom))
 	routerGroup.DELETE("/id/:id/admin", handler.authMw.AuthRequired(), g.InjectGin(handler.removeAdminsFromRoom))
 
-	routerGroup.GET("/id/:id/proxy", handler.getRoomProxies)
-	routerGroup.POST("/id/:id/proxy", handler.addProxiesToRoom)
-	routerGroup.DELETE("/id/:id/proxy", handler.removeProxiesFromRoom)
+	routerGroup.GET("/id/:id/proxy", g.InjectGin(handler.getRoomProxies))
+	routerGroup.POST("/id/:id/proxy", g.InjectGin(handler.addProxiesToRoom))
+	routerGroup.DELETE("/id/:id/proxy", g.InjectGin(handler.removeProxiesFromRoom))
 
 	routerGroup.POST("/create-group", handler.authMw.AuthRequired(), g.InjectGin(handler.createGroupHandler))
 	routerGroup.POST("/create-private-chat", handler.authMw.AuthRequired(), g.InjectGin(handler.createPrivateChatHandler))
-	routerGroup.POST("/id/:id/name" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editRoomNameHandler)
-	routerGroup.DELETE("/id/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteRoomByIDHandler)
+	routerGroup.POST("/id/:id/name" /*handler.authService.AuthMiddleware("object", "view"),*/, g.InjectGin(handler.editRoomNameHandler))
+	routerGroup.DELETE("/id/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, g.InjectGin(handler.deleteRoomByIDHandler))
 	// routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
 	// routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
-	routerGroup.GET("/id/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomByIDHandler)
-	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.roomListHandler)
+	routerGroup.GET("/id/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, g.InjectGin(handler.getRoomByIDHandler))
+	routerGroup.GET("/", handler.authMw.AuthRequired(), g.InjectGin(handler.roomListHandler))
 }
 
-func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
+func (handler *RoomRouteHandler) roomListHandler(context *gin.Context, req struct{}) error {
 	var roomsInfo model.RoomInfo
 
 	isMe := context.Query("me") != ""
@@ -96,29 +100,29 @@ func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
 		rooms, err = handler.roomService.GetAllRooms()
 	}
 	if err != nil {
-		log.Println("error roomListHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
+		return err
 	}
 	roomsInfo.Room = rooms
 	context.JSON(http.StatusOK, roomsInfo)
+	return nil
 }
 
 // for get room by id
-func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context) {
+func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context, req struct{}) error {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
-		return
+		return g.NewError(400, "room id in path")
 	}
 
 	room, err := handler.roomService.GetRoomByID(roomID)
 	if err != nil {
 		log.Println("error GetRoomByIDHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
+		return err
 	}
 	context.JSON(http.StatusOK, room)
+	return nil
 }
 
 // for room group, we invite later
@@ -222,11 +226,10 @@ func (handler *RoomRouteHandler) createPrivateChatHandler(c *gin.Context, input 
 	return nil
 }
 
-func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
+func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context, req struct{}) error {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
-		return
+		return g.NewError(400, "room id in path")
 	}
 
 	var room model.Room
@@ -236,7 +239,7 @@ func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
 	if err != nil {
 		log.Println("error EditRoomNametHandler", err.Error())
 		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-		return
+		return err
 	}
 
 	err = handler.roomService.EditRoomName(roomID, room)
@@ -244,25 +247,25 @@ func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context) {
 	if err != nil {
 		log.Println("error EditRoomNametHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
+		return err
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
+	return nil
 }
 
-func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context) {
+func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context, req struct{}) error {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
-		return
+		return g.NewError(400, "room id in path")
 	}
 
 	err := handler.roomService.DeleteRoomByID(roomID)
 	if err != nil {
-		log.Println("error DeleteRoomHandler", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
+		return err
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
+	return nil
 }
 
 // Match with Socket-structure
@@ -412,11 +415,10 @@ func (handler *RoomRouteHandler) deleteMemberFromRoom(c *gin.Context, req struct
 }
 
 // TODO change this to return full object only, currently keep for compatibility of proxy
-func (handler *RoomRouteHandler) getRoomMember(context *gin.Context) {
+func (handler *RoomRouteHandler) getRoomMember(context *gin.Context, req struct{}) error {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
-		return
+		return g.NewError(400, "room id in path")
 	}
 	isFull := context.Query("full") != ""
 
@@ -424,59 +426,59 @@ func (handler *RoomRouteHandler) getRoomMember(context *gin.Context) {
 	if err != nil {
 		fmt.Println("[getRoomMember] error", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		return err
 	}
 
 	if !isFull {
 		context.JSON(http.StatusOK, gin.H{
 			"members": userIDs,
 		})
-		return
+		return nil
 	}
 	users, err := handler.userService.GetUsersByIDs(userIDs)
 	if err != nil {
 		fmt.Println("[getRoomMember, full] error", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		return err
 	}
 
 	context.JSON(http.StatusOK, gin.H{
 		"members": users,
 	})
+	return nil
 }
 
-func (handler *RoomRouteHandler) getRoomProxies(context *gin.Context) {
+func (handler *RoomRouteHandler) getRoomProxies(context *gin.Context, req struct{}) error {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
-		return
+		return g.NewError(400, "room id in path")
 	}
 
 	proxyIDs, err := handler.roomService.GetRoomProxyIDs(roomID)
 	if err != nil {
 		fmt.Println("[getRoomProxies]", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		return err
 	}
 
 	proxies, err := handler.proxyService.GetProxiesByIDs(proxyIDs)
 	if err != nil {
 		fmt.Println("[getRoomProxies]", err)
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		return err
 	}
 
 	context.JSON(http.StatusOK, gin.H{
 		"proxies": proxies,
 	})
+	return nil
 
 }
 
-func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context) {
+func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context, req struct{}) error {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
-		return
+		return g.NewError(400, "room id in path")
 	}
 
 	var body struct {
@@ -484,24 +486,25 @@ func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context) {
 	}
 
 	if err := context.MustBindWith(&body, binding.JSON); err != nil {
-		return
+		return err
 	}
 
 	if err := handler.roomService.AddProxiesToRoom(roomID, utills.ToStringArr(body.ProxyIDs)); err != nil {
 		handler.logger.Println("[Room handler] addProxiesToRoom: add proxy", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		return err
 	}
 	if err := handler.keyService.Ensure(roomID, utills.ToStringArr(body.ProxyIDs)); err != nil {
 		handler.logger.Println("[Room handler] addProxiesToRoom: ensure key ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		return err
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
+	return nil
 
 }
 
-func (handler *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context) {
+func (handler *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context, req struct{}) error {
 	roomID := context.Param("id")
 
 	var body struct {
@@ -509,33 +512,33 @@ func (handler *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context) {
 	}
 
 	if err := context.MustBindWith(&body, binding.JSON); err != nil {
-		return
+		return err
 	}
 
 	err := handler.roomService.DeleteProxiesFromRoom(roomID, utills.ToStringArr(body.ProxyIDs))
 	if err != nil {
 		handler.logger.Println("[Room handler] removeProxiesFromRoom: ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		return err
 	}
 	if err := handler.keyService.Delete(roomID, utills.ToStringArr(body.ProxyIDs)); err != nil {
 		handler.logger.Println("[Room handler] removeProxiesFromRoom: remove key ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		return err
 	}
 
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
-
+	return nil
 }
 
-func (handler *RoomRouteHandler) uploadFile(c *gin.Context) {
+func (handler *RoomRouteHandler) uploadFile(c *gin.Context, req struct{}) error {
 	roomID := c.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		c.JSON(400, gin.H{
 			"status":  "error",
 			"message": "bad room id",
 		}) // TODO
-		return
+		return fmt.Errorf("error upload File")
 	}
 
 	fileHeader, err := c.FormFile("file")
@@ -544,7 +547,7 @@ func (handler *RoomRouteHandler) uploadFile(c *gin.Context) {
 			"status":  "error",
 			"message": "bad room id",
 		}) // TODO
-		return
+		return err
 	}
 
 	_, err = fileHeader.Open()
@@ -554,9 +557,9 @@ func (handler *RoomRouteHandler) uploadFile(c *gin.Context) {
 			"status":  "error",
 			"message": "error reading file, try again",
 		})
-		return
+		return err
 	}
-
+	return nil
 	// w := c.Writer
 	// w.WriteHeader(200)
 

@@ -3,6 +3,7 @@ package route
 import (
 	"backendSenior/domain/model"
 	"backendSenior/domain/service"
+	"backendSenior/utills"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -16,24 +17,29 @@ import (
 type ProxyRouteHandler struct {
 	proxyService *service.ProxyService
 	roomService  *service.RoomService // get master proxy
+	validate     *utills.StructValidator
 }
 
 // NewProxyRouteHandler create new handler for proxy
-func NewProxyRouteHandler(proxyService *service.ProxyService, roomService *service.RoomService) *ProxyRouteHandler {
+func NewProxyRouteHandler(proxyService *service.ProxyService, roomService *service.RoomService, validate *utills.StructValidator) *ProxyRouteHandler {
 	return &ProxyRouteHandler{
 		proxyService: proxyService,
 		roomService:  roomService,
+		validate:     validate,
 	}
 }
 
 //Mount make RoomRouteHandler handler request from specific `RouterGroup`
 func (handler *ProxyRouteHandler) Mount(routerGroup *gin.RouterGroup) {
+	// Proxy
 	routerGroup.GET("/", handler.getAllProxies)
 	routerGroup.POST("/", handler.createProxy)
 	routerGroup.POST("/:id/", handler.updateProxy)
 	routerGroup.GET("/:id/", handler.getProxyByID)
-	// routerGroup.GET("/:id/master-rooms", handler.getMasterRooms)
 	routerGroup.POST("/:id/reset", handler.resetSecret)
+	// routerGroup.GET("/:id/master-rooms", handler.getMasterRooms)
+
+	// Proxy-Plugin
 	routerGroup.POST("/:id/vm/file", handler.forwardProxyVMFile)
 	routerGroup.POST("/:id/vm/status", handler.forwardProxyVMStatus)
 	routerGroup.GET("/:id/process/:process_name/kill", handler.forwardProxyVMProcessKill)
@@ -50,22 +56,6 @@ func (handler *ProxyRouteHandler) getAllProxies(context *gin.Context) {
 		return
 	}
 	context.JSON(http.StatusOK, proxies)
-}
-
-func (handler *ProxyRouteHandler) getProxyByID(context *gin.Context) {
-	proxyID := context.Param("id")
-	if !bson.IsObjectIdHex(proxyID) || proxyID == "" || proxyID == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
-		return
-	}
-
-	proxy, err := handler.proxyService.GetProxyByID(proxyID)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
-
-	context.JSON(http.StatusOK, proxy)
 }
 
 // createProxy: new proxy with specified name, return ID and secret
@@ -85,23 +75,6 @@ func (handler *ProxyRouteHandler) createProxy(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
-	context.JSON(http.StatusOK, gin.H{"proxyId": id, "proxySecret": secret})
-}
-
-func (handler *ProxyRouteHandler) resetSecret(context *gin.Context) {
-	id := context.Param("id")
-	if !bson.IsObjectIdHex(id) {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad id"})
-		return
-	}
-
-	secret, err := handler.proxyService.ResetProxySecret(id)
-	if err != nil {
-		fmt.Println("error reset secret:", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
-	}
-
 	context.JSON(http.StatusOK, gin.H{"proxyId": id, "proxySecret": secret})
 }
 
@@ -128,6 +101,39 @@ func (handler *ProxyRouteHandler) updateProxy(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func (handler *ProxyRouteHandler) getProxyByID(context *gin.Context) {
+	proxyID := context.Param("id")
+	if !bson.IsObjectIdHex(proxyID) || proxyID == "" {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
+		return
+	}
+
+	proxy, err := handler.proxyService.GetProxyByID(proxyID)
+	if err != nil {
+		fmt.Println("error get proxy by id", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	}
+
+	context.JSON(http.StatusOK, proxy)
+}
+
+func (handler *ProxyRouteHandler) resetSecret(context *gin.Context) {
+	id := context.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "bad id"})
+		return
+	}
+
+	secret, err := handler.proxyService.ResetProxySecret(id)
+	if err != nil {
+		fmt.Println("error reset secret:", err.Error())
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"proxyId": id, "proxySecret": secret})
 }
 
 // Forward API to porxy by proxyID query IP

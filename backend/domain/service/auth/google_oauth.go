@@ -99,12 +99,5 @@ func getUserDataFromGoogle(code string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed read response: %s", err.Error())
 	}
-	// // Add new token
-	// var userToken model.UserToken
-	// userToken.Token = token.AccessToken
-	// userToken.TimeExpired = token.Expiry.String()
-	// userToken.Email =
-	// userSecret.Passwor
-	// repository.AddToken(userToken)
 	return contents, nil
 }

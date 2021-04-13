@@ -3,28 +3,32 @@ package route
 import (
 	"backendSenior/domain/dto"
 	"backendSenior/domain/service"
+	"backendSenior/utills"
 	"bytes"
 	g "common/utils/ginutils"
 	"fmt"
-	"github.com/disintegration/imaging"
-	"github.com/gin-gonic/gin"
-	"github.com/globalsign/mgo/bson"
 	"image"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/disintegration/imaging"
+	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo/bson"
 )
 
 type StickerRouteHandler struct {
-	sticker *service.StickerService
-	log     *log.Logger
+	sticker  *service.StickerService
+	log      *log.Logger
+	validate *utills.StructValidator
 }
 
-func NewStickerRouteHandler(sticker *service.StickerService) *StickerRouteHandler {
+func NewStickerRouteHandler(sticker *service.StickerService, validate *utills.StructValidator) *StickerRouteHandler {
 	return &StickerRouteHandler{
-		sticker: sticker,
-		log:     log.New(os.Stdout, "StickerRouteHandler", log.LstdFlags|log.Lshortfile),
+		sticker:  sticker,
+		log:      log.New(os.Stdout, "StickerRouteHandler", log.LstdFlags|log.Lshortfile),
+		validate: validate,
 	}
 }
 

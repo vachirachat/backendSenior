@@ -13,6 +13,7 @@ import (
 
 	firebase "firebase.google.com/go/v4"
 	"github.com/globalsign/mgo"
+	"github.com/go-playground/validator"
 	"google.golang.org/api/option"
 )
 
@@ -107,6 +108,8 @@ func main() {
 	}
 
 	// Init service
+	// init input validator
+	validate := utills.NewValidator(validator.New())
 
 	// TODO: implement token repo, no hardcode secret
 	jwtSvc := auth.NewJWTService(tokenRepo, []byte("secret_access"), []byte("secret_refresh"))
@@ -140,6 +143,7 @@ func main() {
 		KeyExchangeService:  keyExSvc,
 		FileService:         fileSvc,
 		StickerService:      stickerSvc,
+		Validate:            validate,
 	}
 
 	router := routerDeps.NewRouter()

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/globalsign/mgo/bson"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -82,6 +83,10 @@ func (service *JWTService) VerifyToken(token string) (model.JWTClaim, error) {
 		}
 		return service.accessSecret, nil
 	})
+
+	if !bson.IsObjectIdHex(claim.UserId) {
+		return model.JWTClaim{}, errors.New("token userid is invalid")
+	}
 
 	tokenDB, err := service.tokenRepository.VerifyDBToken(claim.UserId, token)
 	if err != nil || token != tokenDB {

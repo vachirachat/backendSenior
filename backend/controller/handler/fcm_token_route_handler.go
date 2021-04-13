@@ -2,8 +2,11 @@ package route
 
 import (
 	"backendSenior/controller/middleware/auth"
+	"backendSenior/domain/dto"
 	"backendSenior/domain/model"
 	"backendSenior/domain/service"
+	"backendSenior/utills"
+	g "common/utils/ginutils"
 	"fmt"
 	"net/http"
 	"time"
@@ -14,65 +17,68 @@ import (
 type FCMRouteHandler struct {
 	notifService *service.NotificationService
 	authMw       *auth.JWTMiddleware
+	validate     *utills.StructValidator
 }
 
-func NewFCMRouteHandler(notif *service.NotificationService, authMw *auth.JWTMiddleware) *FCMRouteHandler {
+func NewFCMRouteHandler(notif *service.NotificationService, authMw *auth.JWTMiddleware, validate *utills.StructValidator) *FCMRouteHandler {
 	return &FCMRouteHandler{
 		notifService: notif,
 		authMw:       authMw,
+		validate:     validate,
 	}
 }
 
 func (handler *FCMRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	routerGroup.POST("/", handler.authMw.AuthRequired(), handler.handleRegsiterDevice)
-	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.handleGetUserDevices)
-	routerGroup.DELETE("/", handler.authMw.AuthRequired(), handler.handleUnregsiterDevice)
-	routerGroup.POST("/ping", handler.authMw.AuthRequired(), handler.handlePing)
-	routerGroup.POST("/check-status", handler.authMw.AuthRequired(), handler.checkTokenStatus)
-	routerGroup.POST("/test-notification", handler.authMw.AuthRequired(), handler.sendTestNotification)
+	routerGroup.POST("/", handler.authMw.AuthRequired(), g.InjectGin(handler.handleRegsiterDevice))
+	routerGroup.GET("/", handler.authMw.AuthRequired(), g.InjectGin(handler.handleGetUserDevices))
+	routerGroup.DELETE("/", handler.authMw.AuthRequired(), g.InjectGin(handler.handleUnregsiterDevice))
+	routerGroup.POST("/ping", handler.authMw.AuthRequired(), g.InjectGin(handler.handlePing))
+	routerGroup.POST("/check-status", handler.authMw.AuthRequired(), g.InjectGin(handler.checkTokenStatus))
+	routerGroup.POST("/test-notification", handler.authMw.AuthRequired(), g.InjectGin(handler.sendTestNotification))
 }
 
-func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context) {
+func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context, input struct{ Body dto.FCMTokenDto }) error {
 	userID := c.GetString(auth.UserIdField)
 
-	var body model.FCMToken
-	err := c.ShouldBindJSON(&body)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
-		return
-	}
-
-	tok, err := handler.notifService.GetTokenByID(body.Token)
+	// var body model.FCMToken
+	// err := c.ShouldBindJSON(&body)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"status": err})
+	// 	return
+	// }
+	b := input.Body
+	tok, err := handler.notifService.GetTokenByID(b.Token)
 
 	// found
 	if tok.Token != "" {
 		if tok.UserID.Hex() != userID {
 			c.JSON(http.StatusForbidden, gin.H{"status": "token already used by another user"})
-			return
+			return fmt.Errorf("token already used by another user")
 		}
 
 		err = handler.notifService.RefreshDevice(tok.Token)
 		if err != nil {
 			fmt.Println("[register device] refresh error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-			return
+			c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+			return err
 		}
 		c.JSON(http.StatusOK, gin.H{"status": "refreshed"})
-		return
+		return nil
 	}
 
 	// not found
-	err = handler.notifService.RegisterDevice(userID, body.Token, body.DeviceName)
+	err = handler.notifService.RegisterDevice(userID, b.Token, b.DeviceName)
 	if err != nil {
 		fmt.Println("[register device] error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+		return err
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
+	return nil
 }
 
-func (handler *FCMRouteHandler) handleGetUserDevices(c *gin.Context) {
+func (handler *FCMRouteHandler) handleGetUserDevices(c *gin.Context, req struct{}) error {
 	userID := c.GetString(auth.UserIdField)
 
 	tokens, err := handler.notifService.GetUserTokens(userID)
@@ -80,39 +86,42 @@ func (handler *FCMRouteHandler) handleGetUserDevices(c *gin.Context) {
 	if err != nil {
 		if err.Error() == "not found" {
 			c.JSON(http.StatusOK, []model.FCMToken{})
-			return
+			return err
 		} else {
 			fmt.Println("[get user device] error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-			return
+			c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+			return err
 		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"tokens": tokens})
+	return nil
 }
 
-func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context) {
+func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context, input struct {
+	Token string `json:"token" validate:"required,gt=0"`
+}) error {
 	userID := c.GetString(auth.UserIdField)
 
-	var body struct {
-		Token string `json:"token"`
-	}
-	err := c.ShouldBindJSON(&body)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
-		return
-	}
+	// var body struct {
+	// 	Token string `json:"token"`
+	// }
+	// err := c.ShouldBindJSON(&body)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"status": err})
+	// 	return
+	// }
 
 	tokens, err := handler.notifService.GetUserTokens(userID)
 	if err != nil {
 		fmt.Println("[delete device] check permission error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+		return err
 	}
 
 	found := false
 	for _, tok := range tokens {
-		if tok.Token == body.Token {
+		if tok.Token == input.Token {
 			found = true
 			break
 		}
@@ -120,40 +129,44 @@ func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context) {
 
 	if !found {
 		c.JSON(http.StatusForbidden, gin.H{"status": "you don't own the token"})
-		return
+		return fmt.Errorf("token already used by another user")
 	}
 
-	err = handler.notifService.DeleteDevice(body.Token)
+	err = handler.notifService.DeleteDevice(input.Token)
 	if err != nil {
 		fmt.Println("[delete device] error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return
+		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+		return err
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
+	return nil
 }
 
 // return status; <not found>, <owned>, <owned by other>
-func (handler *FCMRouteHandler) checkTokenStatus(c *gin.Context) {
-	var body model.FCMToken
+func (handler *FCMRouteHandler) checkTokenStatus(c *gin.Context, input struct {
+	Token string `json:"token" validate:"required,gt=0"`
+}) error {
+	// var body model.FCMToken
 
-	err := c.BindJSON(&body)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
-		return
-	}
+	// err := c.BindJSON(&body)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"status": err})
+	// 	return
+	// }
 
 	userID := c.GetString(auth.UserIdField)
 
-	token, err := handler.notifService.GetTokenByID(body.Token)
+	token, err := handler.notifService.GetTokenByID(input.Token)
 
 	if err != nil {
 		if err.Error() == "not found" {
 			c.JSON(http.StatusOK, gin.H{"status": "not found"})
-			return
+			return nil
 		}
 		fmt.Println("[check token status] error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+		return err
 	}
 
 	if token.UserID.Hex() == userID {
@@ -161,70 +174,74 @@ func (handler *FCMRouteHandler) checkTokenStatus(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusOK, gin.H{"status": "owned by other"})
 	}
+	return nil
 }
 
-func (handler *FCMRouteHandler) handlePing(c *gin.Context) {
+func (handler *FCMRouteHandler) handlePing(c *gin.Context, input struct {
+	Token string `json:"token" validate:"required,gt=0"`
+}) error {
 
-	var body struct {
-		Token string `json:"token"`
-	}
+	// var body struct {
+	// 	Token string `json:"token"`
+	// }
 
-	err := c.BindJSON(&body)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "bad token"})
-		return
-	}
+	// err := c.BindJSON(&body)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"status": "bad token"})
+	// 	return
+	// }
 
 	userID := c.GetString(auth.UserIdField)
-	tok, err := handler.notifService.GetTokenByID(body.Token)
+	tok, err := handler.notifService.GetTokenByID(input.Token)
 	if err != nil {
 		fmt.Println("[notification ping] error", err)
 		c.JSON(http.StatusForbidden, gin.H{"status": "something went wrong"})
-		return
+		return err
 	} else if tok.UserID.Hex() != userID {
 		c.JSON(http.StatusForbidden, gin.H{"status": "not you token"})
-		return
+		return err
 	}
 
-	handler.notifService.SetLastSeenTime(body.Token, time.Now())
+	handler.notifService.SetLastSeenTime(input.Token, time.Now())
 	c.JSON(http.StatusOK, gin.H{})
+	return nil
 }
 
-func (handler *FCMRouteHandler) sendTestNotification(c *gin.Context) {
-	var body model.FCMToken
+func (handler *FCMRouteHandler) sendTestNotification(c *gin.Context, input struct {
+	Token string `json:"token" validate:"required,gt=0"`
+}) error {
 
-	err := c.BindJSON(&body)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
-		return
-	}
+	// var body model.FCMToken
 
-	tok, err := handler.notifService.GetTokenByID(body.Token)
+	// err := c.BindJSON(&body)
+	// if err != nil {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"status": err})
+	// 	return
+	// }
+
+	tok, err := handler.notifService.GetTokenByID(input.Token)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": "something went wrong, ensure that token exists",
 		})
-		return
+		return err
 	}
 
 	userID := c.GetString(auth.UserIdField)
 
 	if tok.UserID.Hex() != userID {
-		c.JSON(http.StatusForbidden, gin.H{"status": "not your own token"})
-		return
+		return g.NewError(403, "not your own token")
 	}
 
-	sent, err := handler.notifService.SendNotifications([]string{body.Token}, &model.Notification{
+	sent, err := handler.notifService.SendNotifications([]string{input.Token}, &model.Notification{
 		Title: "Test notification",
 		Body:  "If you received this notification it means you are configured correctly",
 	})
 
 	if sent != 1 || err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": "error, token might be invalid or it's problem on our side",
-		})
-		return
+		return g.NewError(400, "error, token might be invalid or it's problem on our side")
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "send test notification"})
+	return nil
 }

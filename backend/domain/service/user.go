@@ -1,13 +1,13 @@
 package service
 
 import (
+	"backendSenior/domain/dto"
 	"backendSenior/domain/interface/repository"
+	"backendSenior/domain/model"
 	"backendSenior/domain/service/auth"
+	"backendSenior/utills"
 	"errors"
 	"log"
-
-	"backendSenior/domain/model"
-	"backendSenior/utills"
 
 	"github.com/globalsign/mgo/bson"
 	"golang.org/x/crypto/bcrypt"
@@ -92,14 +92,13 @@ type messageLogin struct {
 	token  string
 }
 
-func (service *UserService) Login(email string, password string) (model.User, error) {
+func (service *UserService) Login(secret dto.CreateUserSecret) (model.User, error) {
 	// var token model.TokenDetails
-	user, err := service.GetUserByEmail(email)
-	log.Println(user)
+	user, err := service.GetUserByEmail(secret.Email)
 	if err != nil {
 		return model.User{}, errors.New("User not exists")
 	}
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(secret.Password))
 	if err != nil {
 		return model.User{}, err
 	}

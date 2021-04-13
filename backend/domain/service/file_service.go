@@ -1,18 +1,20 @@
 package service
 
 import (
+	"backendSenior/domain/dto"
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	file_payload "backendSenior/domain/payload/file"
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/disintegration/imaging"
-	"github.com/globalsign/mgo"
 	"image"
 	"io"
 	"log"
 	"time"
+
+	"github.com/disintegration/imaging"
+	"github.com/globalsign/mgo"
 
 	"github.com/globalsign/mgo/bson"
 )
@@ -29,22 +31,6 @@ func NewFileService(file repository.ObjectStore, meta repository.FileMetaReposit
 	}
 }
 
-type UploadFileMeta struct {
-	Name      string        // name of file
-	RoomID    bson.ObjectId // room to associate file
-	UserID    bson.ObjectId // file owner
-	Size      int
-	CreatedAt time.Time // time that file is encrypted at proxy
-}
-
-type UploadImageMeta struct {
-	Name        string        // name of file
-	RoomID      bson.ObjectId // room to associate file
-	UserID      bson.ObjectId // file owner
-	Size        int
-	ThumbnailID bson.ObjectId
-}
-
 func (s *FileService) BeforeUploadFilePOST() (fileID string, endpoint string, formData map[string]string, err error) {
 	oid := bson.NewObjectId().Hex()
 	endpoint, formData, err = s.file.PostPresignedURL("file", oid)
@@ -55,7 +41,7 @@ func (s *FileService) BeforeUploadFilePOST() (fileID string, endpoint string, fo
 }
 
 // AfterUploadFile should be used after uploading file to set meta data to database
-func (s *FileService) AfterUploadFile(fileID string, meta UploadFileMeta) error {
+func (s *FileService) AfterUploadFile(fileID string, meta dto.UploadFileMeta) error {
 	err := s.meta.InsertFile(model.FileMeta{
 		FileID:     bson.ObjectIdHex(fileID),
 		RoomID:     meta.RoomID,
@@ -140,7 +126,7 @@ func (s *FileService) BeforeUploadImagePOST() (file_payload.BeforeUploadImageRes
 }
 
 // AfterUploadImage should be used after uploading file to set meta data to database
-func (s *FileService) AfterUploadImage(imageFileID string, meta UploadImageMeta) error {
+func (s *FileService) AfterUploadImage(imageFileID string, meta dto.UploadImageMeta) error {
 	now := time.Now()
 
 	err := s.meta.InsertFile(model.FileMeta{

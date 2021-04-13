@@ -4,6 +4,7 @@ import (
 	authMw "backendSenior/controller/middleware/auth"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
+	"backendSenior/utills"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,6 +23,7 @@ type RouterDeps struct {
 	KeyExchangeService  *service.KeyExchangeService
 	FileService         *service.FileService
 	StickerService      *service.StickerService
+	Validate            *utills.StructValidator
 }
 
 // NewRouter create new router (gin server) with various handler
@@ -31,17 +33,17 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	proxyMw := authMw.NewProxyMiddleware(deps.ProxyAuth)
 
 	// create handler (some require middleware)
-	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, authMiddleware, deps.UserService, deps.ProxyService, deps.ChatService, deps.OraganizeService, deps.KeyExchangeService)
-	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.JWTService, authMiddleware, deps.FileService)
-	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.FileService, deps.RoomService, authMiddleware)
-	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService, deps.KeyExchangeService)
-	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService, deps.RoomService)
-	organizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.RoomService)
-	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware)
-	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware)
-	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService)
-	fileRouteHandler := NewFileRouteHandler(deps.FileService, deps.RoomService, authMiddleware)
-	StickerRouteHandler := NewStickerRouteHandler(deps.StickerService)
+	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, authMiddleware, deps.UserService, deps.ProxyService, deps.ChatService, deps.OraganizeService, deps.KeyExchangeService, deps.Validate)
+	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.JWTService, authMiddleware, deps.FileService, deps.Validate)
+	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.FileService, deps.RoomService, authMiddleware, deps.Validate)
+	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService, deps.KeyExchangeService, deps.Validate)
+	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService, deps.RoomService, deps.Validate)
+	organizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.RoomService, deps.Validate)
+	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware, deps.Validate)
+	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware, deps.Validate)
+	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService, deps.Validate)
+	fileRouteHandler := NewFileRouteHandler(deps.FileService, deps.RoomService, authMiddleware, deps.Validate)
+	StickerRouteHandler := NewStickerRouteHandler(deps.StickerService, deps.Validate)
 	r := gin.New()
 	r.Use(gin.Recovery())
 
