@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/reactivex/rxgo/v2"
+	"log"
+	"sync"
 	"time"
 )
 
 const (
 	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
+	writeWait = 5 * time.Second
 	// Time allowed to read the next pong message from the peer.
 	pongWait = 60 * time.Second
 	// Send pings to peer with this period. Must be less than pongWait.
@@ -30,23 +32,25 @@ type writeCmd struct {
 
 type Connection struct {
 	conn         *websocket.Conn
-	closed       chan struct{} // this is closed when we want to close connection
 	isStarted    bool
 	writeChannel chan writeCmd
 	readChannel  chan rxgo.Item // convenient for rxgo
+	// close state management
+	mu     sync.RWMutex
+	closed bool
 	//
 	obs rxgo.Observable
 }
 
 func FromConnection(conn *websocket.Conn) *Connection {
-	readChan := make(chan rxgo.Item, 16)
+	readChan := make(chan rxgo.Item, 50)
 	c := &Connection{
 		conn:         conn,
-		closed:       make(chan struct{}),
+		closed:       false,
 		isStarted:    false,
-		writeChannel: make(chan writeCmd, 16),
+		writeChannel: make(chan writeCmd, 50),
 		readChannel:  readChan,
-		obs:          rxgo.FromEventSource(readChan, rxgo.WithBufferedChannel(16)),
+		obs:          rxgo.FromEventSource(readChan, rxgo.WithBufferedChannel(50)),
 	}
 	return c
 }
@@ -64,48 +68,53 @@ func (c *Connection) StartLoop() {
 // readLoop read message and pipe to channel
 func (c *Connection) readLoop() {
 	defer func() {
-		close(c.closed)
+		c.mu.Lock()
+		c.closed = true
+		c.mu.Unlock()
+
 		close(c.readChannel) // imply that observable is closed too
 		c.conn.Close()
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-loop:
-	for {
+
+	for !c.closed {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
 			break
 		}
-		select {
-		case c.readChannel <- rxgo.Of(data):
-		case <-c.closed:
-			break loop
-		}
+		c.readChannel <- rxgo.Of(data)
 	}
 }
 
 func (c *Connection) writeLoop() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
-		// close(c.closed) // can't close more than once
+		c.mu.Lock()
+		c.closed = true
+		c.mu.Unlock()
+
 		ticker.Stop()
 		c.conn.Close()
-
 		// drain channel
-		n := len(c.writeChannel)
-		for i := 0; i < n; i++ {
-			cmd := <-c.writeChannel
-			if cmd.close { // close always success
-				cmd.resp <- true
-			} else { // send failed coz channel is closed
-				cmd.resp <- false
-			}
 
+	loop:
+		for {
+			select {
+			case cmd := <-c.writeChannel:
+				cmd.resp <- false
+			default:
+				break loop
+			}
 		}
+		if len(c.writeChannel) > 0 {
+			log.Fatal("you are shit managing goroutine")
+		}
+
 	}()
 loop:
-	for {
+	for !c.closed {
 		select {
 		case cmd := <-c.writeChannel:
 			if cmd.close { // manually closed, send close message, and bye
@@ -125,8 +134,6 @@ loop:
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				break loop
 			}
-		case <-c.closed:
-			break loop
 		}
 	}
 }
@@ -135,25 +142,33 @@ var ErrConnClosed = errors.New("send error, connection closed")
 
 // TODO: ensure no send to closed channel
 func (c *Connection) Send(message []byte) error {
-	respChan := make(chan bool, 1)
-	select {
-	case <-c.closed:
+	c.mu.RLock()
+	if c.closed {
+		c.mu.RUnlock()
 		return ErrConnClosed
-	default:
 	}
+	c.mu.RUnlock()
+	respChan := make(chan bool, 1)
 	c.writeChannel <- writeCmd{data: message, resp: respChan}
-	if ok := <-respChan; ok {
-		return nil
+
+	select {
+	case ok := <-respChan:
+		if ok {
+			return nil
+		}
+		log.Printf("error sending message!")
+		return ErrConnClosed
 	}
-	return ErrConnClosed
 }
 
 func (c *Connection) SendJSON(data interface{}) error {
-	select {
-	case <-c.closed:
+	// check before call .Send() coz we don't want to waste time marshalling if it's gonna fail
+	c.mu.RLock()
+	if c.closed {
+		c.mu.RUnlock()
 		return ErrConnClosed
-	default:
 	}
+	c.mu.RUnlock()
 	b, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("marshal error: %w", err)
@@ -164,11 +179,12 @@ func (c *Connection) SendJSON(data interface{}) error {
 // Close close the connection
 // closing already closed is no-op
 func (c *Connection) Close() {
-	select {
-	case <-c.closed:
-	default:
-		c.writeChannel <- writeCmd{close: true}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.closed {
+		return
 	}
+	c.writeChannel <- writeCmd{close: true}
 }
 
 // Observable return observable
