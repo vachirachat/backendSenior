@@ -9,11 +9,18 @@ import (
 	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
 	"context"
+	"errors"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	firebase "firebase.google.com/go/v4"
 	"github.com/globalsign/mgo"
 	"google.golang.org/api/option"
+	_ "net/http/pprof"
 )
 
 var app *firebase.App
@@ -144,5 +151,45 @@ func main() {
 
 	router := routerDeps.NewRouter()
 
-	router.Run(utills.PORTWEBSERVER)
+	httpSrv := &http.Server{
+		Addr:    utills.PORTWEBSERVER,
+		Handler: router,
+	}
+
+	pprofServer := &http.Server{
+		Addr:    "localhost:6061",
+		Handler: nil,
+	}
+
+	go func() {
+
+		if err := pprofServer.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+			log.Printf("pprof: Listen: %s\n", err)
+		}
+	}()
+
+	go func() {
+		if err := httpSrv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
+			log.Printf("main: Listen: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	// The context is used to inform the server it has 5 seconds to finish
+	// the request it is currently handling
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := httpSrv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+	if err := pprofServer.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown:", err)
+	}
+
+	log.Println("Server exiting")
 }
