@@ -26,23 +26,12 @@ func NewConfigRouteHandler(configService *service.ConfigService) *ConfigRouteHan
 
 // Mount add route to router group
 func (handler *ConfigRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-<<<<<<< HEAD
 	routerGroup.POST("docker/file", g.InjectGin(handler.configFileHandler))
 	routerGroup.POST("docker/status", g.InjectGin(handler.configPluginNetworkStatus))
 	routerGroup.GET("process/kill", g.InjectGin(handler.configKillProcess))
 	routerGroup.GET("plugin/status", g.InjectGin(handler.configGetPluginStatus))
 	routerGroup.GET("plugin/start", g.InjectGin(handler.proxySetPluginStart))
 	routerGroup.GET("plugin/stop", g.InjectGin(handler.proxySetPluginStop))
-=======
-	routerGroup.POST("docker/code", handler.configCodeHandler)
-	routerGroup.GET("docker/run/code", handler.configRunCodeProxy)
-	routerGroup.POST("docker/file", handler.configFileHandler)
-	routerGroup.POST("docker/status", handler.configPluginNetworkStatus)
-	routerGroup.GET("process/kill", handler.configKillProcess)
-	routerGroup.GET("plugin/status", handler.configGetPluginStatus)
-	routerGroup.GET("plugin/start", handler.proxySetPluginStart)
-	routerGroup.GET("plugin/stop", handler.proxySetPluginStop)
->>>>>>> feat/proxy/code-api
 
 }
 
