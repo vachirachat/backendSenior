@@ -39,7 +39,7 @@ func NewMessageHandler(upstream *service.ChatUpstreamService, downstream *servic
 
 // Start listen message from upstream
 func (h *MessageHandler) Start() {
-	pipe := make(chan []byte, 100)
+	pipe := make(chan []byte, 200)
 	h.upstreamService.RegisterHandler(pipe)
 	defer h.upstreamService.UnRegisterHandler(pipe)
 

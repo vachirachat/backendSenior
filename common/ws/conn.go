@@ -43,12 +43,12 @@ type Connection struct {
 }
 
 func FromConnection(conn *websocket.Conn) *Connection {
-	readChan := make(chan rxgo.Item, 50)
+	readChan := make(chan rxgo.Item, 100)
 	c := &Connection{
 		conn:         conn,
 		closed:       false,
 		isStarted:    false,
-		writeChannel: make(chan writeCmd, 50),
+		writeChannel: make(chan writeCmd, 100),
 		readChannel:  readChan,
 		obs:          rxgo.FromEventSource(readChan, rxgo.WithBufferedChannel(50)),
 	}
