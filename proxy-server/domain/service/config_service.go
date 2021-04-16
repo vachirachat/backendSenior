@@ -145,28 +145,16 @@ func (confService *ConfigService) ConfigFileProxy(file io.Reader, fileHandler *m
 
 func (confService *ConfigService) ConfigRunCodeProxy(storage model_proxy.JSONCODE) error {
 	if storage.Lang == "go" {
-<<<<<<< HEAD
 		out, err := utils.RunDockerExec(confService.proxyConfig.DockerID, "/app/go_server/"+storage.Lang+"-module/", []string{"go", "run", storage.Filename + "." + storage.Lang})
 		log.Println("out file go Run >>>>", out)
 		return err
 	} else if storage.Lang == "py" {
 		out, err := utils.RunDockerExec(confService.proxyConfig.DockerID, "/app/go_server/"+storage.Lang+"-module/", []string{"python3", storage.Filename + "." + storage.Lang})
-=======
-		out, err := utills.RunDockerExec(confService.proxyConfig.DockerID, "/app/go_server/"+storage.Lang+"-module/", []string{"go", "run", storage.Filename + "." + storage.Lang})
-		log.Println("out file go Run >>>>", out)
-		return err
-	} else if storage.Lang == "py" {
-		out, err := utills.RunDockerExec(confService.proxyConfig.DockerID, "/app/go_server/"+storage.Lang+"-module/", []string{"python3", storage.Filename + "." + storage.Lang})
->>>>>>> feat/proxy/code-api
 		log.Println("out file py Run >>>>", out)
 		return err
 		// _ = runDockerExec(containerID, []string{"python3", "run", storage.Lang + "-module/file." + storage.Lang, "&"})
 	} else if storage.Lang == "js" {
-<<<<<<< HEAD
 		out, err := utils.RunDockerExec(confService.proxyConfig.DockerID, "/app/go_server/"+storage.Lang+"-module/", []string{"node", storage.Filename + "." + storage.Lang})
-=======
-		out, err := utills.RunDockerExec(confService.proxyConfig.DockerID, "/app/go_server/"+storage.Lang+"-module/", []string{"node", storage.Filename + "." + storage.Lang})
->>>>>>> feat/proxy/code-api
 		log.Println("out file js Run >>>>", out)
 		return err
 
@@ -183,15 +171,9 @@ func (confService *ConfigService) ConfigCodeProxy(storage model_proxy.JSONCODE) 
 
 	log.Println("Lang", storage.Lang)
 	log.Println("Code", storage.Code)
-<<<<<<< HEAD
 	storage.Code, _ = utils.DecryptBaseCode(storage.Code, key)
 	// File Upload
 	f, err := os.Create(utils.PATH_ORIGIN_PROXY + "/" + storage.Lang + "/file." + storage.Lang)
-=======
-	storage.Code, _ = utills.DecryptBaseCode(storage.Code, key)
-	// File Upload
-	f, err := os.Create(utills.PATH_ORIGIN_PROXY + "/" + storage.Lang + "/file." + storage.Lang)
->>>>>>> feat/proxy/code-api
 	if err != nil {
 		log.Println("ConfigCodeProxy Create file", err)
 		return err
@@ -209,39 +191,24 @@ func (confService *ConfigService) ConfigCodeProxy(storage model_proxy.JSONCODE) 
 	w.Flush()
 
 	// Upload to Docker
-<<<<<<< HEAD
 	log.Println("docker", "cp", utils.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/go-module")
 	if storage.Lang == "go" {
 		// Copy to docker
 		cmdCovert := exec.Command("docker", "cp", utils.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/go-module")
-=======
-	log.Println("docker", "cp", utills.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utills.DOCKER_PATH_ORIGIN+"/go-module")
-	if storage.Lang == "go" {
-		// Copy to docker
-		cmdCovert := exec.Command("docker", "cp", utills.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utills.DOCKER_PATH_ORIGIN+"/go-module")
->>>>>>> feat/proxy/code-api
 		_, err = cmdCovert.Output()
 		if err != nil {
 			log.Println("Cannot cmdCovert go")
 			return err
 		}
 	} else if storage.Lang == "py" {
-<<<<<<< HEAD
 		cmdCovert := exec.Command("docker", "cp", utils.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/py-module")
-=======
-		cmdCovert := exec.Command("docker", "cp", utills.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utills.DOCKER_PATH_ORIGIN+"/py-module")
->>>>>>> feat/proxy/code-api
 		_, err = cmdCovert.Output()
 		if err != nil {
 			log.Println("Cannot cmdCovert py")
 			return err
 		}
 	} else if storage.Lang == "js" {
-<<<<<<< HEAD
 		cmdCovert := exec.Command("docker", "cp", utils.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/js-module")
-=======
-		cmdCovert := exec.Command("docker", "cp", utills.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utills.DOCKER_PATH_ORIGIN+"/js-module")
->>>>>>> feat/proxy/code-api
 		_, err = cmdCovert.Output()
 		if err != nil {
 			log.Println("Cannot cmdCovert js")

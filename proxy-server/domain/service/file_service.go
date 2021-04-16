@@ -7,8 +7,6 @@ import (
 	"common/rmq"
 	"encoding/json"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
-	"github.com/go-resty/resty/v2"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -19,6 +17,9 @@ import (
 	"proxySenior/utils"
 	"strings"
 	"time"
+
+	"github.com/globalsign/mgo/bson"
+	"github.com/go-resty/resty/v2"
 )
 
 type FileService struct {
