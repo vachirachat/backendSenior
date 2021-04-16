@@ -1,0 +1,42 @@
+FROM golang
+
+# Set the Current Working Directory inside the container
+WORKDIR /app/go_server
+
+# # We want to populate the module cache based on the go.{mod,sum} files.
+# COPY go.mod .
+# COPY go.sum .
+
+# Download all fine to Docker
+COPY . .
+
+
+# Install Language Denpendencise 
+#ENV. Debian-lib update
+RUN apt-get update
+RUN apt-get -y upgrade
+RUN apt-get -y install curl gnupg
+RUN apt-get install -y gcc make
+
+#ENV. Python Setup 
+# RUN apt-get install -y python3 \
+# python3-venv \
+# python3-pip
+# RUN pip3 install bson futures pymongo grpcio  protobuf
+
+#ENV. Js Setup 
+# RUN curl -sL https://deb.nodesource.com/setup_12.x  | bash -
+# RUN apt-get -y install nodejs
+# RUN npm install
+# --> have to run in Working directory
+# WORKDIR /app/go_server/js-module
+# RUN npm init -y
+# RUN npm rebuild
+# RUN npm install @grpc/proto-loader
+
+WORKDIR /app/go_server
+
+# This container exposes port 2020 to the outside world
+EXPOSE 5555 5050 5005
+# For Demo.
+# EXPOSE 5555

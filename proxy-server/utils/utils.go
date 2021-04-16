@@ -66,6 +66,7 @@ func DecryptBase(stringFile string, key string) (string, error) {
 	}
 
 	decrypted := make([]byte, len(data))
+	// decrypted := make([]byte, aes.BlockSize)
 
 	mode.CryptBlocks(decrypted, data)
 

@@ -14,6 +14,10 @@ type JSONDocker struct {
 	Status   string `json:"status"`
 	IP       string `json:"ip"`
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> feat/proxy/code-api
 type JSONCODE struct {
 	Code     string `json:"config"`
 	Lang     string `json:"lang"`
