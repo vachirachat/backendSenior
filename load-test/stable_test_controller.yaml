@@ -1,0 +1,32 @@
+config:
+  # proxy
+  target: ws://localhost:8080/api/v1/chat/ws
+  phases:
+    - duration: 500
+      arrivalRate: 10
+      maxVusers: 10
+  ws:
+    headers:
+      Authorization: "Basic NjA2YjJiM2QyNmRjYjlmYjYwYzI1Y2VhOkprT0x4bUU0dndoa055TjRneVR5NGIzbjdsRmVQNGF6UW5sSFRtYnp0YWQ3S2F3MFNSUVBxVVNKVFNaREl1T1M="
+
+scenarios:
+  - name: test chatting
+    engine: ws
+    flow:
+      - loop:
+        - send:
+            type: CHAT
+            payload:
+              messageId: "605259e826dcb9e43396db05"
+              timestamp: "2021-03-18T02:35:04.005382742+07:00"
+              roomId: "607311f626dcb948f4c544f4"
+              userId: "607311b04d193fb8fa6dc3f8"
+              uid: "TODO"
+              data: "hello world"
+              type: "TEXT"
+        - think: 0.004
+        count: 10000
+
+
+# concurrent = think * count * arrRate  ==> 100
+# msg per sec = concurrent / think = count * arrRate ==> 2000
