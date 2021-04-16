@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -74,12 +75,39 @@ func DecryptBase(stringFile string, key string) (string, error) {
 	}
 
 	decrypted := make([]byte, len(data))
+	// decrypted := make([]byte, aes.BlockSize)
 
 	mode.CryptBlocks(decrypted, data)
 
 	decrypted, _ = pkcs7.Unpad(decrypted, aes.BlockSize)
 
 	return string(decrypted), nil
+}
+
+// Decrypt takes a message, then return message with data decrypted with appropiate key
+func DecryptBaseCode(stringCode string, keys string) (string, error) {
+	key := []byte(keys)
+	cipherText, _ := hex.DecodeString(stringCode)
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(cipherText) < aes.BlockSize {
+		panic("cipherText too short")
+	}
+	iv := cipherText[:aes.BlockSize]
+	cipherText = cipherText[aes.BlockSize:]
+	if len(cipherText)%aes.BlockSize != 0 {
+		panic("cipherText is not a multiple of the block size")
+	}
+
+	mode := cipher.NewCBCDecrypter(block, iv)
+	mode.CryptBlocks(cipherText, cipherText)
+
+	cipherText, _ = pkcs7.Unpad(cipherText, aes.BlockSize)
+	return fmt.Sprintf("%s", cipherText), nil
 }
 
 func UnzipFile(fileName string) error {

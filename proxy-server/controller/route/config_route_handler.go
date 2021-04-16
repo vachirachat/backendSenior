@@ -25,6 +25,8 @@ func NewConfigRouteHandler(configService *service.ConfigService) *ConfigRouteHan
 
 // Mount add route to router group
 func (handler *ConfigRouteHandler) Mount(routerGroup *gin.RouterGroup) {
+	routerGroup.POST("docker/code", handler.configCodeHandler)
+	routerGroup.GET("docker/run/code", handler.configRunCodeProxy)
 	routerGroup.POST("docker/file", handler.configFileHandler)
 	routerGroup.POST("docker/status", handler.configPluginNetworkStatus)
 	routerGroup.GET("process/kill", handler.configKillProcess)
@@ -100,4 +102,35 @@ func (handler *ConfigRouteHandler) configPluginNetworkStatus(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "NO", "connect plugin with port": resp})
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "OK", "connect plugin with port": resp})
+}
+
+func (handler *ConfigRouteHandler) configRunCodeProxy(c *gin.Context) {
+	var storage model_proxy.JSONCODE
+	err := c.ShouldBindJSON(&storage)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+
+	}
+	err = handler.ConfigService.ConfigRunCodeProxy(storage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "OK"})
+}
+
+func (handler *ConfigRouteHandler) configCodeHandler(c *gin.Context) {
+	var storage model_proxy.JSONCODE
+	err := c.ShouldBindJSON(&storage)
+	if err != nil {
+		log.Println("err -binding")
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
+	}
+	// Debug ->
+	log.Println("c.Request.Body", storage)
+	err = handler.ConfigService.ConfigCodeProxy(storage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }

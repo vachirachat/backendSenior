@@ -22,7 +22,7 @@ POST {{base}}
 Content-Type: application/json
 
 {
-  "name": "Local Proxy",
+  "name": "Local Proxy- test",
   "ip": "localhost",
   "port": 8090
 }

@@ -2,6 +2,7 @@ package utills
 
 var (
 	CONTROLLER_ORIGIN       = "localhost:8080"
+	PATH_ORIGIN_PROXY       = "./share/"
 	PATH_ORIGIN             = "./share/temp_file/"
 	PATH_ORIGIN_ZIP         = "./share/temp_zip/"
 	DOCKER_PATH_ORIGIN      = "/app/go_server"
