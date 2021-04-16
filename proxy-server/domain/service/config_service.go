@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -137,6 +138,91 @@ func (confService *ConfigService) ConfigFileProxy(file io.Reader, fileHandler *m
 	if err != nil {
 		log.Println("Cannot remove PATH_ORIGIN_ZIP file-type")
 		log.Fatal(err)
+	}
+
+	return nil
+}
+
+func (confService *ConfigService) ConfigRunCodeProxy(storage model_proxy.JSONCODE) error {
+	if storage.Lang == "go" {
+		out, err := utils.RunDockerExec(confService.proxyConfig.DockerID, "/app/go_server/"+storage.Lang+"-module/", []string{"go", "run", storage.Filename + "." + storage.Lang})
+		log.Println("out file go Run >>>>", out)
+		return err
+	} else if storage.Lang == "py" {
+		out, err := utils.RunDockerExec(confService.proxyConfig.DockerID, "/app/go_server/"+storage.Lang+"-module/", []string{"python3", storage.Filename + "." + storage.Lang})
+		log.Println("out file py Run >>>>", out)
+		return err
+		// _ = runDockerExec(containerID, []string{"python3", "run", storage.Lang + "-module/file." + storage.Lang, "&"})
+	} else if storage.Lang == "js" {
+		out, err := utils.RunDockerExec(confService.proxyConfig.DockerID, "/app/go_server/"+storage.Lang+"-module/", []string{"node", storage.Filename + "." + storage.Lang})
+		log.Println("out file js Run >>>>", out)
+		return err
+
+	}
+	return nil
+}
+
+var key = os.Getenv("PLUGIN_Encryption_Key")
+
+func (confService *ConfigService) ConfigCodeProxy(storage model_proxy.JSONCODE) error {
+	// StartDockerImage
+	confService.startDockerImage()
+	// Create file
+
+	log.Println("Lang", storage.Lang)
+	log.Println("Code", storage.Code)
+	storage.Code, _ = utils.DecryptBaseCode(storage.Code, key)
+	// File Upload
+	f, err := os.Create(utils.PATH_ORIGIN_PROXY + "/" + storage.Lang + "/file." + storage.Lang)
+	if err != nil {
+		log.Println("ConfigCodeProxy Create file", err)
+		return err
+
+	}
+	defer f.Close()
+	w := bufio.NewWriter(f)
+	n4, err := w.WriteString(storage.Code)
+	if err != nil {
+		log.Println("ConfigCodeProxy Copy data to file", err)
+		return err
+
+	}
+	fmt.Printf("wrote %d bytes\n", n4)
+	w.Flush()
+
+	// Upload to Docker
+	log.Println("docker", "cp", utils.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/go-module")
+	if storage.Lang == "go" {
+		// Copy to docker
+		cmdCovert := exec.Command("docker", "cp", utils.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/go-module")
+		_, err = cmdCovert.Output()
+		if err != nil {
+			log.Println("Cannot cmdCovert go")
+			return err
+		}
+	} else if storage.Lang == "py" {
+		cmdCovert := exec.Command("docker", "cp", utils.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/py-module")
+		_, err = cmdCovert.Output()
+		if err != nil {
+			log.Println("Cannot cmdCovert py")
+			return err
+		}
+	} else if storage.Lang == "js" {
+		cmdCovert := exec.Command("docker", "cp", utils.PATH_ORIGIN_PROXY+"/"+storage.Lang+"/file."+storage.Lang, confService.proxyConfig.DockerID+":"+utils.DOCKER_PATH_ORIGIN+"/js-module")
+		_, err = cmdCovert.Output()
+		if err != nil {
+			log.Println("Cannot cmdCovert js")
+			return err
+		}
+	}
+	// Run code when upload sucess
+	err = confService.ConfigRunCodeProxy(model_proxy.JSONCODE{
+		Lang:     storage.Lang,
+		Filename: "file",
+	})
+	if err != nil {
+		log.Println("Cannot ConfigRunCodeProxy")
+		return err
 	}
 
 	return nil
