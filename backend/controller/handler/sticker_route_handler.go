@@ -11,6 +11,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/disintegration/imaging"
@@ -83,6 +84,14 @@ func (h *StickerRouteHandler) listStickerSet(c *gin.Context, req struct{}) error
 func (h *StickerRouteHandler) createStickerSet(c *gin.Context, req struct {
 	Body dto.CreateStickerSetDto
 }) error {
+	b := req.Body
+	err := h.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 	id, err := h.sticker.NewStickerSet(req.Body)
 	if err != nil {
 		return err
@@ -216,6 +225,14 @@ func (h *StickerRouteHandler) getStickerImage(c *gin.Context, req struct{}) erro
 func (h *StickerRouteHandler) removeStickerFromSet(c *gin.Context, req struct {
 	Body dto.RemoveStickersDto
 }) error {
+	b := req.Body
+	err := h.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 
 	panic("TODO")
 	return nil

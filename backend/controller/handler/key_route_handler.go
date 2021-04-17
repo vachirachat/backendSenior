@@ -204,22 +204,35 @@ func (r *KeyRoute) getMasterProxy(c *gin.Context, req struct{}) error {
 	return nil
 }
 
-func (r *KeyRoute) setRoomPriority(c *gin.Context, req struct{}) error {
+func (r *KeyRoute) setRoomPriority(c *gin.Context, req struct {
+	Body struct {
+		Priority *int `json:"priority" validate:"required,min=-1"`
+	}
+}) error {
 	roomID := c.Param("roomId")
 	proxyID := c.Param("proxyId")
 	if !bson.IsObjectIdHex(roomID) || !bson.IsObjectIdHex(proxyID) {
 		return g.NewError(400, "bad room id or proxy id")
 	}
 
-	var body struct {
-		Priority *int `json:"priority"`
-	}
-	err := c.ShouldBindJSON(&body)
-	if err != nil || body.Priority == nil {
-		return g.NewError(400, "bad or invalid `priority` field")
+	b := req.Body
+	err := r.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
 	}
 
-	err = r.keyEx.SetPriority(roomID, proxyID, *body.Priority)
+	// var body struct {
+	// 	Priority *int `json:"priority"`
+	// }
+	// err := c.ShouldBindJSON(&body)
+	// if err != nil || body.Priority == nil {
+	// 	return g.NewError(400, "bad or invalid `priority` field")
+	// }
+
+	err = r.keyEx.SetPriority(roomID, proxyID, *b.Priority)
 	if err != nil {
 		fmt.Println("key/setRoomPriority: err", err)
 		c.JSON(500, gin.H{"status": "error"})

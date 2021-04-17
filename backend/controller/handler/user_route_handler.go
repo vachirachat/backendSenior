@@ -196,6 +196,14 @@ func (handler *UserRouteHandler) getUserByEmail(context *gin.Context, input stru
 	// var user model.User
 	// err := context.ShouldBindJSON(&user)
 	b := input.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
+
 	user, err := handler.userService.GetUserByEmail(b.Email)
 	if err != nil {
 		log.Println("error GetUserByEmailHandler", err.Error())
@@ -213,7 +221,15 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context, input struct{
 	// 	context.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 	// 	return
 	// }
-	user, err := handler.userService.Login(input.Body)
+	b := input.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
+	user, err := handler.userService.Login(b)
 	if err != nil {
 		context.JSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
 		return err
@@ -243,8 +259,16 @@ func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context, input stru
 	if !bson.IsObjectIdHex(orgID) {
 		return g.NewError(400, "bad user id in param")
 	}
+	b := input.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 
-	user, err := handler.userService.Login(input.Body)
+	user, err := handler.userService.Login(b)
 	if err != nil {
 		context.JSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
 		return err
@@ -325,6 +349,13 @@ func (handler *UserRouteHandler) verifyToken(context *gin.Context, input struct 
 }) error {
 
 	b := input.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 
 	claim, err := handler.jwtService.VerifyToken(b.Token)
 	if err != nil {

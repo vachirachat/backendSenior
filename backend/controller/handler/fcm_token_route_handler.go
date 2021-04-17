@@ -47,6 +47,13 @@ func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context, input struc
 	// 	return
 	// }
 	b := input.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 	tok, err := handler.notifService.GetTokenByID(b.Token)
 
 	// found

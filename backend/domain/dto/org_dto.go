@@ -20,7 +20,7 @@ func (d *OrgDto) ToOrg() model.Organize {
 }
 
 type FindOrgByNameDto struct {
-	Name string `json:"name" validate:"min=5"`
+	Name string `json:"name" validate:"required,min=5"`
 }
 
 func (d *FindOrgByNameDto) ToFilter() model.OrganizationT {

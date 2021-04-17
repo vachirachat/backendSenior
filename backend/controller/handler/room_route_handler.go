@@ -2,6 +2,7 @@ package route
 
 import (
 	"backendSenior/controller/middleware/auth"
+	"backendSenior/domain/dto"
 	"backendSenior/domain/model/chatsocket"
 	"backendSenior/domain/model/chatsocket/message_types"
 	"backendSenior/domain/model/chatsocket/room"
@@ -11,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/globalsign/mgo"
@@ -21,7 +21,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/globalsign/mgo/bson"
 )
 
@@ -125,37 +124,49 @@ func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context, req st
 	return nil
 }
 
-// for room group, we invite later
-type createGroupDto struct {
-	RoomName string        `validate:"required"`
-	OrgId    bson.ObjectId `validate:"required"`
-}
+// // for room group, we invite later
+// type createGroupDto struct {
+// 	RoomName string        `validate:"required"`
+// 	OrgId    bson.ObjectId `validate:"required"`
+// }
 
-func (d *createGroupDto) toRoom() model.Room {
-	return model.Room{
-		RoomName: d.RoomName,
-		// We dont have orgId here, since we want it to be set after room is "invited" to org
-		CreatedTimeStamp: time.Now(),
-		RoomType:         model.RoomGroup,
-		ListUser:         []bson.ObjectId{},
-		ListProxy:        []bson.ObjectId{},
-	}
-}
+// func (d *createGroupDto) toRoom() model.Room {
+// 	return model.Room{
+// 		RoomName: d.RoomName,
+// 		// We dont have orgId here, since we want it to be set after room is "invited" to org
+// 		CreatedTimeStamp: time.Now(),
+// 		RoomType:         model.RoomGroup,
+// 		ListUser:         []bson.ObjectId{},
+// 		ListProxy:        []bson.ObjectId{},
+// 	}
+// }
 
 // createGroupHandler create room with only you
 // it's user responsibility to invite more user later
-func (handler *RoomRouteHandler) createGroupHandler(c *gin.Context, input struct{ Body createGroupDto }) error {
+func (handler *RoomRouteHandler) createGroupHandler(c *gin.Context, input struct{ Body dto.CreateGroupDto }) error {
 	// TODO: should check org exists and is in org
 	b := input.Body
-
-	roomID, err := handler.roomService.AddRoom(b.toRoom())
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
+	roomID, err := handler.roomService.AddRoom(b.ToRoom())
+	if err != nil {
+		log.Println("error AddRoomHandeler", err.Error())
+		return fmt.Errorf("error creating room: %s", err)
+	}
+	// validate org
+	_, err = handler.orgService.GetOrganizeById(b.OrgId.Hex())
 	if err != nil {
 		log.Println("error AddRoomHandeler", err.Error())
 		return fmt.Errorf("error creating room: %s", err)
 	}
 
-	currentUserId := c.GetString(auth.UserIdField)
-	if err := handler.roomService.AddAdminsToRoom(bson.ObjectIdHex(roomID), []bson.ObjectId{bson.ObjectIdHex(currentUserId)}); err != nil {
+	currentUserID := c.GetString(auth.UserIdField)
+	if err := handler.roomService.AddAdminsToRoom(bson.ObjectIdHex(roomID), []bson.ObjectId{bson.ObjectIdHex(currentUserID)}); err != nil {
 		return fmt.Errorf("error adding self to room: %s", err)
 	}
 
@@ -167,35 +178,25 @@ func (handler *RoomRouteHandler) createGroupHandler(c *gin.Context, input struct
 	return nil
 }
 
-type createPrivateChatDto struct {
-	RoomName string        `validate:"required"`
-	OrgId    bson.ObjectId `validate:"required"`
-	UserId   bson.ObjectId `validate:"required"`
-}
-
-func (d *createPrivateChatDto) toRoom() model.Room {
-	return model.Room{
-		RoomName:         d.RoomName,
-		OrgID:            d.OrgId,
-		CreatedTimeStamp: time.Now(),
-		RoomType:         model.RoomPrivate,
-		ListUser:         nil,
-		ListProxy:        nil,
-	}
-}
-
 // createPrivateChatHandler, create private chat with two person
 // don't need to invite later
 func (handler *RoomRouteHandler) createPrivateChatHandler(c *gin.Context, input struct {
-	Body createPrivateChatDto
+	Body dto.CreatePrivateChatDto
 }) error {
 	// TODO: ensure that...
 	// - org exists
 	// - both are in that org
 	b := input.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 	// check user in org
-	currentUserId := c.GetString(auth.UserIdField)
-	userInfo, err := handler.userService.GetUserByID(currentUserId)
+	currentUserID := c.GetString(auth.UserIdField)
+	userInfo, err := handler.userService.GetUserByID(currentUserID)
 	if err != nil {
 		return err
 	}
@@ -211,11 +212,11 @@ func (handler *RoomRouteHandler) createPrivateChatHandler(c *gin.Context, input 
 		return g.NewError(403, "you are not in specified org")
 	}
 
-	roomID, err := handler.roomService.AddRoom(b.toRoom())
+	roomID, err := handler.roomService.AddRoom(b.ToRoom())
 	if err != nil {
 		return err
 	}
-	if err := handler.roomService.AddMembersToRoom(roomID, []string{currentUserId, b.UserId.Hex()}); err != nil {
+	if err := handler.roomService.AddMembersToRoom(roomID, []string{currentUserID, b.UserId.Hex()}); err != nil {
 		return err
 	}
 
@@ -226,15 +227,24 @@ func (handler *RoomRouteHandler) createPrivateChatHandler(c *gin.Context, input 
 	return nil
 }
 
-func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context, req struct{}) error {
+func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context, req struct {
+	Body struct {
+		RoomName string `json:"roomName" validate:"required,gt=0"`
+	}
+}) error {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		return g.NewError(400, "room id in path")
 	}
 
-	var room model.Room
-	err := context.ShouldBindJSON(&room)
-	room.RoomID = ""
+	b := req.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 
 	if err != nil {
 		log.Println("error EditRoomNametHandler", err.Error())
@@ -242,7 +252,7 @@ func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context, req s
 		return err
 	}
 
-	err = handler.roomService.EditRoomName(roomID, room)
+	err = handler.roomService.EditRoomName(roomID, model.Room{RoomName: b.RoomName})
 
 	if err != nil {
 		log.Println("error EditRoomNametHandler", err.Error())
@@ -273,12 +283,20 @@ func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context, req
 //// -- JoinAPI -> getSession(Topic+#ID) -> giveUserSession
 func (handler *RoomRouteHandler) addMemberToRoom(c *gin.Context, req struct {
 	Body struct {
-		UserIDs []bson.ObjectId
+		UserIDs []bson.ObjectId `json:"userIDs" validate:"required,dive,gt=0"`
 	}
 }) error {
 	roomID := c.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		return g.NewError(400, "bad room ID")
+	}
+	b := req.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
 	}
 
 	// use in room
@@ -310,10 +328,10 @@ func (handler *RoomRouteHandler) addMemberToRoom(c *gin.Context, req struct {
 	if !linq.From(org.Admins).Contains(userID) {
 		handler.logger.Println("check invited member in org")
 		orgMemberSet := make(map[bson.ObjectId]bool, len(org.Members))
-		linq.From(org.Members).ForEach(func(i any) {
+		linq.From(org.Members).ForEach(func(i dto.Any) {
 			orgMemberSet[i.(bson.ObjectId)] = true
 		})
-		if allOk := linq.From(req.Body.UserIDs).All(func(i any) bool {
+		if allOk := linq.From(req.Body.UserIDs).All(func(i dto.Any) bool {
 			_, inOrg := orgMemberSet[i.(bson.ObjectId)]
 			return inOrg
 		}); !allOk {
@@ -343,13 +361,21 @@ func (handler *RoomRouteHandler) addMemberToRoom(c *gin.Context, req struct {
 
 func (handler *RoomRouteHandler) deleteMemberFromRoom(c *gin.Context, req struct {
 	Body struct {
-		UserIDs []bson.ObjectId `json:"userIDs"` //TODO
+		UserIDs []bson.ObjectId `json:"userIDs" validate:"required,min=1,dive,required"` //TODO
 	}
 }) error {
 	roomID := c.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
 		return nil
+	}
+	b := req.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
 	}
 
 	currentRoom, err := handler.roomService.GetRoomByID(roomID)
@@ -380,11 +406,11 @@ func (handler *RoomRouteHandler) deleteMemberFromRoom(c *gin.Context, req struct
 	if !linq.From(currentRoom.ListAdmin).Contains(userID) {
 		handler.logger.Println("check kicked member not admin")
 		roomAdminSet := make(map[bson.ObjectId]bool, len(currentRoom.ListAdmin))
-		linq.From(currentRoom.ListAdmin).ForEach(func(i any) {
+		linq.From(currentRoom.ListAdmin).ForEach(func(i dto.Any) {
 			roomAdminSet[i.(bson.ObjectId)] = true
 		})
 		fmt.Printf("users %+v\n", req.Body.UserIDs)
-		if allOk := linq.From(req.Body.UserIDs).All(func(i any) bool {
+		if allOk := linq.From(req.Body.UserIDs).All(func(i dto.Any) bool {
 			// must not be admin
 			_, isAdmin := roomAdminSet[i.(bson.ObjectId)]
 			fmt.Printf("ID %v is admin ? %v\n", i, isAdmin)
@@ -475,26 +501,35 @@ func (handler *RoomRouteHandler) getRoomProxies(context *gin.Context, req struct
 
 }
 
-func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context, req struct{}) error {
+func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context, req struct {
+	Body struct {
+		ProxyIDs []bson.ObjectId `json:"proxyIds" validate:"required,min=1,dive,required"`
+	}
+}) error {
 	roomID := context.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		return g.NewError(400, "room id in path")
 	}
 
-	var body struct {
-		ProxyIDs []bson.ObjectId `json:"proxyIds"`
-	}
-
-	if err := context.MustBindWith(&body, binding.JSON); err != nil {
+	b := req.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
 		return err
 	}
 
-	if err := handler.roomService.AddProxiesToRoom(roomID, utills.ToStringArr(body.ProxyIDs)); err != nil {
+	// if err := context.MustBindWith(&body, binding.JSON); err != nil {
+	// 	return err
+	// }
+
+	if err := handler.roomService.AddProxiesToRoom(roomID, utills.ToStringArr(b.ProxyIDs)); err != nil {
 		handler.logger.Println("[Room handler] addProxiesToRoom: add proxy", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
-	if err := handler.keyService.Ensure(roomID, utills.ToStringArr(body.ProxyIDs)); err != nil {
+	if err := handler.keyService.Ensure(roomID, utills.ToStringArr(b.ProxyIDs)); err != nil {
 		handler.logger.Println("[Room handler] addProxiesToRoom: ensure key ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
@@ -504,24 +539,32 @@ func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context, req stru
 
 }
 
-func (handler *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context, req struct{}) error {
+func (handler *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context, req struct {
+	Body struct {
+		ProxyIDs []bson.ObjectId `json:"proxyIds" validate:"required,min=1,dive,required"`
+	}
+}) error {
 	roomID := context.Param("id")
-
-	var body struct {
-		ProxyIDs []bson.ObjectId `json:"proxyIds"`
+	if !bson.IsObjectIdHex(roomID) {
+		return g.NewError(400, "room id in path")
 	}
 
-	if err := context.MustBindWith(&body, binding.JSON); err != nil {
+	b := req.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
 		return err
 	}
 
-	err := handler.roomService.DeleteProxiesFromRoom(roomID, utills.ToStringArr(body.ProxyIDs))
+	err = handler.roomService.DeleteProxiesFromRoom(roomID, utills.ToStringArr(b.ProxyIDs))
 	if err != nil {
 		handler.logger.Println("[Room handler] removeProxiesFromRoom: ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
-	if err := handler.keyService.Delete(roomID, utills.ToStringArr(body.ProxyIDs)); err != nil {
+	if err := handler.keyService.Delete(roomID, utills.ToStringArr(b.ProxyIDs)); err != nil {
 		handler.logger.Println("[Room handler] removeProxiesFromRoom: remove key ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
@@ -582,23 +625,31 @@ func (handler *RoomRouteHandler) uploadFile(c *gin.Context, req struct{}) error 
 
 }
 
-type empty struct{}
-type any = interface{}
+// type empty struct{}
+// type any = interface{}
 
-type inviteAdminDto struct {
-	UserIDs []bson.ObjectId `validate:"required,min=1,dive,required"`
-}
+// type InviteAdminDto struct {
+// 	UserIDs []bson.ObjectId `validate:"required,min=1,dive,required"`
+// }
 
 // Room ADMIN API
 // addAdminsToRoom add admins to room (auto invite them as member)
 func (handler *RoomRouteHandler) addAdminsToRoom(c *gin.Context, req struct {
-	Body inviteAdminDto
+	Body dto.InviteAdminDto
 }) error {
 	roomID := c.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		return g.NewError(400, "bad currentRoom ID in path")
 	}
 
+	b := req.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 	currentRoom, err := handler.roomService.GetRoomByID(roomID)
 	if err != nil {
 		if errors.Is(err, mgo.ErrNotFound) {
@@ -624,10 +675,10 @@ func (handler *RoomRouteHandler) addAdminsToRoom(c *gin.Context, req struct {
 		return g.NewError(500, err.Error())
 	}
 	orgMemberSet := make(map[bson.ObjectId]bool, len(org.Members))
-	linq.From(org.Members).ForEach(func(i any) {
+	linq.From(org.Members).ForEach(func(i dto.Any) {
 		orgMemberSet[i.(bson.ObjectId)] = true
 	})
-	if allOk := linq.From(body.UserIDs).All(func(i any) bool {
+	if allOk := linq.From(body.UserIDs).All(func(i dto.Any) bool {
 		_, inOrg := orgMemberSet[i.(bson.ObjectId)]
 		return inOrg
 	}); !allOk {
@@ -681,11 +732,20 @@ func (handler *RoomRouteHandler) getRoomAdmins(c *gin.Context, req struct{}) err
 // removeAdminsFromRoom demote admins to user, it doesn't kick them
 // if want to kick, use deleteMemberFromRoom
 func (handler *RoomRouteHandler) removeAdminsFromRoom(c *gin.Context, req struct {
-	Body inviteAdminDto
+	Body dto.InviteAdminDto
 }) error {
 	roomID := c.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
 		return g.NewError(400, "bad currentRoom ID in path")
+	}
+
+	b := req.Body
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
 	}
 
 	currentRoom, err := handler.roomService.GetRoomByID(roomID)

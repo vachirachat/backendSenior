@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/globalsign/mgo"
 
@@ -81,9 +82,16 @@ func (h *FileRouteHandler) afterUploadFile(c *gin.Context, req struct{ Body dto.
 	// 	return err
 	// }
 	b := req.Body
+	err := h.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 	b.RoomID = bson.ObjectIdHex(roomID)
 
-	err := h.fs.AfterUploadFile(fileID, b)
+	err = h.fs.AfterUploadFile(fileID, b)
 	if err != nil {
 		log.Println("after upload file:", err)
 		c.JSON(500, gin.H{"status": "error", "message": err})
@@ -135,6 +143,13 @@ func (h *FileRouteHandler) getAnyFileURL(c *gin.Context, req struct{ Body dto.Fi
 
 	// }
 	b := req.Body
+	err := h.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 	if !bson.IsObjectIdHex(b.FileID.Hex()) {
 		return g.NewError(400, "invalid FileID in path")
 	}
@@ -179,9 +194,16 @@ func (h *FileRouteHandler) afterUploadImage(c *gin.Context, req struct{ Body dto
 	// 	return err
 	// }
 	b := req.Body
+	err := h.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 	b.RoomID = bson.ObjectIdHex(roomID)
 
-	err := h.fs.AfterUploadImage(imageFileID, b)
+	err = h.fs.AfterUploadImage(imageFileID, b)
 	if err != nil {
 		log.Println("after upload image:", err)
 		c.JSON(500, gin.H{"status": "error", "message": err})
@@ -214,6 +236,13 @@ func (h *FileRouteHandler) deleteFile(c *gin.Context, input struct {
 	}
 }) error {
 	b := input.Body
+	err := h.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 
 	meta, err := h.fs.GetAnyFileMeta(b.FileID)
 	if err != nil {
@@ -259,6 +288,13 @@ func (h *FileRouteHandler) deleteImage(c *gin.Context, input struct {
 	}
 }) error {
 	b := input.Body
+	err := h.validate.ValidateStruct(b)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"status": err.Error(),
+		})
+		return err
+	}
 
 	meta, err := h.fs.GetAnyFileMeta(b.FileID)
 	if err != nil {
