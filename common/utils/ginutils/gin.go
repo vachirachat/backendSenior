@@ -2,9 +2,10 @@ package ginutils
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"reflect"
 )
 
 var v = validator.New()

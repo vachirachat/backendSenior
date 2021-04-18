@@ -14,6 +14,7 @@ type Organize struct {
 	Members    []bson.ObjectId `json:"members" bson:"members,omitempty"`
 	Admins     []bson.ObjectId `json:"admins" bson:"admins,omitempty"`
 	Rooms      []bson.ObjectId `json:"rooms" bson:"rooms,omitempty"`
+	Proxies    []bson.ObjectId `json:"proxies" bson:"proxies,omitempty"`
 }
 
 // OrganizationInsert is used for inserting where empty fields are
@@ -24,6 +25,7 @@ type OrganizationInsert struct {
 	Members    []bson.ObjectId `json:"members" bson:"members"`
 	Admins     []bson.ObjectId `json:"admins" bson:"admins"`
 	Rooms      []bson.ObjectId `json:"rooms" bson:"rooms"`
+	Proxies    []bson.ObjectId `json:"proxies" bson:"proxies"`
 }
 
 // OrganizationT has same fields as organization, but has types of interface{}.
@@ -35,4 +37,5 @@ type OrganizationT struct {
 	Members    interface{} `bson:"members,omitempty"`
 	Admins     interface{} `bson:"admins,omitempty"`
 	Rooms      interface{} `bson:"rooms,omitempty"`
+	Proxies    interface{} `bson:"proxies,omitempty"`
 }

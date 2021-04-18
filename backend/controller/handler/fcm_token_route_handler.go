@@ -59,8 +59,9 @@ func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context, input struc
 	// found
 	if tok.Token != "" {
 		if tok.UserID.Hex() != userID {
-			c.JSON(http.StatusForbidden, gin.H{"status": "token already used by another user"})
-			return fmt.Errorf("token already used by another user")
+			// c.JSON(http.StatusForbidden, gin.H{"status": "token already used by another user"})
+			// return fmt.Errorf("token already used by another user")
+			return g.NewError(403, "token already used by another user")
 		}
 
 		err = handler.notifService.RefreshDevice(tok.Token)
@@ -135,8 +136,9 @@ func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context, input str
 	}
 
 	if !found {
-		c.JSON(http.StatusForbidden, gin.H{"status": "you don't own the token"})
-		return fmt.Errorf("token already used by another user")
+		// c.JSON(http.StatusForbidden, gin.H{"status": "you don't own the token"})
+		// return fmt.Errorf("token already used by another user")
+		return g.NewError(403, "token already used by another user")
 	}
 
 	err = handler.notifService.DeleteDevice(input.Token)
@@ -202,11 +204,11 @@ func (handler *FCMRouteHandler) handlePing(c *gin.Context, input struct {
 	tok, err := handler.notifService.GetTokenByID(input.Token)
 	if err != nil {
 		fmt.Println("[notification ping] error", err)
-		c.JSON(http.StatusForbidden, gin.H{"status": "something went wrong"})
-		return err
+		// c.JSON(http.StatusForbidden, gin.H{"status": "something went wrong"})
+		return g.NewError(403, "something went wrong")
 	} else if tok.UserID.Hex() != userID {
-		c.JSON(http.StatusForbidden, gin.H{"status": "not you token"})
-		return err
+		// c.JSON(http.StatusForbidden, gin.H{"status": "not you token"})
+		return g.NewError(403, "not your own token")
 	}
 
 	handler.notifService.SetLastSeenTime(input.Token, time.Now())
