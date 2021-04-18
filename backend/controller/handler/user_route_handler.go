@@ -314,6 +314,7 @@ func (handler *UserRouteHandler) getProfileImage(c *gin.Context, req struct{}) e
 
 	c.Header("Content-Disposition", "inline")
 	c.Header("Content-Length", fmt.Sprint(len(img)))
+	// dunno why, but even image is PNG it still work
 	c.Data(200, "image/jpeg", img)
 	return nil
 }

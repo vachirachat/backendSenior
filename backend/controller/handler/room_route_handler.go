@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/globalsign/mgo"
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -33,6 +34,7 @@ type RoomRouteHandler struct {
 	orgService   *service.OrganizeService
 	logger       *log.Logger
 	keyService   *service.KeyExchangeService
+	fileService  *service.FileService
 }
 
 // NewRoomHandler create new handler for room
@@ -43,6 +45,7 @@ func NewRoomRouteHandler(roomService *service.RoomService,
 	chatService *service.ChatService,
 	orgService *service.OrganizeService,
 	keyService *service.KeyExchangeService,
+	fileService *service.FileService,
 ) *RoomRouteHandler {
 	return &RoomRouteHandler{
 		roomService:  roomService,
@@ -53,6 +56,7 @@ func NewRoomRouteHandler(roomService *service.RoomService,
 		orgService:   orgService,
 		keyService:   keyService,
 		logger:       log.New(os.Stdout, "RoomRouteHandler ", log.LstdFlags|log.Lshortfile),
+		fileService:  fileService,
 	}
 }
 
@@ -71,6 +75,9 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/id/:id/proxy", handler.addProxiesToRoom)
 	routerGroup.DELETE("/id/:id/proxy", handler.removeProxiesFromRoom)
 
+	routerGroup.POST("/id/:id/image", g.InjectGin(handler.uploadRoomImage))
+	routerGroup.GET("/id/:id/image", g.InjectGin(handler.getRoomImage))
+
 	routerGroup.POST("/create-group", handler.authMw.AuthRequired(), g.InjectGin(handler.createGroupHandler))
 	routerGroup.POST("/create-private-chat", handler.authMw.AuthRequired(), g.InjectGin(handler.createPrivateChatHandler))
 	routerGroup.POST("/id/:id/name" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.editRoomNameHandler)
@@ -79,6 +86,7 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	// routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
 	routerGroup.GET("/id/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.getRoomByIDHandler)
 	routerGroup.GET("/", handler.authMw.AuthRequired(), handler.roomListHandler)
+
 }
 
 func (handler *RoomRouteHandler) roomListHandler(context *gin.Context) {
@@ -709,5 +717,58 @@ func (handler *RoomRouteHandler) removeAdminsFromRoom(c *gin.Context, req struct
 		Success: true,
 		Message: "removed admin",
 	})
+	return nil
+}
+
+func (handler *RoomRouteHandler) uploadRoomImage(c *gin.Context, req struct{}) error {
+	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		return g.NewError(400, "bad room id")
+	}
+
+	if _, err := handler.roomService.GetRoomByID(id); err != nil {
+		if errors.Is(err, mgo.ErrNotFound) {
+			return g.NewError(404, "room not found")
+		}
+		return err
+	}
+
+	fileHeader, err := c.FormFile("image")
+	if err != nil {
+		return g.NewError(400, fmt.Sprintf("can't get image form field: %s", err))
+	}
+	file, err := fileHeader.Open()
+	if err != nil {
+		return g.NewError(400, fmt.Sprintf("can't open file: %s", err))
+	}
+	defer file.Close()
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		return g.NewError(400, fmt.Sprintf("can't read file: %s", err))
+	}
+
+	if err := handler.fileService.UploadRoomImage(id, data); err != nil {
+		return err
+	}
+	c.JSON(200, g.OK("uploaded room image"))
+	return nil
+}
+
+func (handler *RoomRouteHandler) getRoomImage(c *gin.Context, req struct{}) error {
+	id := c.Param("id")
+	if !bson.IsObjectIdHex(id) {
+		return g.NewError(400, "bad room id")
+	}
+
+	isThumb := c.Query("thumbnail") == "true"
+
+	img, err := handler.fileService.GetRoomImage(id, isThumb)
+	if err != nil {
+		return err
+	}
+
+	c.Header("Content-Disposition", "inline")
+	c.Header("Content-Length", fmt.Sprint(len(img)))
+	c.Data(200, "image/jpeg", img)
 	return nil
 }

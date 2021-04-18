@@ -31,7 +31,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	proxyMw := authMw.NewProxyMiddleware(deps.ProxyAuth)
 
 	// create handler (some require middleware)
-	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, authMiddleware, deps.UserService, deps.ProxyService, deps.ChatService, deps.OraganizeService, deps.KeyExchangeService)
+	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, authMiddleware, deps.UserService, deps.ProxyService, deps.ChatService, deps.OraganizeService, deps.KeyExchangeService, deps.FileService)
 	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.JWTService, authMiddleware, deps.FileService)
 	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.FileService, deps.RoomService, authMiddleware)
 	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService, deps.KeyExchangeService)
