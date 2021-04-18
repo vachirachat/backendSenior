@@ -14,13 +14,15 @@ import (
 
 // ProxyService provide acces sto proxy related function
 type ProxyService struct {
-	proxyRepo repository.ProxyRepository
+	proxyRepo    repository.ProxyRepository
+	orgProxyRepo repository.OrgProxyRepository
 }
 
 // NewProxyService create nenw instance of `ProxyService`
-func NewProxyService(proxyRepo repository.ProxyRepository) *ProxyService {
+func NewProxyService(proxyRepo repository.ProxyRepository, orgProxyRepo repository.OrgProxyRepository) *ProxyService {
 	return &ProxyService{
-		proxyRepo: proxyRepo,
+		proxyRepo:    proxyRepo,
+		orgProxyRepo: orgProxyRepo,
 	}
 }
 
@@ -96,4 +98,20 @@ func (service *ProxyService) GetProxiesByIDs(proxyIDs []string) ([]model.Proxy, 
 // DeleteProxyByID delte proxy with specified ID
 func (service *ProxyService) DeleteProxyByID(proxyID string) error {
 	return service.proxyRepo.DeleteProxy(proxyID)
+}
+
+// GetOrgProxyIDs return roomIDs of org / error
+func (service *ProxyService) GetOrgProxyIDs(orgID string) ([]model.Proxy, error) {
+	proxies, err := service.orgProxyRepo.GetOrgProxyIDs(orgID)
+	return proxies, err
+}
+
+// AddProxiseToOrg return error
+func (service *ProxyService) AddProxiseToOrg(orgID string, proxyIDs []string) error {
+	return service.orgProxyRepo.AddProxiseToOrg(orgID, proxyIDs)
+}
+
+// RemoveProxiseFromOrg return error
+func (service *ProxyService) RemoveProxiseFromOrg(orgID string, proxyIDs []string) error {
+	return service.orgProxyRepo.RemoveProxiseFromOrg(orgID, proxyIDs)
 }

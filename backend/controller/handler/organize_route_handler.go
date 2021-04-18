@@ -20,17 +20,19 @@ type OrganizeRouteHandler struct {
 	organizeService *service.OrganizeService
 	userService     *service.UserService
 	roomService     *service.RoomService
+	proxyService    *service.ProxyService
 	authMw          *auth.JWTMiddleware
 	validate        *utills.StructValidator
 }
 
 // NewOrganizeRouteHandler create handler for Organize route
-func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authMw *auth.JWTMiddleware, userService *service.UserService, roomService *service.RoomService, validate *utills.StructValidator) *OrganizeRouteHandler {
+func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authMw *auth.JWTMiddleware, userService *service.UserService, proxyService *service.ProxyService, roomService *service.RoomService, validate *utills.StructValidator) *OrganizeRouteHandler {
 	return &OrganizeRouteHandler{
 		organizeService: organizeService,
 		authMw:          authMw,
 		userService:     userService,
 		roomService:     roomService,
+		proxyService:    proxyService,
 		validate:        validate,
 	}
 }
@@ -126,8 +128,18 @@ func (handler *OrganizeRouteHandler) deleteOrganizeByIDHandler(context *gin.Cont
 	if !bson.IsObjectIdHex(OrganizeID) {
 		return g.NewError(400, "Org id in path")
 	}
+	// Fix : Remove Proxies All related
+	org, err := handler.organizeService.GetOrganizeById(OrganizeID)
+	if err != nil {
+		return g.NewError(403, "fail to delete org")
+	}
 
-	err := handler.organizeService.DeleteOrganizeByID(OrganizeID)
+	err = handler.proxyService.RemoveProxiseFromOrg(OrganizeID, org.Proxies)
+	if err != nil {
+		return g.NewError(403, "fail to delete org")
+	}
+	// Fix : Remove Proxies All related
+	err = handler.organizeService.DeleteOrganizeByID(OrganizeID)
 	if err != nil {
 		// log.Println("error DeleteOrganizeHandler", err.Error())
 		// context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})

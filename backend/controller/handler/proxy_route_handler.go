@@ -1,6 +1,7 @@
 package route
 
 import (
+	authMw "backendSenior/controller/middleware/auth"
 	"backendSenior/domain/model"
 	"backendSenior/domain/service"
 	"backendSenior/utills"
@@ -17,15 +18,17 @@ import (
 type ProxyRouteHandler struct {
 	proxyService *service.ProxyService
 	roomService  *service.RoomService // get master proxy
+	userService  *service.UserService
 	validate     *utills.StructValidator
 }
 
 // NewProxyRouteHandler create new handler for proxy
-func NewProxyRouteHandler(proxyService *service.ProxyService, roomService *service.RoomService, validate *utills.StructValidator) *ProxyRouteHandler {
+func NewProxyRouteHandler(proxyService *service.ProxyService, roomService *service.RoomService, userService *service.UserService, validate *utills.StructValidator) *ProxyRouteHandler {
 	return &ProxyRouteHandler{
 		proxyService: proxyService,
 		roomService:  roomService,
 		validate:     validate,
+		userService:  userService,
 	}
 }
 
@@ -138,138 +141,254 @@ func (handler *ProxyRouteHandler) resetSecret(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"proxyId": id, "proxySecret": secret})
 }
 
+// Fix - forward to more resource full
 // Forward API to porxy by proxyID query IP
 func (handler *ProxyRouteHandler) forwardProxyVMFile(context *gin.Context) {
-	proxyID := context.Param("id")
-	if !bson.IsObjectIdHex(proxyID) || proxyID == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
-		return
+	proxy := templateInput(context)
+	isFull := context.Query("full") != ""
+	if isFull {
+		id := context.GetString(authMw.UserIdField)
+		user, err := handler.userService.GetUserByID(id)
+		if err != nil {
+			log.Println("error GetMe", err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+			return err
+		}
+		proxise := handler.proxyService.GetOrgProxyIDs(user.Organize)
+		for _, v := range proxise {
+			resp, err := forwardToProxy(proxy, "docker/file", context)
+			if err != nil {
+				fmt.Println("error get proxy by id", err)
+				context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+			}
+		}
+	} else {
+		resp, err := forwardToProxy(proxy, "docker/file", context)
+		if err != nil {
+			fmt.Println("error get proxy by id", err)
+			context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		}
 	}
-	proxy, err := handler.proxyService.GetProxyByID(proxyID)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
-	resp, err := forwardToProxy(proxy, "docker/file", context)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
+
 	context.JSON(http.StatusOK, gin.H{"status": resp})
 }
 
 // Forward API to porxy by proxyID query IP
 func (handler *ProxyRouteHandler) forwardProxyVMCode(context *gin.Context) {
-	proxyID := context.Param("id")
-	if !bson.IsObjectIdHex(proxyID) || proxyID == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
-		return
+	proxy := templateInput(context)
+	isFull := context.Query("full") != ""
+	if isFull {
+		id := context.GetString(authMw.UserIdField)
+		user, err := handler.userService.GetUserByID(id)
+		if err != nil {
+			log.Println("error GetMe", err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+			return err
+		}
+		proxise := handler.proxyService.GetOrgProxyIDs(user.Organize)
+		for _, v := range proxise {
+			resp, err := forwardToProxy(proxy, "docker/code", context)
+			if err != nil {
+				fmt.Println("error get proxy by id", err)
+				context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+			}
+		}
+	} else {
+		resp, err := forwardToProxy(proxy, "docker/code", context)
+		if err != nil {
+			fmt.Println("error get proxy by id", err)
+			context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		}
 	}
-	proxy, err := handler.proxyService.GetProxyByID(proxyID)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
-	resp, err := forwardToProxy(proxy, "docker/code", context)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
+
 	context.JSON(http.StatusOK, gin.H{"status": resp})
+	// resp, err := forwardToProxy(proxy, "docker/code", context)
+	// if err != nil {
+	// 	fmt.Println("error get proxy by id", err)
+	// 	context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	// }
+	// context.JSON(http.StatusOK, gin.H{"status": resp})
 }
 
 func (handler *ProxyRouteHandler) forwardProxyVMStatus(context *gin.Context) {
-	proxyID := context.Param("id")
-	if !bson.IsObjectIdHex(proxyID) || proxyID == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
-		return
+	proxy := templateInput(context)
+	isFull := context.Query("full") != ""
+	if isFull {
+		id := context.GetString(authMw.UserIdField)
+		user, err := handler.userService.GetUserByID(id)
+		if err != nil {
+			log.Println("error GetMe", err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+			return err
+		}
+		proxise := handler.proxyService.GetOrgProxyIDs(user.Organize)
+		for _, v := range proxise {
+			resp, err := forwardToProxy(proxy, "docker/status", context)
+			if err != nil {
+				fmt.Println("error get proxy by id", err)
+				context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+			}
+		}
+	} else {
+		resp, err := forwardToProxy(proxy, "docker/status", context)
+		if err != nil {
+			fmt.Println("error get proxy by id", err)
+			context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		}
 	}
-	proxy, err := handler.proxyService.GetProxyByID(proxyID)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
-	resp, err := forwardToProxy(proxy, "docker/status", context)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
+
 	context.JSON(http.StatusOK, gin.H{"status": resp})
+
+	// resp, err := forwardToProxy(proxy, "docker/status", context)
+	// if err != nil {
+	// 	fmt.Println("error get proxy by id", err)
+	// 	context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	// }
+	// context.JSON(http.StatusOK, gin.H{"status": resp})
 }
 
 func (handler *ProxyRouteHandler) forwardProxyVMProcessKill(context *gin.Context) {
-	proxyID := context.Param("id")
 	proxyProcess := context.Param("process_name")
-	if !bson.IsObjectIdHex(proxyID) || proxyID == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
-		return
+	proxy := templateInput(context)
+	isFull := context.Query("full") != ""
+	if isFull {
+		id := context.GetString(authMw.UserIdField)
+		user, err := handler.userService.GetUserByID(id)
+		if err != nil {
+			log.Println("error GetMe", err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+			return err
+		}
+		proxise := handler.proxyService.GetOrgProxyIDs(user.Organize)
+		for _, v := range proxise {
+			resp, err := forwardToProxy(proxy, "process/kill?process_name="+proxyProcess, context)
+			if err != nil {
+				fmt.Println("error get proxy by id", err)
+				context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+			}
+		}
+	} else {
+		resp, err := forwardToProxy(proxy, "process/kill?process_name="+proxyProcess, context)
+		if err != nil {
+			fmt.Println("error get proxy by id", err)
+			context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		}
 	}
-	proxy, err := handler.proxyService.GetProxyByID(proxyID)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
-	resp, err := forwardToProxy(proxy, "process/kill?process_name="+proxyProcess, context)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
+
 	context.JSON(http.StatusOK, gin.H{"status": resp})
+
+	// resp, err := forwardToProxy(proxy, "process/kill?process_name="+proxyProcess, context)
+	// if err != nil {
+	// 	fmt.Println("error get proxy by id", err)
+	// 	context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	// }
+	// context.JSON(http.StatusOK, gin.H{"status": resp})
 }
 func (handler *ProxyRouteHandler) forwardProxyPluginStatus(context *gin.Context) {
-	proxyID := context.Param("id")
-	if !bson.IsObjectIdHex(proxyID) || proxyID == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
-		return
+	proxy := templateInput(context)
+	isFull := context.Query("full") != ""
+	if isFull {
+		id := context.GetString(authMw.UserIdField)
+		user, err := handler.userService.GetUserByID(id)
+		if err != nil {
+			log.Println("error GetMe", err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+			return err
+		}
+		proxise := handler.proxyService.GetOrgProxyIDs(user.Organize)
+		for _, v := range proxise {
+			resp, err := forwardToProxy(proxy, "plugin/status", context)
+			if err != nil {
+				fmt.Println("error get proxy by id", err)
+				context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+			}
+		}
+	} else {
+		resp, err := forwardToProxy(proxy, "plugin/status", context)
+		if err != nil {
+			fmt.Println("error get proxy by id", err)
+			context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		}
 	}
-	proxy, err := handler.proxyService.GetProxyByID(proxyID)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
-	resp, err := forwardToProxy(proxy, "plugin/status", context)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
+
 	context.JSON(http.StatusOK, gin.H{"status": resp})
+	// resp, err := forwardToProxy(proxy, "plugin/status", context)
+	// if err != nil {
+	// 	fmt.Println("error get proxy by id", err)
+	// 	context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	// }
+	// context.JSON(http.StatusOK, gin.H{"status": resp})
 }
 func (handler *ProxyRouteHandler) forwardProxyPluginUP(context *gin.Context) {
-	proxyID := context.Param("id")
-	if !bson.IsObjectIdHex(proxyID) || proxyID == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
-		return
+	proxy := templateInput(context)
+	isFull := context.Query("full") != ""
+	if isFull {
+		id := context.GetString(authMw.UserIdField)
+		user, err := handler.userService.GetUserByID(id)
+		if err != nil {
+			log.Println("error GetMe", err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+			return err
+		}
+		proxise := handler.proxyService.GetOrgProxyIDs(user.Organize)
+		for _, v := range proxise {
+			resp, err := forwardToProxy(proxy, "plugin/start", context)
+			if err != nil {
+				fmt.Println("error get proxy by id", err)
+				context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+			}
+		}
+	} else {
+		resp, err := forwardToProxy(proxy, "plugin/start", context)
+		if err != nil {
+			fmt.Println("error get proxy by id", err)
+			context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		}
 	}
-	proxy, err := handler.proxyService.GetProxyByID(proxyID)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
-	resp, err := forwardToProxy(proxy, "plugin/start", context)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
+
 	context.JSON(http.StatusOK, gin.H{"status": resp})
+	// resp, err := forwardToProxy(proxy, "plugin/start", context)
+	// if err != nil {
+	// 	fmt.Println("error get proxy by id", err)
+	// 	context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	// }
+	// context.JSON(http.StatusOK, gin.H{"status": resp})
 }
 
 func (handler *ProxyRouteHandler) forwardProxyPluginDown(context *gin.Context) {
-	proxyID := context.Param("id")
-	if !bson.IsObjectIdHex(proxyID) || proxyID == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
-		return
+	proxy := templateInput(context)
+	isFull := context.Query("full") != ""
+	if isFull {
+		id := context.GetString(authMw.UserIdField)
+		user, err := handler.userService.GetUserByID(id)
+		if err != nil {
+			log.Println("error GetMe", err.Error())
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+			return err
+		}
+		proxise := handler.proxyService.GetOrgProxyIDs(user.Organize)
+		for _, v := range proxise {
+			resp, err := forwardToProxy(proxy, "plugin/stop", context)
+			if err != nil {
+				fmt.Println("error get proxy by id", err)
+				context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+			}
+		}
+	} else {
+		resp, err := forwardToProxy(proxy, "plugin/stop", context)
+		if err != nil {
+			fmt.Println("error get proxy by id", err)
+			context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		}
 	}
-	proxy, err := handler.proxyService.GetProxyByID(proxyID)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
-	resp, err := forwardToProxy(proxy, "plugin/stop", context)
-	if err != nil {
-		fmt.Println("error get proxy by id", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-	}
+
 	context.JSON(http.StatusOK, gin.H{"status": resp})
+	// resp, err := forwardToProxy(proxy, "plugin/stop", context)
+	// if err != nil {
+	// 	fmt.Println("error get proxy by id", err)
+	// 	context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+	// }
+	// context.JSON(http.StatusOK, gin.H{"status": resp})
 }
 
 // Fix Refactor : Move to Service
@@ -305,3 +424,17 @@ func forwardToProxy(proxy model.Proxy, path string, context *gin.Context) (strin
 }
 
 // Fix Refactor : Move to Service
+func templateInput(context *gin.Context) model.Proxy {
+	proxyID := context.Param("id")
+	if !bson.IsObjectIdHex(proxyID) || proxyID == "" {
+		context.JSON(http.StatusBadRequest, gin.H{"status": "bad proxy ID"})
+		return model.Proxy{}
+	}
+	proxy, err := handler.proxyService.GetProxyByID(proxyID)
+	if err != nil {
+		fmt.Println("error get proxy by id", err)
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return model.Proxy{}
+	}
+	return proxy
+}

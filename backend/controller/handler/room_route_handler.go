@@ -529,6 +529,20 @@ func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context, req stru
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
+
+	// Fix : find roomOrg and update roomOrg to proxy
+	room, err := handler.roomService.GetRoomByID(roomID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return err
+	}
+
+	if err := handler.proxyService.AddProxiseToOrg(room.OrgID, utills.ToStringArr(b.ProxyIDs)); err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		return err
+	}
+	// Fix : find roomOrg and update roomOrg to proxy
+
 	if err := handler.keyService.Ensure(roomID, utills.ToStringArr(b.ProxyIDs)); err != nil {
 		handler.logger.Println("[Room handler] addProxiesToRoom: ensure key ", err.Error())
 		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})

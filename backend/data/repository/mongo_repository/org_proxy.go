@@ -28,14 +28,24 @@ func NewOrgProxyRepositoryMongo(conn *mgo.Session) *OrgProxyRepository {
 var _ repository.OrgProxyRepository = (*OrgProxyRepository)(nil)
 
 // GetOrgRooms return proxiesID of org
-func (repo *OrgProxyRepository) GetOrgProxyIDs(orgID string) (proxiseIDs []string, err error) {
+func (repo *OrgProxyRepository) GetOrgProxyIDs(orgID string) (proxiseIDs []model.Proxy, err error) {
 	var org model.Organize
 	err = repo.conn.DB(dbName).C(collectionOrganize).FindId(bson.ObjectIdHex(orgID)).One(&org)
 	if err != nil {
 		return nil, err
 	}
-
-	return utills.ToStringArr(org.Proxies), nil
+	// Fix can do more effective
+	proxies := []model.Proxy{}
+	for _, v := range org.Proxies {
+		var proxy model.Proxy
+		err = repo.conn.DB(dbName).C(collectionProxy).FindId(v).One(&proxy)
+		if err != nil {
+			return nil, err
+		}
+		proxies = append(proxies, proxy)
+	}
+	// Fix can do more effective
+	return proxies, nil
 }
 
 // AddProxiseToOrg adds proxies to the org, each proxy must don't have any org

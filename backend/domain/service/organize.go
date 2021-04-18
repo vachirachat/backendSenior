@@ -11,16 +11,14 @@ type OrganizeService struct {
 	organizeRepo     repository.OrganizeRepository
 	organizeUserRepo repository.OrganizeUserRepository
 	orgRoomRepo      repository.OrgRoomRepository
-	orgProxyRepo     repository.OrgProxyRepository
 }
 
 // NewOrganizeService create nenw instance of `OrganizeService`
-func NewOrganizeService(organizeRepo repository.OrganizeRepository, organizeUserRepo repository.OrganizeUserRepository, orgRoomRepo repository.OrgRoomRepository, orgProxyRepo repository.OrgProxyRepository) *OrganizeService {
+func NewOrganizeService(organizeRepo repository.OrganizeRepository, organizeUserRepo repository.OrganizeUserRepository, orgRoomRepo repository.OrgRoomRepository) *OrganizeService {
 	return &OrganizeService{
 		organizeRepo:     organizeRepo,
 		organizeUserRepo: organizeUserRepo,
 		orgRoomRepo:      orgRoomRepo,
-		orgProxyRepo:     orgProxyRepo,
 	}
 }
 
@@ -116,20 +114,4 @@ func (service *OrganizeService) GetOrgRoomIDs(orgID string) ([]string, error) {
 func (service *OrganizeService) FindOrgByName(dto dto.FindOrgByNameDto) ([]model.Organize, error) {
 	orgs, err := service.organizeRepo.FindOrg(dto.ToFilter())
 	return orgs, err
-}
-
-// GetOrgProxyIDs return roomIDs of org / error
-func (service *OrganizeService) GetOrgProxyIDs(orgID string) ([]string, error) {
-	proxyIDs, err := service.orgProxyRepo.GetOrgProxyIDs(orgID)
-	return proxyIDs, err
-}
-
-// AddproxytoOrg return error
-func (service *OrganizeService) AddProxiseToOrg(orgID string, proxyIDs []string) error {
-	return service.orgProxyRepo.AddProxiseToOrg(orgID, proxyIDs)
-}
-
-// RemoveProxiseFromOrg return error
-func (service *OrganizeService) RemoveProxiseFromOrg(orgID string, proxyIDs []string) error {
-	return service.orgProxyRepo.RemoveProxiseFromOrg(orgID, proxyIDs)
 }
