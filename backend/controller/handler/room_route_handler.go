@@ -62,26 +62,25 @@ func NewRoomRouteHandler(roomService *service.RoomService,
 //Mount make RoomRouteHandler handler request from specific `RouterGroup`
 func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/id/:id/member", g.InjectGin(handler.getRoomMember))
-	routerGroup.POST("/id/:id/member", handler.authMw.AuthRequired(), g.InjectGin(handler.addMemberToRoom))
-	routerGroup.DELETE("/id/:id/member", handler.authMw.AuthRequired(), g.InjectGin(handler.deleteMemberFromRoom))
+	routerGroup.GET("/id/:id/member", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getRoomMember))
+	routerGroup.POST("/id/:id/member", handler.authMw.AuthRequired("user", "add"), g.InjectGin(handler.addMemberToRoom))
+	routerGroup.DELETE("/id/:id/member", handler.authMw.AuthRequired("user", "edit"), g.InjectGin(handler.deleteMemberFromRoom))
 	// room admin API
-	routerGroup.GET("/id/:id/admin", g.InjectGin(handler.getRoomAdmins))
-	routerGroup.POST("/id/:id/admin", handler.authMw.AuthRequired(), g.InjectGin(handler.addAdminsToRoom))
-	routerGroup.DELETE("/id/:id/admin", handler.authMw.AuthRequired(), g.InjectGin(handler.removeAdminsFromRoom))
+	routerGroup.GET("/id/:id/admin", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getRoomAdmins))
+	routerGroup.POST("/id/:id/admin", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.addAdminsToRoom))         // Fix: Room admin-Role
+	routerGroup.DELETE("/id/:id/admin", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.removeAdminsFromRoom)) // Fix: Room admin-Role
 
-	routerGroup.GET("/id/:id/proxy", g.InjectGin(handler.getRoomProxies))
-	routerGroup.POST("/id/:id/proxy", g.InjectGin(handler.addProxiesToRoom))
-	routerGroup.DELETE("/id/:id/proxy", g.InjectGin(handler.removeProxiesFromRoom))
+	routerGroup.GET("/id/:id/proxy", handler.authMw.AuthRequired("admin", "query"), g.InjectGin(handler.getRoomProxies))          // Fix: Room admin-Role
+	routerGroup.POST("/id/:id/proxy", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.addProxiesToRoom))         // Fix: Room admin-Role
+	routerGroup.DELETE("/id/:id/proxy", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.removeProxiesFromRoom)) // Fix: Room admin-Role
 
-	routerGroup.POST("/create-group", handler.authMw.AuthRequired(), g.InjectGin(handler.createGroupHandler))
-	routerGroup.POST("/create-private-chat", handler.authMw.AuthRequired(), g.InjectGin(handler.createPrivateChatHandler))
-	routerGroup.POST("/id/:id/name" /*handler.authService.AuthMiddleware("object", "view"),*/, g.InjectGin(handler.editRoomNameHandler))
-	routerGroup.DELETE("/id/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, g.InjectGin(handler.deleteRoomByIDHandler))
-	// routerGroup.POST("/addmembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.addMemberToRoom)
-	// routerGroup.POST("/deletemembertoroom" /*handler.authService.AuthMiddleware("object", "view"),*/, handler.deleteMemberFromRoom)
-	routerGroup.GET("/id/:id" /*handler.authService.AuthMiddleware("object", "view"),*/, g.InjectGin(handler.getRoomByIDHandler))
-	routerGroup.GET("/", handler.authMw.AuthRequired(), g.InjectGin(handler.roomListHandler))
+	routerGroup.POST("/create-group", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.createGroupHandler))
+	routerGroup.POST("/create-private-chat", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.createPrivateChatHandler))
+	routerGroup.POST("/id/:id/name", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.editRoomNameHandler)) // Fix: Room admin-Role
+	routerGroup.DELETE("/id/:id", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.deleteRoomByIDHandler)) // Fix: Room admin-Role
+
+	routerGroup.GET("/id/:id", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getRoomByIDHandler))
+	routerGroup.GET("/", handler.authMw.AuthRequired("admin", "query"), g.InjectGin(handler.roomListHandler))
 }
 
 func (handler *RoomRouteHandler) roomListHandler(context *gin.Context, req struct{}) error {
@@ -99,8 +98,7 @@ func (handler *RoomRouteHandler) roomListHandler(context *gin.Context, req struc
 		rooms, err = handler.roomService.GetAllRooms()
 	}
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return err
+		return g.NewError(404, "bad Get listRoom")
 	}
 	roomsInfo.Room = rooms
 	context.JSON(http.StatusOK, roomsInfo)
@@ -116,9 +114,7 @@ func (handler *RoomRouteHandler) getRoomByIDHandler(context *gin.Context, req st
 
 	room, err := handler.roomService.GetRoomByID(roomID)
 	if err != nil {
-		log.Println("error GetRoomByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return err
+		return g.NewError(404, "bad get room")
 	}
 	context.JSON(http.StatusOK, room)
 	return nil
@@ -148,30 +144,25 @@ func (handler *RoomRouteHandler) createGroupHandler(c *gin.Context, input struct
 	b := input.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 	roomID, err := handler.roomService.AddRoom(b.ToRoom())
 	if err != nil {
-		log.Println("error AddRoomHandeler", err.Error())
-		return fmt.Errorf("error creating room: %s", err)
+		return g.NewError(403, "bad Add Room")
 	}
 	// validate org
 	_, err = handler.orgService.GetOrganizeById(b.OrgId.Hex())
 	if err != nil {
-		log.Println("error AddRoomHandeler", err.Error())
-		return fmt.Errorf("error creating room: %s", err)
+		return g.NewError(403, "bad get orgID")
 	}
 
 	currentUserID := c.GetString(auth.UserIdField)
 	if err := handler.roomService.AddAdminsToRoom(bson.ObjectIdHex(roomID), []bson.ObjectId{bson.ObjectIdHex(currentUserID)}); err != nil {
-		return fmt.Errorf("error adding self to room: %s", err)
+		return g.NewError(403, "bad  adding self to room")
 	}
 
 	if err := handler.orgService.AddRoomsToOrg(b.OrgId.Hex(), []string{roomID}); err != nil {
-		return fmt.Errorf("error adding room to org: %s", err)
+		return g.NewError(403, "bad  adding room to org")
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"status": "success", "roomId": roomID})
@@ -189,16 +180,13 @@ func (handler *RoomRouteHandler) createPrivateChatHandler(c *gin.Context, input 
 	b := input.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 	// check user in org
 	currentUserID := c.GetString(auth.UserIdField)
 	userInfo, err := handler.userService.GetUserByID(currentUserID)
 	if err != nil {
-		return err
+		return g.NewError(403, "bad get UserId")
 	}
 	// both user must be in the org
 	allowed := false
@@ -240,25 +228,14 @@ func (handler *RoomRouteHandler) editRoomNameHandler(context *gin.Context, req s
 	b := req.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
-	}
-
-	if err != nil {
-		log.Println("error EditRoomNametHandler", err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 
 	err = handler.roomService.EditRoomName(roomID, model.Room{RoomName: b.RoomName})
-
 	if err != nil {
-		log.Println("error EditRoomNametHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
+
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 	return nil
 }
@@ -271,7 +248,6 @@ func (handler *RoomRouteHandler) deleteRoomByIDHandler(context *gin.Context, req
 
 	err := handler.roomService.DeleteRoomByID(roomID)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
@@ -293,10 +269,7 @@ func (handler *RoomRouteHandler) addMemberToRoom(c *gin.Context, req struct {
 	b := req.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 
 	// use in room
@@ -366,16 +339,12 @@ func (handler *RoomRouteHandler) deleteMemberFromRoom(c *gin.Context, req struct
 }) error {
 	roomID := c.Param("id")
 	if !bson.IsObjectIdHex(roomID) {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "bad roomID"})
-		return nil
+		return g.NewError(400, "bad param roomID")
 	}
 	b := req.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 
 	currentRoom, err := handler.roomService.GetRoomByID(roomID)
@@ -450,8 +419,6 @@ func (handler *RoomRouteHandler) getRoomMember(context *gin.Context, req struct{
 
 	userIDs, err := handler.roomService.GetRoomMemberIDs(roomID)
 	if err != nil {
-		fmt.Println("[getRoomMember] error", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
 
@@ -463,9 +430,7 @@ func (handler *RoomRouteHandler) getRoomMember(context *gin.Context, req struct{
 	}
 	users, err := handler.userService.GetUsersByIDs(userIDs)
 	if err != nil {
-		fmt.Println("[getRoomMember, full] error", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return err
+		return g.NewError(404, "bad getRoomMember")
 	}
 
 	context.JSON(http.StatusOK, gin.H{
@@ -482,16 +447,12 @@ func (handler *RoomRouteHandler) getRoomProxies(context *gin.Context, req struct
 
 	proxyIDs, err := handler.roomService.GetRoomProxyIDs(roomID)
 	if err != nil {
-		fmt.Println("[getRoomProxies]", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return err
+		return g.NewError(404, "bad getRoomProxies")
 	}
 
 	proxies, err := handler.proxyService.GetProxiesByIDs(proxyIDs)
 	if err != nil {
-		fmt.Println("[getRoomProxies]", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return err
+		return g.NewError(403, "bad GetProxiesIDs")
 	}
 
 	context.JSON(http.StatusOK, gin.H{
@@ -514,39 +475,27 @@ func (handler *RoomRouteHandler) addProxiesToRoom(context *gin.Context, req stru
 	b := req.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 
-	// if err := context.MustBindWith(&body, binding.JSON); err != nil {
-	// 	return err
-	// }
-
 	if err := handler.roomService.AddProxiesToRoom(roomID, utills.ToStringArr(b.ProxyIDs)); err != nil {
-		handler.logger.Println("[Room handler] addProxiesToRoom: add proxy", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return err
+		return g.NewError(403, "bad  addProxiesToRoom: add proxy")
 	}
 
 	// Fix : find roomOrg and update roomOrg to proxy
 	room, err := handler.roomService.GetRoomByID(roomID)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return err
+		return g.NewError(404, "bad  GetRoomByID")
 	}
 
-	if err := handler.proxyService.AddProxiseToOrg(room.OrgID, utills.ToStringArr(b.ProxyIDs)); err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return err
+	if err := handler.proxyService.AddProxiseToOrg(room.OrgID.Hex(), utills.ToStringArr(b.ProxyIDs)); err != nil {
+		return g.NewError(403, "bad  AddProxiseToOrg")
 	}
 	// Fix : find roomOrg and update roomOrg to proxy
 
 	if err := handler.keyService.Ensure(roomID, utills.ToStringArr(b.ProxyIDs)); err != nil {
 		handler.logger.Println("[Room handler] addProxiesToRoom: ensure key ", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
-		return err
+		return g.NewError(403, "bad addProxiesToRoom: ensure key ")
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
 	return nil
@@ -566,21 +515,16 @@ func (handler *RoomRouteHandler) removeProxiesFromRoom(context *gin.Context, req
 	b := req.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 
 	err = handler.roomService.DeleteProxiesFromRoom(roomID, utills.ToStringArr(b.ProxyIDs))
 	if err != nil {
 		handler.logger.Println("[Room handler] removeProxiesFromRoom: ", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
 	if err := handler.keyService.Delete(roomID, utills.ToStringArr(b.ProxyIDs)); err != nil {
 		handler.logger.Println("[Room handler] removeProxiesFromRoom: remove key ", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
 
@@ -656,14 +600,6 @@ func (handler *RoomRouteHandler) addAdminsToRoom(c *gin.Context, req struct {
 		return g.NewError(400, "bad currentRoom ID in path")
 	}
 
-	b := req.Body
-	err := handler.validate.ValidateStruct(b)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
-	}
 	currentRoom, err := handler.roomService.GetRoomByID(roomID)
 	if err != nil {
 		if errors.Is(err, mgo.ErrNotFound) {
@@ -683,6 +619,10 @@ func (handler *RoomRouteHandler) addAdminsToRoom(c *gin.Context, req struct {
 	}
 
 	body := req.Body
+	err = handler.validate.ValidateStruct(body)
+	if err != nil {
+		return g.NewError(404, "bad Body InviteAdminDto")
+	}
 	// dont allow adding outsider as admin
 	org, err := handler.orgService.GetOrganizeById(currentRoom.OrgID.Hex())
 	if err != nil {
@@ -753,15 +693,6 @@ func (handler *RoomRouteHandler) removeAdminsFromRoom(c *gin.Context, req struct
 		return g.NewError(400, "bad currentRoom ID in path")
 	}
 
-	b := req.Body
-	err := handler.validate.ValidateStruct(b)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
-	}
-
 	currentRoom, err := handler.roomService.GetRoomByID(roomID)
 	if err != nil {
 		if errors.Is(err, mgo.ErrNotFound) {
@@ -778,6 +709,10 @@ func (handler *RoomRouteHandler) removeAdminsFromRoom(c *gin.Context, req struct
 	}
 
 	body := req.Body
+	err = handler.validate.ValidateStruct(body)
+	if err != nil {
+		return g.NewError(404, "bad Body InviteAdminDto")
+	}
 	if err := handler.roomService.RemoveAdminsFromRoom(currentRoom.RoomID, body.UserIDs); err != nil {
 		handler.logger.Println("can't invite user to currentRoom", err)
 		return g.NewError(500, err.Error())

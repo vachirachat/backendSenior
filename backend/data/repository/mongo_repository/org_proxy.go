@@ -6,6 +6,7 @@ import (
 	"backendSenior/utills"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
@@ -77,17 +78,20 @@ func (repo *OrgProxyRepository) AddProxiseToOrg(orgID string, proxyIDs []string)
 			},
 		},
 	}
+
+	log.Println("proxyIDs in repo >>", proxyIDs)
+	log.Println("OrgID in repo >>", orgID)
 	for _, proxy := range proxyIDs {
 		ops = append(ops, txn.Op{
 			C:  collectionProxy,
 			Id: bson.ObjectIdHex(proxy),
-			Assert: model.ProxyUpdateMongo{ // assert orgId doesn't exist
-				Org: bson.M{
-					"$eq": nil,
-				},
-			},
+			// Assert: model.ProxyUpdateMongo{ // assert orgId doesn't exist
+			// 	Org: bson.M{
+			// 		"$eq": nil,
+			// 	},
+			// },
 			Update: bson.M{
-				"$addToSet": model.ProxyUpdateMongo{
+				"$set": model.ProxyUpdateMongo{
 					Org: bson.ObjectIdHex(orgID),
 				},
 			},

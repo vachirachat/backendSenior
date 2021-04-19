@@ -19,19 +19,16 @@ import (
 
 func DecrytedFile(fileName string) error {
 	dat, err := ioutil.ReadFile(PATH_ORIGIN_ZIP + fileName)
-	log.Println("File Data>>", fileName, "\n")
 	if err != nil {
 		return err
 	}
 	// Function Decrypted
-
 	fileData, err := DecryptBase(string(dat), PROXY_KEY)
 	if err != nil {
 		return err
 	}
-	// log.Println("File Data>>", string(fileData), "\n")
 
-	err = ioutil.WriteFile(PATH_ORIGIN_ZIP+"to_zip_"+fileName, []byte(fileData), 0644)
+	err = ioutil.WriteFile(PATH_ORIGIN_ZIP+"en_"+fileName, []byte(fileData), 0644)
 	if err != nil {
 		return err
 	}

@@ -57,15 +57,14 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context, req struct{}) error {
 	pid, err := r.keyEx.GetMaster(roomID)
 	if err != nil {
 		fmt.Println("keyRoute/getRoomKeyForProxy: can't get master proxy", err)
-		c.JSON(500, gin.H{"status": err.Error()})
+		// c.JSON(500, gin.H{"status": err.Error()})
 		return err
 	}
 
 	proxy, err := r.proxy.GetProxyByID(pid)
 	if err != nil {
 		fmt.Println("keyRoute/getRoomKeyForProxy: can't get master proxy", err)
-		c.JSON(500, gin.H{"status": "couldn't determine proxy to get key"})
-		return err
+		return g.NewError(500, "couldn't determine proxy to get key")
 	}
 
 	u := url.URL{
@@ -78,8 +77,7 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context, req struct{}) error {
 	res, err := http.Post(u.String(), "application/json", c.Request.Body)
 	if err != nil {
 		fmt.Println("keyRoute/getRoomKeyForProxy: error making request to proxy", err)
-		c.JSON(500, gin.H{"status": "error making request to proxy"})
-		return err
+		return g.NewError(500, "error making request to proxy")
 	}
 
 	if res.StatusCode >= 400 {
@@ -98,8 +96,8 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context, req struct{}) error {
 	err = json.Unmarshal(body, &resBody)
 	if err != nil {
 		fmt.Println("keyRoute/getRoomKeyForProxy: error decoding proxy response", err)
-		c.JSON(500, gin.H{"status": "error decoding proxy response"})
-		return err
+		// c.JSON(500, gin.H{"status": "error decoding proxy response"})
+		return g.NewError(500, "error decoding proxy response")
 	}
 
 	// dupe response
@@ -127,15 +125,15 @@ func (r *KeyRoute) generateRoomKey(c *gin.Context, req struct{}) error {
 	pid, err := r.keyEx.GetMaster(roomID)
 	if err != nil {
 		fmt.Println("keyRoute/generateRoomKey: can't get master proxy", err)
-		c.JSON(500, gin.H{"status": err.Error()})
+		// c.JSON(500, gin.H{"status": err.Error()})
 		return err
 	}
 
 	proxy, err := r.proxy.GetProxyByID(pid)
 	if err != nil {
 		fmt.Println("keyRoute/generateRoomKey: can't get master proxy", err)
-		c.JSON(500, gin.H{"status": "couldn't determine proxy to get key"})
-		return err
+		// c.JSON(500, gin.H{"status": "couldn't determine proxy to get key"})
+		return g.NewError(500, "couldn't determine proxy to get key")
 	}
 
 	u := url.URL{
@@ -148,8 +146,8 @@ func (r *KeyRoute) generateRoomKey(c *gin.Context, req struct{}) error {
 	res, err := http.Post(u.String(), "application/json", nil)
 	if err != nil {
 		fmt.Println("keyRoute/generateRoomKey: error making request to proxy", err)
-		c.JSON(500, gin.H{"status": "error making request to proxy"})
-		return err
+		// c.JSON(500, gin.H{"status": "error making request to proxy"})
+		return g.NewError(500, "error making request to proxy")
 	}
 
 	// Proxy responded, but non-ok, should forward messasge to requester
@@ -163,8 +161,8 @@ func (r *KeyRoute) generateRoomKey(c *gin.Context, req struct{}) error {
 	err = r.keyEx.IncrementVersion(roomID, proxy.ProxyID.Hex())
 	if err != nil {
 		fmt.Println("keyRoute/generateRoomKey: increment version error ", err)
-		c.JSON(500, gin.H{"status": "error"})
-		return nil
+		// c.JSON(500, gin.H{"status": "error"})
+		return err
 	}
 
 	go r.chat.BroadcastMessageToRoom(roomID, chatsocket.InvalidateRoomKeyMessage(roomID))
@@ -189,15 +187,15 @@ func (r *KeyRoute) getMasterProxy(c *gin.Context, req struct{}) error {
 	pid, err := r.keyEx.GetMaster(roomID)
 	if err != nil {
 		fmt.Println("keyRoute/getMasterProxy: can't get master proxy", err)
-		c.JSON(500, gin.H{"status": err.Error()})
+		// c.JSON(500, gin.H{"status": err.Error()})
 		return err
 	}
 
 	proxy, err := r.proxy.GetProxyByID(pid)
 	if err != nil {
 		fmt.Println("keyRoute/getMasterProxy: can't get master proxy", err)
-		c.JSON(500, gin.H{"status": "couldn't determine proxy to get key"})
-		return err
+		// c.JSON(500, gin.H{"status": "couldn't determine proxy to get key"})
+		return g.NewError(500, "couldn't determine proxy to get key")
 	}
 
 	c.JSON(200, proxy)
@@ -218,10 +216,7 @@ func (r *KeyRoute) setRoomPriority(c *gin.Context, req struct {
 	b := req.Body
 	err := r.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad Body Priority")
 	}
 
 	// var body struct {
@@ -235,7 +230,7 @@ func (r *KeyRoute) setRoomPriority(c *gin.Context, req struct {
 	err = r.keyEx.SetPriority(roomID, proxyID, *b.Priority)
 	if err != nil {
 		fmt.Println("key/setRoomPriority: err", err)
-		c.JSON(500, gin.H{"status": "error"})
+		// c.JSON(500, gin.H{"status": "error"})
 		return err
 	}
 
@@ -253,7 +248,7 @@ func (r *KeyRoute) getRoomPriority(c *gin.Context, req struct{}) error {
 
 	if err != nil {
 		fmt.Println("key/getRoomPriority: err", err)
-		c.JSON(500, gin.H{"status": "error"})
+		// c.JSON(500, gin.H{"status": "error"})
 		return err
 	}
 
@@ -271,8 +266,8 @@ func (r *KeyRoute) catchUpKeyVersion(c *gin.Context, req struct{}) error {
 	err := r.keyEx.CatchupKeyVersion(roomID, proxyID)
 	if err != nil {
 		fmt.Println("key/catchUpKeyVersion: error updating version", err)
-		c.JSON(500, gin.H{"status": "error updating version, try again"})
-		return err
+		// c.JSON(500, gin.H{"status": "error updating version, try again"})
+		return g.NewError(500, "error updating version, try again")
 	}
 
 	// when catchup, master could change, should invalidate old one

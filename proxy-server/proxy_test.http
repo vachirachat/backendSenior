@@ -20,6 +20,10 @@ GET {{base}}/api/v1/config/process/kill?process_name=docker_exec
 GET {{base}}/api/v1/config/plugin/start
 
 
+### GET Proxy-Plugin Enable
+GET {{base}}/api/v1/proxy/all/plugin/start
+
+
 ### GET Proxy-Plugin disable
 GET {{base}}/api/v1/config/plugin/stop
 

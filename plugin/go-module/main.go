@@ -76,14 +76,14 @@ func main() {
 
 	go func() {
 		var err error
-		conn, err = mgo.Dial("localhost:27017")
+		conn, err = mgo.Dial("172.17.0.2:27017")
 		if err != nil {
 			log.Fatal("error running", err)
 		}
 		isReady = true
 	}()
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 5005))
+	lis, err := net.Listen("tcp", fmt.Sprintf("172.17.0.4:%d", 5555))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

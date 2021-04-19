@@ -73,6 +73,7 @@ func main() {
 	organizeRepo := mongo_repository.NewOrganizeRepositoryMongo(connectionDB)
 	organizeUserRepo := mongo_repository.NewOrganizeUserRepositoryMongo(connectionDB)
 	orgRoomRepo := mongo_repository.NewOrgRoomRepository(connectionDB)
+	orgProxyRepo := mongo_repository.NewOrgProxyRepositoryMongo(connectionDB)
 
 	proxyRepo := mongo_repository.NewProxyRepositoryMongo(connectionDB)
 
@@ -123,7 +124,7 @@ func main() {
 
 	chatSvc := service.NewChatService(roomProxyRepo, roomUserRepo, chatPool, chatPool, messageRepo, notifSvc)
 
-	proxySvc := service.NewProxyService(proxyRepo)
+	proxySvc := service.NewProxyService(proxyRepo, orgProxyRepo)
 	proxyAuthSvc := auth.NewProxyAuth(proxyRepo)
 	keyExSvc := service.NewKeyExchangeService(mongo_repository.KeyVersionCollection(connectionDB))
 

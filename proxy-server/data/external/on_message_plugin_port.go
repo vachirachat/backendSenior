@@ -38,7 +38,6 @@ func (obp *GRPCOnPortMessagePlugin) connect(proxyConfig *model_proxy.ProxyConfig
 			time.Sleep(15 * time.Second)
 			continue
 		} else {
-			// conn, err := grpc.Dial("172.17.0.3:5005", opts...)
 			conn, err := grpc.Dial(proxyConfig.PluginPort, opts...)
 			//Fix Check Debug
 			if err != nil {

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 
 	"github.com/globalsign/mgo"
 
@@ -49,15 +48,15 @@ func (h *FileRouteHandler) Mount(rg *gin.RouterGroup) {
 	rg.GET("/room/:roomId/images", g.InjectGin(h.getRoomImages))
 
 	// POST can be used for actuin
-	rg.POST("/delete-file", h.mw.AuthRequired(), g.InjectGin(h.deleteFile))
-	rg.POST("/delete-image", h.mw.AuthRequired(), g.InjectGin(h.deleteImage))
+	rg.POST("/delete-file", h.mw.AuthRequired("user", "edit"), g.InjectGin(h.deleteFile))
+	rg.POST("/delete-image", h.mw.AuthRequired("user", "edit"), g.InjectGin(h.deleteImage))
 }
 
 func (h *FileRouteHandler) beforeUploadFile(c *gin.Context, req struct{}) error {
 	id, url, formData, err := h.fs.BeforeUploadFilePOST()
 	if err != nil {
 		log.Println("before upload file:", err)
-		c.JSON(500, gin.H{"status": "error"})
+		// c.JSON(500, gin.H{"status": "error"})
 		return err
 	}
 
@@ -84,18 +83,15 @@ func (h *FileRouteHandler) afterUploadFile(c *gin.Context, req struct{ Body dto.
 	b := req.Body
 	err := h.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad Body UploadFileMeta")
 	}
 	b.RoomID = bson.ObjectIdHex(roomID)
 
 	err = h.fs.AfterUploadFile(fileID, b)
 	if err != nil {
-		log.Println("after upload file:", err)
-		c.JSON(500, gin.H{"status": "error", "message": err})
-		return err
+		// log.Println("after upload file:", err)
+		// c.JSON(500, gin.H{"status": "error", "message": err})
+		return g.NewError(500, "error after upload file")
 	}
 
 	c.JSON(200, gin.H{"status": "success"})
@@ -109,7 +105,7 @@ func (h *FileRouteHandler) getRoomFiles(c *gin.Context, req struct{}) error {
 	}
 	metas, err := h.fs.GetRoomFileMetas(bson.ObjectIdHex(roomID))
 	if err != nil {
-		c.JSON(500, gin.H{"status": "error"})
+		// c.JSON(500, gin.H{"status": "error"})
 		return err
 	}
 
@@ -125,7 +121,7 @@ func (h *FileRouteHandler) getAnyFileDetail(c *gin.Context, req struct{}) error 
 	meta, err := h.fs.GetAnyFileMeta(bson.ObjectIdHex(fileID))
 	if err != nil {
 		log.Printf("get file detail %s: %v", fileID, err)
-		c.JSON(500, gin.H{"stauts": "error"})
+		// c.JSON(500, gin.H{"stauts": "error"})
 		return err
 	}
 
@@ -145,10 +141,7 @@ func (h *FileRouteHandler) getAnyFileURL(c *gin.Context, req struct{ Body dto.Fi
 	b := req.Body
 	err := h.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad Body FileQuery")
 	}
 	if !bson.IsObjectIdHex(b.FileID.Hex()) {
 		return g.NewError(400, "invalid FileID in path")
@@ -157,7 +150,7 @@ func (h *FileRouteHandler) getAnyFileURL(c *gin.Context, req struct{ Body dto.Fi
 	url, err := h.fs.GetAnyFileURL(b.Type, b.FileID.Hex())
 	if err != nil {
 		log.Println("get any file url:", err)
-		c.JSON(500, gin.H{"status": "error", "message": err})
+		// c.JSON(500, gin.H{"status": "error", "message": err})
 		return err
 	}
 
@@ -172,7 +165,7 @@ func (h *FileRouteHandler) beforeUploadImage(c *gin.Context, req struct{}) error
 	res, err := h.fs.BeforeUploadImagePOST()
 	if err != nil {
 		log.Println("before upload file:", err)
-		c.JSON(500, gin.H{"status": "error"})
+		// c.JSON(500, gin.H{"status": "error"})
 		return err
 	}
 
@@ -196,17 +189,14 @@ func (h *FileRouteHandler) afterUploadImage(c *gin.Context, req struct{ Body dto
 	b := req.Body
 	err := h.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad Body UploadImageMeta")
 	}
 	b.RoomID = bson.ObjectIdHex(roomID)
 
 	err = h.fs.AfterUploadImage(imageFileID, b)
 	if err != nil {
 		log.Println("after upload image:", err)
-		c.JSON(500, gin.H{"status": "error", "message": err})
+		// c.JSON(500, gin.H{"status": "error", "message": err})
 		return err
 	}
 
@@ -221,7 +211,7 @@ func (h *FileRouteHandler) getRoomImages(c *gin.Context, req struct{}) error {
 	}
 	metas, err := h.fs.GetRoomImageMetas(bson.ObjectIdHex(roomID))
 	if err != nil {
-		c.JSON(500, gin.H{"status": "error"})
+		// c.JSON(500, gin.H{"status": "error"})
 		return err
 	}
 
@@ -238,10 +228,7 @@ func (h *FileRouteHandler) deleteFile(c *gin.Context, input struct {
 	b := input.Body
 	err := h.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad Body FileID")
 	}
 
 	meta, err := h.fs.GetAnyFileMeta(b.FileID)
@@ -290,10 +277,7 @@ func (h *FileRouteHandler) deleteImage(c *gin.Context, input struct {
 	b := input.Body
 	err := h.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad Body FileID")
 	}
 
 	meta, err := h.fs.GetAnyFileMeta(b.FileID)

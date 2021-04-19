@@ -1,20 +1,20 @@
 @base = http://localhost:8080/api/v1/room
 
 // org id to create room in
-@org = 606a011a26dcb9dde6612d70
+@orgA = 607d46a1bc4da724bb163064
 
 
-@roomA = 6066d82dbc4da71de4a1ecd4
-@roomB = 
+@roomA = 607db45dbc4da70bca9621eb
+@roomB = 607db16ebc4da70ad011e58e
 
-@proxyA = 6066d5c7bc4da719f0c4de2f
-@proxyB = 
+@proxyA = 606c36b6bc4da77ecf3097de
+@proxyB = 607db0c4bc4da70ad011e58d
 
 // me = 5fef73f2315e73be2c81c748
-@userA = 6036f05799a05bbc180bd3cb
+@userA = 6075e9aa470aacc4ad407d90
 # @userB = 60001260f0a50a974cee2f95
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImVhNmY1Y2VlLTNmNjYtNGVmOC1iZWRiLTllNjAyMDYwMmE2ZSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNzM1MjYyOSwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjAzNmYwNTc5OWEwNWJiYzE4MGJkM2NiIn0.eV7mWBaZonXWQ-_aay16PzNXz2hsKdJeDFs3WsRePE8
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjcxNWIwOGNkLTY3M2MtNDU2Ni04ZGQyLWRmMDAwODlmOGRiMSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxODgzODM3Nywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA3NWU5YWE0NzBhYWNjNGFkNDA3ZDkwIn0.3htMS-9PUO1ZyJaNc8KwZbGhv54prIYCOP5_vMFSo80
 
 ### GET ALL ROOMS
 GET {{base}}
@@ -30,7 +30,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "roomName": "TEST_TOP",
+  "roomName": "Test_view 1",
   "roomType": "GROUP",
   "orgId": "{{orgA}}"
 }
@@ -50,7 +50,7 @@ Authorization: Bearer {{token}}
 GET {{base}}/id/{{roomA}}
 
 ###
-DELETE {{base}}/id/{{roomA}}    
+DELETE {{base}}/id/607d4bb1bc4da724bb163066    
 
 ### EDIT room
 POST {{base}}/id/{{roomA}}/name
@@ -86,8 +86,11 @@ Authorization: Bearer {{token}}
 
 ### get proxy full
 GET {{base}}/{{roomA}}/proxy    
+
+
+
 ### Add proxy to Room
-POST {{base}}/{{roomA}}/proxy    
+POST {{base}}/id/{{roomA}}/proxy    
 Content-Type: application/json
 
 {

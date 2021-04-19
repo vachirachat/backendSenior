@@ -1,6 +1,8 @@
 @base = http://localhost:8080/api/v1/proxy
-@proxyId = 606b2b3d26dcb9fb60c25cea
-@proxyId2 = 
+@baseRoom = http://localhost:8080/api/v1/room
+@proxyId1 = 606c36b6bc4da77ecf3097de
+@proxyId2 = 607db0c4bc4da70ad011e58d
+@OrgId = 607d46a1bc4da724bb163064
 
 
 ###
@@ -14,7 +16,8 @@ Content-Type: application/json
 {
   "name": "Localhost",
   "ip": "127.0.0.1",
-  "port": 8090
+  "port": 8090,
+  "Org": "{{OrgId}}"
 }
 
 ###
@@ -22,9 +25,10 @@ POST {{base}}
 Content-Type: application/json
 
 {
-  "name": "Local Proxy- test",
+  "name": "Local 2",
   "ip": "localhost",
-  "port": 8090
+  "port": 8091,
+  "Org": "{{OrgId}}"
 }
 
 
@@ -36,3 +40,24 @@ POST {{base}}/{{proxyId}}/reset
 
 ### get master rooms
 GET {{base}}/{{proxyId}}/master-rooms
+
+
+###
+GET {{base}}/{{OrgId}}/org
+Content-Type: application/json
+
+###
+POST {{base}}/{{OrgId}}/org
+Content-Type: application/json
+
+{
+  "proxies": ["{{proxyId2}}"]
+}
+
+###
+DELETE {{base}}/{{OrgId}}/org
+Content-Type: application/json
+
+{
+  "proxies": ["{{proxyId2}}"]
+}

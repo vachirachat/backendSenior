@@ -29,7 +29,7 @@ func NewConnStateRouteHandler(notifService *service.NotificationService, authMw 
 }
 
 func (h *ConnStateRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	routerGroup.GET("/ws", h.authMw.AuthRequired(), h.handleWs)
+	routerGroup.GET("/ws", h.authMw.AuthRequired("user", "view"), h.handleWs)
 }
 
 type simpleClient struct {

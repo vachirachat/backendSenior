@@ -40,31 +40,31 @@ func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authMw *a
 //Mount make OrganizeRouteHandler handler request from specific `RouterGroup`
 func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/:id", handler.authMw.AuthRequired(), g.InjectGin(handler.getOrganizeByIDHandler))
-	routerGroup.PUT("/:id", handler.authMw.AuthRequired(), g.InjectGin(handler.editOrganizeNameHandler))
-	routerGroup.DELETE("/:id", handler.authMw.AuthRequired(), g.InjectGin(handler.deleteOrganizeByIDHandler))
+	routerGroup.GET("/:id", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizeByIDHandler))
+	routerGroup.PUT("/:id", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.editOrganizeNameHandler))     // Fix: Org admin-Role
+	routerGroup.DELETE("/:id", handler.authMw.AuthRequired("user", "edit"), g.InjectGin(handler.deleteOrganizeByIDHandler)) // Fix: Org admin-Role
 
-	routerGroup.POST("/", handler.authMw.AuthRequired(), g.InjectGin(handler.addOrganizeHandler))
-	routerGroup.GET("/", handler.authMw.AuthRequired(), g.InjectGin(handler.getOrganizations))
-	routerGroup.GET("/:id/org", handler.authMw.AuthRequired(), g.InjectGin(handler.getOrganizeByNameHandler))
+	routerGroup.POST("/", handler.authMw.AuthRequired("user", "add"), g.InjectGin(handler.addOrganizeHandler))
+	routerGroup.GET("/", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizations))
+	routerGroup.GET("/:id/org", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizeByNameHandler))
 
-	routerGroup.GET("/:id/member", handler.authMw.AuthRequired(), g.InjectGin(handler.getOrganizationMembers))
-	routerGroup.POST("/:id/member", handler.authMw.AuthRequired(), g.InjectGin(handler.addMembersToOrganize))
-	routerGroup.DELETE("/:id/member", handler.authMw.AuthRequired(), g.InjectGin(handler.deleteMemberFromOrganize))
+	routerGroup.GET("/:id/member", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizationMembers))
+	routerGroup.POST("/:id/member", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.addMembersToOrganize)) // Fix: Org admin-Role
+	routerGroup.DELETE("/:id/member", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.deleteMemberFromOrganize))
 
-	routerGroup.GET("/:id/admin", handler.authMw.AuthRequired(), g.InjectGin(handler.getOrganizationAdmins))
-	routerGroup.POST("/:id/admin", handler.authMw.AuthRequired(), g.InjectGin(handler.addAdminsToOrganize))
-	routerGroup.DELETE("/:id/admin", handler.authMw.AuthRequired(), g.InjectGin(handler.deleteAdminsFromOrganize))
+	routerGroup.GET("/:id/admin", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizationAdmins))        // Fix: Org admin-Role
+	routerGroup.POST("/:id/admin", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.addAdminsToOrganize))         // Fix: Org admin-Role
+	routerGroup.DELETE("/:id/admin", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.deleteAdminsFromOrganize)) // Fix: Org admin-Role
 
-	routerGroup.GET("/:id/room", handler.authMw.AuthRequired(), g.InjectGin(handler.getOrgRooms))
+	routerGroup.GET("/:id/room", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrgRooms)) // Fix: Org admin-Role
 }
 
 func (handler *OrganizeRouteHandler) MountV2(rg *gin.RouterGroup) {
 
 	rg.GET("/id/:id", g.InjectGin(handler.getOrganizeByIDHandler))
 	rg.GET("/id/:id/org", g.InjectGin(handler.getOrganizeByNameHandler))
-	rg.POST("/create-org", handler.authMw.AuthRequired(), g.InjectGin(handler.addOrganizeHandler))
-	rg.GET("/", handler.authMw.AuthRequired(), g.InjectGin(handler.getOrganizations))
+	rg.POST("/create-org", handler.authMw.AuthRequired("user", "add"), g.InjectGin(handler.addOrganizeHandler))
+	rg.GET("/", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizations))
 	rg.PUT("/id/:id", g.InjectGin(handler.editOrganizeNameHandler))
 	rg.DELETE("/id/:id", g.InjectGin(handler.deleteOrganizeByIDHandler))
 
@@ -134,7 +134,7 @@ func (handler *OrganizeRouteHandler) deleteOrganizeByIDHandler(context *gin.Cont
 		return g.NewError(403, "fail to delete org")
 	}
 
-	err = handler.proxyService.RemoveProxiseFromOrg(OrganizeID, org.Proxies)
+	err = handler.proxyService.RemoveProxiseFromOrg(OrganizeID, utills.ToStringArr(org.Proxies))
 	if err != nil {
 		return g.NewError(403, "fail to delete org")
 	}
@@ -175,7 +175,7 @@ func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context, re
 	orgID, err = handler.organizeService.AddOrganize(b.ToOrg())
 	if err != nil {
 		log.Println("error AddOrganizeHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
 
@@ -183,7 +183,7 @@ func (handler *OrganizeRouteHandler) addOrganizeHandler(context *gin.Context, re
 	err = handler.organizeService.AddAdminToOrganize(orgID, []string{userID})
 	if err != nil {
 		log.Println("error AddOrganizeHandeler; invite self to room", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
 
@@ -208,7 +208,7 @@ func (handler *OrganizeRouteHandler) getOrganizations(context *gin.Context, req 
 
 	if err != nil {
 		log.Println("error OrganizeListHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
 	OrganizesInfo.Orgs = orgs
@@ -222,7 +222,7 @@ func (handler *OrganizeRouteHandler) getOrganizeByNameHandler(context *gin.Conte
 	Organize, err := handler.organizeService.GetOrganizeByName(OrganizeName)
 	if err != nil {
 		log.Println("error GetOrganizeByNameHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
 	context.JSON(http.StatusOK, Organize.OrganizeID)
@@ -238,14 +238,14 @@ func (handler *OrganizeRouteHandler) getOrganizationMembers(context *gin.Context
 	org, err := handler.organizeService.GetOrganizeById(orgID)
 	if err != nil {
 		log.Println("error GetOrganizeByIDHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
 
 	users, err := handler.userService.GetUsersByIDs(utills.ToStringArr(org.Members))
 	if err != nil {
 		fmt.Println("[getRoomProxies]", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
 
@@ -271,27 +271,13 @@ func (handler *OrganizeRouteHandler) addMembersToOrganize(context *gin.Context, 
 	b := req.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
-
-	// use bson.ObjectID to validate when bind
-	// var body struct {
-	// 	UserIDs []bson.ObjectId `json:"userIDs"`
-	// }
-
-	// err := context.ShouldBindJSON(&body)
-	// if err != nil {
-	// 	context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-	// 	return  err
-	// }
 
 	err = handler.organizeService.AddMemberToOrganize(OrganizeID, utills.ToStringArr(b.UserIDs))
 	if err != nil {
 		log.Println("error AddMemberToOrganize", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
@@ -321,16 +307,13 @@ func (handler *OrganizeRouteHandler) deleteMemberFromOrganize(context *gin.Conte
 	b := req.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 	err = handler.organizeService.DeleteMemberFromOrganize(OrganizeID, utills.ToStringArr(req.Body.UserIDs))
 
 	if err != nil {
 		log.Println("error DeleteOrganizeHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
@@ -347,14 +330,14 @@ func (handler *OrganizeRouteHandler) getOrganizationAdmins(context *gin.Context,
 	org, err := handler.organizeService.GetOrganizeById(orgID)
 	if err != nil {
 		fmt.Println("[getOrgAdmins]", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
 
 	adminUsers, err := handler.userService.GetUsersByIDs(utills.ToStringArr(org.Admins))
 	if err != nil {
 		fmt.Println("[getRoomProxies]", err)
-		context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
 
@@ -374,28 +357,15 @@ func (handler *OrganizeRouteHandler) addAdminsToOrganize(context *gin.Context, r
 		return g.NewError(400, "Org id in path")
 	}
 
-	// use bson.ObjectID to validate when bind
-	// var body struct {
-	// 	UserIDs []bson.ObjectId `json:"userIDs"`
-	// }
-
-	// err := context.ShouldBindJSON(&body)
-	// if err != nil {
-	// 	context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-	// 	return  err
-	// }
 	b := req.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 	err = handler.organizeService.AddAdminToOrganize(OrganizeID, utills.ToStringArr(req.Body.UserIDs))
 	if err != nil {
 		log.Println("error AddMemberToOrganize", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
@@ -412,29 +382,16 @@ func (handler *OrganizeRouteHandler) deleteAdminsFromOrganize(context *gin.Conte
 		return g.NewError(400, "Org id in path")
 	}
 
-	// use bson.ObjectID to validate when bind
-	// var body struct {
-	// 	UserIDs []bson.ObjectId `json:"userIDs"`
-	// }
-
-	// err := context.ShouldBindJSON(&body)
-	// if err != nil {
-	// 	context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-	// 	return  err
-	// }
 	b := req.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 	err = handler.organizeService.DeleteAdminFromOrganize(OrganizeID, utills.ToStringArr(req.Body.UserIDs))
 
 	if err != nil {
 		log.Println("error DeleteOrganizeHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		// context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return err
 	}
 	context.JSON(http.StatusOK, gin.H{"status": "success"})
@@ -450,14 +407,14 @@ func (handler *OrganizeRouteHandler) getOrgRooms(c *gin.Context, req struct{}) e
 	roomIDs, err := handler.organizeService.GetOrgRoomIDs(orgID)
 	if err != nil {
 		fmt.Println("get org room error:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		// c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
 
 	rooms, err := handler.roomService.GetRoomsByIDs(roomIDs)
 	if err != nil {
 		fmt.Println("get org room error:", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
+		// c.JSON(http.StatusInternalServerError, gin.H{"status": "error"})
 		return err
 	}
 
@@ -474,10 +431,7 @@ func (handler *OrganizeRouteHandler) findOrgByName(context *gin.Context, req str
 	b := req.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 
 	if orgs, err := handler.organizeService.FindOrgByName(b); err != nil {

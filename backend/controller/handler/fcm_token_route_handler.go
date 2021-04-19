@@ -29,12 +29,12 @@ func NewFCMRouteHandler(notif *service.NotificationService, authMw *auth.JWTMidd
 }
 
 func (handler *FCMRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	routerGroup.POST("/", handler.authMw.AuthRequired(), g.InjectGin(handler.handleRegsiterDevice))
-	routerGroup.GET("/", handler.authMw.AuthRequired(), g.InjectGin(handler.handleGetUserDevices))
-	routerGroup.DELETE("/", handler.authMw.AuthRequired(), g.InjectGin(handler.handleUnregsiterDevice))
-	routerGroup.POST("/ping", handler.authMw.AuthRequired(), g.InjectGin(handler.handlePing))
-	routerGroup.POST("/check-status", handler.authMw.AuthRequired(), g.InjectGin(handler.checkTokenStatus))
-	routerGroup.POST("/test-notification", handler.authMw.AuthRequired(), g.InjectGin(handler.sendTestNotification))
+	routerGroup.POST("/", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.handleRegsiterDevice))
+	routerGroup.GET("/", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.handleGetUserDevices))
+	routerGroup.DELETE("/", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.handleUnregsiterDevice))
+	routerGroup.POST("/ping", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.handlePing))
+	routerGroup.POST("/check-status", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.checkTokenStatus))
+	routerGroup.POST("/test-notification", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.sendTestNotification))
 }
 
 func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context, input struct{ Body dto.FCMTokenDto }) error {
@@ -49,10 +49,7 @@ func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context, input struc
 	b := input.Body
 	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return err
+		return g.NewError(400, "bad body format")
 	}
 	tok, err := handler.notifService.GetTokenByID(b.Token)
 
@@ -66,9 +63,8 @@ func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context, input struc
 
 		err = handler.notifService.RefreshDevice(tok.Token)
 		if err != nil {
-			fmt.Println("[register device] refresh error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"status": err})
-			return err
+			// fmt.Println("[register device] refresh error", err)
+			return g.NewError(500, "bad egister device refresh")
 		}
 		c.JSON(http.StatusOK, gin.H{"status": "refreshed"})
 		return nil
@@ -77,9 +73,9 @@ func (handler *FCMRouteHandler) handleRegsiterDevice(c *gin.Context, input struc
 	// not found
 	err = handler.notifService.RegisterDevice(userID, b.Token, b.DeviceName)
 	if err != nil {
-		fmt.Println("[register device] error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
-		return err
+		// fmt.Println("[register device] error", err)
+		// c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+		return g.NewError(500, "register device error")
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "success"})
@@ -97,7 +93,7 @@ func (handler *FCMRouteHandler) handleGetUserDevices(c *gin.Context, req struct{
 			return err
 		} else {
 			fmt.Println("[get user device] error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+			// c.JSON(http.StatusInternalServerError, gin.H{"status": err})
 			return err
 		}
 	}
@@ -111,6 +107,11 @@ func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context, input str
 }) error {
 	userID := c.GetString(auth.UserIdField)
 
+	b := input
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		return g.NewError(400, "bad body format")
+	}
 	// var body struct {
 	// 	Token string `json:"token"`
 	// }
@@ -123,13 +124,13 @@ func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context, input str
 	tokens, err := handler.notifService.GetUserTokens(userID)
 	if err != nil {
 		fmt.Println("[delete device] check permission error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
-		return err
+		// c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+		return g.NewError(404, "bad check permission Token")
 	}
 
 	found := false
 	for _, tok := range tokens {
-		if tok.Token == input.Token {
+		if tok.Token == b.Token {
 			found = true
 			break
 		}
@@ -141,10 +142,10 @@ func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context, input str
 		return g.NewError(403, "token already used by another user")
 	}
 
-	err = handler.notifService.DeleteDevice(input.Token)
+	err = handler.notifService.DeleteDevice(b.Token)
 	if err != nil {
 		fmt.Println("[delete device] error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+		// c.JSON(http.StatusInternalServerError, gin.H{"status": err})
 		return err
 	}
 
@@ -156,17 +157,15 @@ func (handler *FCMRouteHandler) handleUnregsiterDevice(c *gin.Context, input str
 func (handler *FCMRouteHandler) checkTokenStatus(c *gin.Context, input struct {
 	Token string `json:"token" validate:"required,gt=0"`
 }) error {
-	// var body model.FCMToken
-
-	// err := c.BindJSON(&body)
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"status": err})
-	// 	return
-	// }
+	b := input
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		return g.NewError(400, "bad body format")
+	}
 
 	userID := c.GetString(auth.UserIdField)
 
-	token, err := handler.notifService.GetTokenByID(input.Token)
+	token, err := handler.notifService.GetTokenByID(b.Token)
 
 	if err != nil {
 		if err.Error() == "not found" {
@@ -174,7 +173,7 @@ func (handler *FCMRouteHandler) checkTokenStatus(c *gin.Context, input struct {
 			return nil
 		}
 		fmt.Println("[check token status] error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+		// c.JSON(http.StatusInternalServerError, gin.H{"status": err})
 		return err
 	}
 
@@ -190,18 +189,14 @@ func (handler *FCMRouteHandler) handlePing(c *gin.Context, input struct {
 	Token string `json:"token" validate:"required,gt=0"`
 }) error {
 
-	// var body struct {
-	// 	Token string `json:"token"`
-	// }
-
-	// err := c.BindJSON(&body)
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"status": "bad token"})
-	// 	return
-	// }
+	b := input
+	err := handler.validate.ValidateStruct(b)
+	if err != nil {
+		return g.NewError(400, "bad body format")
+	}
 
 	userID := c.GetString(auth.UserIdField)
-	tok, err := handler.notifService.GetTokenByID(input.Token)
+	tok, err := handler.notifService.GetTokenByID(b.Token)
 	if err != nil {
 		fmt.Println("[notification ping] error", err)
 		// c.JSON(http.StatusForbidden, gin.H{"status": "something went wrong"})
@@ -211,7 +206,7 @@ func (handler *FCMRouteHandler) handlePing(c *gin.Context, input struct {
 		return g.NewError(403, "not your own token")
 	}
 
-	handler.notifService.SetLastSeenTime(input.Token, time.Now())
+	handler.notifService.SetLastSeenTime(b.Token, time.Now())
 	c.JSON(http.StatusOK, gin.H{})
 	return nil
 }
@@ -220,20 +215,15 @@ func (handler *FCMRouteHandler) sendTestNotification(c *gin.Context, input struc
 	Token string `json:"token" validate:"required,gt=0"`
 }) error {
 
-	// var body model.FCMToken
-
-	// err := c.BindJSON(&body)
-	// if err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"status": err})
-	// 	return
-	// }
-
-	tok, err := handler.notifService.GetTokenByID(input.Token)
+	b := input
+	err := handler.validate.ValidateStruct(b)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"status": "something went wrong, ensure that token exists",
-		})
-		return err
+		return g.NewError(400, "bad body format")
+	}
+
+	tok, err := handler.notifService.GetTokenByID(b.Token)
+	if err != nil {
+		return g.NewError(500, "something went wrong, ensure that token exists")
 	}
 
 	userID := c.GetString(auth.UserIdField)
@@ -242,7 +232,7 @@ func (handler *FCMRouteHandler) sendTestNotification(c *gin.Context, input struc
 		return g.NewError(403, "not your own token")
 	}
 
-	sent, err := handler.notifService.SendNotifications([]string{input.Token}, &model.Notification{
+	sent, err := handler.notifService.SendNotifications([]string{b.Token}, &model.Notification{
 		Title: "Test notification",
 		Body:  "If you received this notification it means you are configured correctly",
 	})

@@ -48,37 +48,34 @@ func (handler *MessageRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	// routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.messageListHandler)
 	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.addMessageHandeler)
 	// route.PUT("/message/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/ ,handler.editMessageHandler)
-	routerGroup.DELETE("/:message_id", handler.auth.AuthRequired(), g.InjectGin(handler.deleteMessageByIDHandler))
+	routerGroup.DELETE("/:message_id", handler.auth.AuthRequired("admin", "edit"), g.InjectGin(handler.deleteMessageByIDHandler))
 }
 
 // MessageListHandler return all messages
-func (handler *MessageRouteHandler) messageListHandler(context *gin.Context) {
-	// return value
-	var messagesInfo model.MessagesResponse
+// func (handler *MessageRouteHandler) messageListHandler(context *gin.Context,  ) {
+// 	// return value
+// 	var messagesInfo model.MessagesResponse
 
-	roomID := context.Query("roomId")
-	if roomID != "" && !bson.IsObjectIdHex(roomID) {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "bad query"})
-		return
-	}
+// 	roomID := context.Query("roomId")
+// 	if roomID != "" && !bson.IsObjectIdHex(roomID) {
+// 		return g.NewError(400, "bad roomID param")
+// 	}
 
-	var messages []model.Message
-	var err error
+// 	var messages []model.Message
+// 	var err error
 
-	if roomID != "" {
-		messages, err = handler.messageService.GetMessageByRoom(roomID)
-	} else {
-		messages, err = handler.messageService.GetAllMessages()
-	}
+// 	if roomID != "" {
+// 		messages, err = handler.messageService.GetMessageByRoom(roomID)
+// 	} else {
+// 		messages, err = handler.messageService.GetAllMessages()
+// 	}
 
-	if err != nil {
-		log.Println("error MessageListHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
-		return
-	}
-	messagesInfo.Messages = messages
-	context.JSON(http.StatusOK, messagesInfo)
-}
+// 	if err != nil {
+// 		return err
+// 	}
+// 	messagesInfo.Messages = messages
+// 	context.JSON(http.StatusOK, messagesInfo)
+// }
 
 // GetMessageByIDHandler return message by Id
 func (handler *MessageRouteHandler) getMessageByIDHandler(context *gin.Context) {
@@ -150,7 +147,7 @@ func (handler *MessageRouteHandler) deleteMessageByIDHandler(context *gin.Contex
 
 	if err := handler.messageService.DeleteMessageByID(messageID); err != nil {
 		log.Println("error DeleteMessageHandler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
+		return err
 	}
 	context.JSON(200, g.Response{Success: true, Message: "deleted file"})
 	return nil

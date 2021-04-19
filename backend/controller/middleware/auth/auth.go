@@ -36,8 +36,17 @@ var SCOPES = []string{"view", "add", "edit", "query"}
 // AuthRequired is used for route that require login.
 // It will set userId, role in the `gin.Context`
 func (mw *JWTMiddleware) AuthRequired(resouce string, scope string) gin.HandlerFunc {
+	// func (mw *JWTMiddleware) AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := extractToken(c)
+		// Fix Debug : Token
+		// token := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjcxNWIwOGNkLTY3M2MtNDU2Ni04ZGQyLWRmMDAwODlmOGRiMSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxODgzODM3Nywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA3NWU5YWE0NzBhYWNjNGFkNDA3ZDkwIn0.3htMS-9PUO1ZyJaNc8KwZbGhv54prIYCOP5_vMFSo80"
+		err := canAccessResource(c)
+		if err != nil {
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "access: " + err.Error()})
+			return
+		}
 		if token == "" {
 			c.Abort()
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "no token"})
@@ -79,19 +88,11 @@ func hasPermission(c *gin.Context, resource string, scope string) bool {
 	if isAdmin(resource) ||
 		(scope == "view" && !isAdminResource(resource)) ||
 		(scope == "add" && !isAdminResource(resource)) ||
-		(scope == "edit" && !isAdminResource(resource)) ||
-		(scope == "query" && !isAdminResource(resource)) {
+		(scope == "edit" && !isAdminResource(resource)) {
 		return true
 	}
 	return false
 }
-
-// func hasPermissionWithAdminFlag(c *gin.Context, resource string, scope string, isAdmin bool) bool {
-// 	if isAdmin || (scope == "view" && !isAdminResource(resource)) {
-// 		return true
-// 	}
-// 	return false
-// }
 
 func canAccessResource(c *gin.Context) error {
 	resource := c.Param("resource")
