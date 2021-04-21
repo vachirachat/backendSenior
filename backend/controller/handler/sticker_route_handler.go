@@ -46,7 +46,7 @@ func (h *StickerRouteHandler) Mount(rg *gin.RouterGroup) {
 	s1.POST("/create", h.authMiddleware.AuthRequired("admit", "add"), g.InjectGin(h.createStickerSet))
 
 	s2 := rg.Group("/set")
-	s2.GET("/:id", g.InjectGin(h.getStickerSet))
+	s2.GET("/:id", h.authMiddleware.AuthRequired("user", "view"), g.InjectGin(h.getStickerSet))
 	s2.POST("/:id/add-sticker", h.authMiddleware.AuthRequired("user", "add"), g.InjectGin(h.addStickerToSet))
 	s2.POST("/:id/remove-sticker", h.authMiddleware.AuthRequired("user", "edit"), g.InjectGin(h.removeStickerFromSet))
 

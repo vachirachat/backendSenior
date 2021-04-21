@@ -1,6 +1,7 @@
 package service
 
 import (
+	"backendSenior/domain/dto"
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"crypto/rand"
@@ -8,7 +9,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/globalsign/mgo/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -28,7 +28,7 @@ func NewProxyService(proxyRepo repository.ProxyRepository, orgProxyRepo reposito
 
 // NewProxy create new proxy with name (display name)
 // return ID, secret, error
-func (service *ProxyService) NewProxy(proxy model.Proxy) (string, string, error) {
+func (service *ProxyService) NewProxy(dtoProxy dto.CreateProxyDto) (string, string, error) {
 	randByte := make([]byte, 48)
 	_, err := io.ReadFull(rand.Reader, randByte)
 	if err != nil {
@@ -40,10 +40,7 @@ func (service *ProxyService) NewProxy(proxy model.Proxy) (string, string, error)
 		return "", "", fmt.Errorf("hashing secret: %s", err.Error())
 	}
 
-	proxy.Secret = string(hashedSecret)
-	proxy.Rooms = []bson.ObjectId{}
-
-	id, err := service.proxyRepo.AddProxy(proxy)
+	id, err := service.proxyRepo.AddProxy(dtoProxy.ToProxy(string(hashedSecret)))
 	if err != nil {
 		return "", "", fmt.Errorf("inserting proxy: %s", err.Error())
 	}

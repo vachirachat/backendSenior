@@ -76,7 +76,7 @@ func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	routerGroup.POST("/create-group", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.createGroupHandler))
 	routerGroup.POST("/create-private-chat", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.createPrivateChatHandler))
-	routerGroup.POST("/id/:id/name", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.editRoomNameHandler)) // Fix: Room admin-Role
+	routerGroup.POST("/id/:id/name", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.editRoomNameHandler))
 	routerGroup.DELETE("/id/:id", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.deleteRoomByIDHandler)) // Fix: Room admin-Role
 
 	routerGroup.GET("/id/:id", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getRoomByIDHandler))
