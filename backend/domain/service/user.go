@@ -5,7 +5,6 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"backendSenior/domain/service/auth"
-	"backendSenior/utills"
 	"errors"
 	"log"
 
@@ -130,16 +129,6 @@ func (service *UserService) Signup(user model.User) error {
 	if err == nil {
 		return errors.New("User already exists")
 	}
-
-	user.Room = []bson.ObjectId{}
-	user.Organize = []bson.ObjectId{}
-
-	// Add User to DB
-	user.Password = utills.HashPassword(user.Password)
-	user.UserType = "user"
-	user.Room = []bson.ObjectId{}
-	user.Organize = []bson.ObjectId{}
-	user.FCMTokens = []string{}
 	err = service.userRepository.AddUser(user)
 	if err != nil {
 		return err

@@ -51,7 +51,7 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.POST("/me/profile", handler.authMiddleware.AuthRequired("user", "add"), g.InjectGin(handler.uploadProfileImage))
 
 	routerGroup.GET("/byid/:id", handler.authMiddleware.AuthRequired("user", "view"), g.InjectGin(handler.getUserByIDHandler))
-	routerGroup.DELETE("byid/:user_id", handler.authMiddleware.AuthRequired("user", "edit"), g.InjectGin(handler.deleteUserByIDHandler))
+	routerGroup.DELETE("byid/:id", handler.authMiddleware.AuthRequired("user", "edit"), g.InjectGin(handler.deleteUserByIDHandler))
 	routerGroup.GET("/byid/:id/profile", handler.authMiddleware.AuthRequired("user", "view"), g.InjectGin(handler.getProfileImage))
 
 	// routerGroup.POST("/getuserbyemail", g.InjectGin(handler.getUserByEmail))
@@ -67,7 +67,7 @@ func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	// Debug
 	// routerGroup.GET("/getalltoken", handler.getAllTokenHandle)
-	// routerGroup.GET("/user", g.InjectGin(handler.userListHandler))
+	routerGroup.GET("/user", g.InjectGin(handler.userListHandler))
 }
 
 func (handler *UserRouteHandler) getMeHandler(context *gin.Context, req struct{}) error {
@@ -311,16 +311,16 @@ func (handler *UserRouteHandler) verifyToken(context *gin.Context, input struct 
 	return nil
 }
 
-// func (handler *UserRouteHandler) userListHandler(context *gin.Context, req struct{}) error {
-// 	var usersInfo model.UserInfo
-// 	users, err := handler.userService.GetAllUsers()
-// 	if err != nil {
-// 		return g.NewError(404, "bad GetAllUsers")
-// 	}
-// 	usersInfo.User = users
-// 	context.JSON(http.StatusOK, usersInfo)
-// 	return nil
-// }
+func (handler *UserRouteHandler) userListHandler(context *gin.Context, req struct{}) error {
+	var usersInfo model.UserInfo
+	users, err := handler.userService.GetAllUsers()
+	if err != nil {
+		return g.NewError(404, "bad GetAllUsers")
+	}
+	usersInfo.User = users
+	context.JSON(http.StatusOK, usersInfo)
+	return nil
+}
 
 // func (handler *UserRouteHandler) getAllTokenHandle(context *gin.Context) {
 // 	tokens, err := handler.jwtService.GetAllToken()

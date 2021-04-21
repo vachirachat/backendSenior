@@ -45,7 +45,7 @@ func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.DELETE("/:id", handler.authMw.AuthRequired("user", "edit"), g.InjectGin(handler.deleteOrganizeByIDHandler)) // Fix: Org admin-Role
 
 	routerGroup.POST("/", handler.authMw.AuthRequired("user", "add"), g.InjectGin(handler.addOrganizeHandler))
-	routerGroup.GET("/", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizations))
+	routerGroup.GET("/", g.InjectGin(handler.getOrganizations))
 	routerGroup.GET("/:id/org", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizeByNameHandler))
 
 	routerGroup.GET("/:id/member", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizationMembers))

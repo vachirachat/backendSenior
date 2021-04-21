@@ -43,7 +43,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware, deps.Validate)
 	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService, deps.Validate)
 	fileRouteHandler := NewFileRouteHandler(deps.FileService, deps.RoomService, authMiddleware, deps.Validate)
-	StickerRouteHandler := NewStickerRouteHandler(deps.StickerService, deps.Validate)
+	StickerRouteHandler := NewStickerRouteHandler(deps.StickerService, authMiddleware, deps.Validate)
 	r := gin.New()
 	r.Use(gin.Recovery())
 

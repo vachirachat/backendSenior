@@ -2,6 +2,9 @@ package dto
 
 import (
 	"backendSenior/domain/model"
+	"backendSenior/utills"
+
+	"github.com/globalsign/mgo/bson"
 )
 
 // UpdateMeDto is request body for update user-info(model.USER)
@@ -33,11 +36,11 @@ func (d *CreateUser) ToUser() model.User {
 	return model.User{
 		Name:      d.Name,
 		Email:     d.Email,
-		Password:  d.Password,
-		Room:      nil,
-		Organize:  nil,
-		UserType:  "user",
-		FCMTokens: nil,
+		Password:  utills.HashPassword(d.Password),
+		Room:      []bson.ObjectId{},
+		Organize:  []bson.ObjectId{},
+		UserType:  "user", // Fix set as user for test
+		FCMTokens: []string{},
 	}
 }
 

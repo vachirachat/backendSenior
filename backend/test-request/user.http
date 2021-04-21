@@ -23,8 +23,7 @@ Content-Type: application/json
   "password": "123456789"
 }
 
-# org1.2@gmail.com
-# 123456789
+
 ### GET me
 GET {{base}}/me
 Authorization: Bearer {{token}}
