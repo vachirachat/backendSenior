@@ -41,7 +41,7 @@ func (messageMongo *MessageRepositoryMongo) GetMessagesByRoom(roomID string, tim
 	var messages []model.Message
 	filter := queryFromTimeRange(timeRange)
 	filter["roomId"] = bson.ObjectIdHex(roomID)
-	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Find(filter).All(&messages)
+	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Find(filter).Limit(1000).Sort("-timestamp").All(&messages)
 	return messages, err
 }
 
