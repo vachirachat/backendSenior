@@ -2,6 +2,7 @@ package route
 
 import (
 	"backendSenior/controller/middleware/auth"
+	"backendSenior/domain/dto"
 	"backendSenior/domain/model"
 	"backendSenior/domain/service"
 	g "common/utils/ginutils"
@@ -10,6 +11,7 @@ import (
 	"github.com/globalsign/mgo"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
@@ -40,7 +42,9 @@ func NewMessageRouteHandler(
 
 //Mount make messageRouteHandler handler request from specific `RouterGroup`
 func (handler *MessageRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.messageListHandler)
+	routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.messageListHandler)            // GET upto last 1000 message
+	routerGroup.POST("/find" /*handler.authService.AuthMiddleware("object", "view")*/, g.InjectGin(handler.findMessage)) // GET upto last 1000 message
+
 	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.addMessageHandeler)
 	// route.PUT("/message/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/ ,handler.editMessageHandler)
 	routerGroup.DELETE("/:message_id", handler.auth.AuthRequired(), g.InjectGin(handler.deleteMessageByIDHandler))
@@ -148,5 +152,31 @@ func (handler *MessageRouteHandler) deleteMessageByIDHandler(context *gin.Contex
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 	}
 	context.JSON(200, g.Response{Success: true, Message: "deleted file"})
+	return nil
+}
+
+func (handler *MessageRouteHandler) findMessage(c *gin.Context, req struct {
+	Body dto.FindMessageDto
+}) error {
+	body := req.Body
+
+	if body.To.IsZero() {
+		body.To = time.Now()
+	}
+	if body.From.IsZero() {
+		body.From = time.Unix(0, 0)
+	}
+	if body.From.After(body.To) {
+		return g.NewError(400, "body.From must be before body.To")
+	}
+
+	msgs, err := handler.messageService.GetMessageByRoomWithTimeRange(body.RoomID.Hex(), &model.TimeRange{
+		From: time.Time{},
+		To:   time.Time{},
+	})
+	if err != nil {
+		return err
+	}
+	c.JSON(200, msgs)
 	return nil
 }

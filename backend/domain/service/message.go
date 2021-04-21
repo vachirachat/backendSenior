@@ -28,6 +28,11 @@ func (service *MessageService) GetMessageByRoom(roomID string) ([]model.Message,
 	return messages, err
 }
 
+func (service *MessageService) GetMessageByRoomWithTimeRange(roomID string, timeRange *model.TimeRange) ([]model.Message, error) {
+	messages, err := service.messageRepo.GetMessagesByRoom(roomID, timeRange)
+	return messages, err
+}
+
 func (service *MessageService) GetMessageByID(messageId string) (model.Message, error) {
 	msg, err := service.messageRepo.GetMessageByID(messageId)
 	return msg, err

@@ -32,7 +32,7 @@ func queryFromTimeRange(rng *model.TimeRange) map[string]interface{} {
 // GetAllMessages return all message from all rooms with optional time filter
 func (messageMongo *MessageRepositoryMongo) GetAllMessages(timeRange *model.TimeRange) ([]model.Message, error) {
 	var messages []model.Message
-	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Find(queryFromTimeRange(timeRange)).All(&messages)
+	err := messageMongo.ConnectionDB.DB(dbName).C(collectionMessage).Find(queryFromTimeRange(timeRange)).Limit(1000).All(&messages)
 	return messages, err
 }
 
