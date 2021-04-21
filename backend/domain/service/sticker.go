@@ -70,7 +70,7 @@ func (s *StickerService) AddStickerToSet(setID bson.ObjectId, meta dto.CreateSti
 
 	id, err := s.stickerRepo.InsertSticker(model.Sticker{
 		SetID: setID,
-		// TODO: use data from meta later
+		Name:  meta.Name,
 	})
 	if err != nil {
 		return "", fmt.Errorf("add to database: %w", err)

@@ -324,20 +324,24 @@ func (handler *UserRouteHandler) uploadProfileImage(c *gin.Context, req struct{}
 
 	file, err := c.FormFile("image")
 	if err != nil {
+		log.Printf("error getting form file: %w", err)
 		return fmt.Errorf("error getting form file: %w", err)
 	}
 
 	f, err := file.Open()
 	if err != nil {
+		log.Printf("error opening file: %w", err)
 		return fmt.Errorf("error opening file: %w", err)
 	}
 	defer f.Close()
 	bytes, err := ioutil.ReadAll(f)
 	if err != nil {
+		log.Printf("error reading file: %w", err)
 		return fmt.Errorf("error reading file: %w", err)
 	}
 
 	if err := handler.fileService.UploadProfileImage(userID, bytes); err != nil {
+		log.Printf("error uploading image: %w", err)
 		return fmt.Errorf("error uploading image: %w", err)
 	}
 

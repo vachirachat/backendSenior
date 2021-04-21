@@ -42,8 +42,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService)
 	fileRouteHandler := NewFileRouteHandler(deps.FileService, deps.RoomService, authMiddleware)
 	StickerRouteHandler := NewStickerRouteHandler(deps.StickerService)
-	r := gin.New()
-	r.Use(gin.Recovery())
+	r := gin.Default()
 
 	subgroup := r.Group("/api/v1")
 
