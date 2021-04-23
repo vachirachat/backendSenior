@@ -160,14 +160,17 @@ func resizeImage(imgData []byte) ([]byte, error) {
 	return resizedImage, nil
 }
 
-func (h *StickerRouteHandler) addStickerToSet(c *gin.Context, req struct {
-}) error {
+func (h *StickerRouteHandler) addStickerToSet(c *gin.Context, req struct{}) error {
 	setID := c.Param("id")
 	if !bson.IsObjectIdHex(setID) {
 		return g.NewError(400, "bad param id")
 	}
 	// TODO: manual bind CreateStickerDto
 
+	name := c.PostForm("name")
+	if name == "" {
+		return g.NewError(400, "please specify name")
+	}
 	file, err := c.FormFile("image")
 	if err != nil {
 		return fmt.Errorf("error getting form file: %w", err)
@@ -188,7 +191,7 @@ func (h *StickerRouteHandler) addStickerToSet(c *gin.Context, req struct {
 		return g.NewError(400, fmt.Sprintf("error resizing image: %s", err))
 	}
 
-	newId, err := h.sticker.AddStickerToSet(bson.ObjectIdHex(setID), dto.CreateStickerDto{}, resized)
+	newId, err := h.sticker.AddStickerToSet(bson.ObjectIdHex(setID), dto.CreateStickerDto{Name: name}, resized)
 	if err != nil {
 		return err
 	}
