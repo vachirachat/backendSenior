@@ -1,4 +1,4 @@
-@base = http://localhost:8080/api/v1/room
+@base = {{host}}/api/v1/room
 
 // org id to create room in
 @org = 606a011a26dcb9dde6612d70
@@ -19,7 +19,6 @@
 # 1.1
 # @token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjhiYjQyMzk5LTZlNWEtNDYxMS1hNGU5LTNhMjUwZmE0Mjc4NCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNzU2MDQxMiwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA2YTAxNDAxMTBkYmFiNzc1ZTNjODk1In0.t6zJy-PjoMCfh5SHG01q5D29hXpi6khmi6gQFdG-GC8
 # 2.1
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6ImZhNDhlNzE0LWUyZWUtNGM2Yy05MmRkLTBlOTBmYjExZDhhZCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxNzU2MDk1Miwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA2YTA1YTgxMTBkYmFiNzc1ZTNjYTQ0In0.6NC_R1rLMZJ_jfcScYeBUazLm_zUKEh3wgUx4I8ZhvY
 
 ### GET ALL ROOMS
 GET {{base}}

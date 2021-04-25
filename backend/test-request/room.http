@@ -1,20 +1,19 @@
-@base = http://localhost:8080/api/v1/room
+@base = {{host}}/api/v1/room
 
 // org id to create room in
-@org = 606a011a26dcb9dde6612d70
+@org = 608269dc01a5162481476588
 
 
-@roomA = 607311f626dcb948f4c544f4
+@roomA = 60826a1b01a516248147658a
 @roomB = 
 
-@proxyA = 6066d5c7bc4da719f0c4de2f
+@proxyA = 
 @proxyB = 
 
 // me = 5fef73f2315e73be2c81c748
-@userA = 6036f05799a05bbc180bd3cb
+@userA = 
 # @userB = 60001260f0a50a974cee2f95
 
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjczYTYyMzgwLTlmYWUtNDc2YS04MmU5LWFhNzMzNzM1MzQ1OSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxODE1MzgwMCwicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA2YTAwODUxMTBkYmFiNzc1ZTNjODQyIn0.o55KRNcgqMSJqFOGMwyVPSNrsXW8Fjgo8aL6ZB3YET0
 
 ### GET ALL ROOMS
 GET {{base}}
@@ -85,13 +84,13 @@ Authorization: Bearer {{token}}
 }
 
 ### get proxy full
-GET {{base}}/{{roomA}}/proxy    
+GET {{base}}/id/{{roomA}}/proxy    
 ### Add proxy to Room
 POST {{base}}/id/{{roomA}}/proxy    
 Content-Type: application/json
 
 {
-  "proxyIds": ["606b2b3d26dcb9fb60c25cea"]
+  "proxyIds": ["60826a7201a516248147658d"]
 }
 
 

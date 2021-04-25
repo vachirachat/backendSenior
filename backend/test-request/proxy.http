@@ -1,5 +1,5 @@
-@base = http://localhost:8080/api/v1/proxy
-@proxyId = 606b2b3d26dcb9fb60c25cea
+@base = {{host}}/api/v1/proxy
+@proxyId = 
 @proxyId2 = 
 
 
@@ -8,12 +8,14 @@ GET {{base}}
 
 
 ###
+# xoaR1JMsn/2PxiHWjjnP9XTxtuWa9Xk0D8nmpxyHUUA9OfzQ7U0qnwFjnFbV0TA9
+# 60826a7201a516248147658d
 POST {{base}}
 Content-Type: application/json
 
 {
-  "name": "Localhost",
-  "ip": "127.0.0.1",
+  "name": "EC2",
+  "ip": "ip-172-31-38-223.ap-southeast-1.compute.internal",
   "port": 8090
 }
 
