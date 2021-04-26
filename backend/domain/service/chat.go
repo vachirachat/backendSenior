@@ -139,6 +139,10 @@ func (chat *ChatService) SendNotificationToRoomExceptUser(roomID string, userID 
 			}
 		}
 	}
+	if len(allFCMTokens) == 0 {
+		fmt.Println("[Notification service] No notification to send !")
+		return nil
+	}
 
 	// TODO handle later
 	if len(allFCMTokens) > 500 {
@@ -146,6 +150,15 @@ func (chat *ChatService) SendNotificationToRoomExceptUser(roomID string, userID 
 	}
 
 	success, err := chat.notifService.SendNotifications(allFCMTokens, notification)
+	if err != nil {
+		switch e := err.(type) {
+		case *SendError:
+			fmt.Printf("batch response error %#v\n", e.BatchResponse.Responses)
+		default:
+			fmt.Printf("unknown error happened %s: %#v\n", err.Error(), err)
+		}
+	}
+
 	if len(allFCMTokens) != 0 {
 		fmt.Printf("[notification] successfully sent %d of %d notifications\n", success, len(allFCMTokens))
 	}
