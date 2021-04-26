@@ -50,9 +50,9 @@ func init() {
 		log.Fatalln("error loading env", err)
 	}
 
-	ControllerOrigin = "localhost:8080"
-	ControllerBasePath = "http://localhost:8080"
-	MongoConnString = "mongodb://localhost:27017"
+	ControllerOrigin = defaultEnv("CONTROLLER_ORIGIN", "localhost:8080")
+	ControllerBasePath = "{{host}}"
+	MongoConnString = defaultEnv("MONGO_CONN_STRING", "mongodb://localhost:27017")
 	ListenAddress = defaultEnv("PORT", ":8090")
 	ClientID = requiredEnv("CLIENT_ID")
 	ClientSecret = requiredEnv("CLIENT_SECRET")
