@@ -1,6 +1,6 @@
 @base = {{host}}/api/v1/org
 @baseUser = {{host}}/api/v1/user/user
-@orgA = 608269dc01a5162481476588
+@orgA = 60851a93c0c95465b8a647d1
 @orgB = 
 // me = 5fef73f2315e73be2c81c748
 @userA = 
@@ -24,7 +24,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "name": "Test Org"
+  "name": "SeniorProjectOrg"
 }
 
 
@@ -49,7 +49,7 @@ POST {{base}}/{{orgA}}/member
 Content-Type: application/json
 
 {
-  "UserIDs": ["{{userA}}"]
+  "UserIDs": ["6088507101ab28c1300bd752"]
 }
 
 ### Remove User to Org.

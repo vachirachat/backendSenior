@@ -10,12 +10,25 @@ GET {{base}}
 ###
 # xoaR1JMsn/2PxiHWjjnP9XTxtuWa9Xk0D8nmpxyHUUA9OfzQ7U0qnwFjnFbV0TA9
 # 60826a7201a516248147658d
+
+# P'bank instance
+# 60851aadc0c95465b8a647d3
+# PJTIzlnzoYlTYw8UFeadXpNs+LZ6OeUFVFp8HFeYlUS9Mrcs2gfPE43zG8GgGoGT
+# 
+
+# Rod
+# 608642859df1db1d741ce9c1
+# 24I3fvEPykKn/E+LkPPRNbOvU1g5I/y+PwLz1RGbleTKwA8tiZ4BwT/SjGyo4sTm
+
+# 6086c0e34934644d064fbed4
+# DcWYo1KWCp3yftbshvs3gVYLWr29AUVD2ZRgqkLZYaR0mF5lGTKStRrcgzLFXTr5
+# NjA4NmMwZTM0OTM0NjQ0ZDA2NGZiZWQ0OkRjV1lvMUtXQ3AzeWZ0YnNodnMzZ1ZZTFdyMjlBVVZEMlpSZ3FrTFpZYVIwbUY1bEdUS1N0UnJjZ3pMRlhUcjU=
 POST {{base}}
 Content-Type: application/json
 
 {
-  "name": "EC2",
-  "ip": "ip-172-31-38-223.ap-southeast-1.compute.internal",
+  "name": "EC2 Proxy",
+  "ip": "ip-172-31-29-34.ap-southeast-1.compute.internal",
   "port": 8090
 }
 

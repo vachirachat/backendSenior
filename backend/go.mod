@@ -19,6 +19,7 @@ require (
 	github.com/go-ini/ini v1.62.0 // indirect
 	github.com/google/wire v0.5.0 // indirect
 	github.com/gorilla/websocket v1.4.2
+	github.com/joho/godotenv v1.3.0
 	github.com/minio/minio-go v6.0.14+incompatible
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/reactivex/rxgo/v2 v2.4.0

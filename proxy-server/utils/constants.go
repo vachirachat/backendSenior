@@ -33,12 +33,17 @@ var (
 	MongoConnString string
 	// ListenAddress usually ":PORT"
 	ListenAddress string
+	// PProfAddress is used for profiling
+	// see here for more info https://golang.org/pkg/net/http/pprof/
+	PProfAddress string
 	// ClientID is proxyID, created proxy at controller
 	ClientID string
 	// ClientSecret is proxySecret, returned when created proxy at controller
 	ClientSecret string
 	// PluginPath path to plugin file
 	PluginPath string
+	// RabbitMQConnString used for connecting rabbit mq
+	RabbitMQConnString string
 )
 
 // setup env
@@ -50,24 +55,23 @@ func init() {
 		log.Fatalln("error loading env", err)
 	}
 
-	ControllerOrigin = defaultEnv("CONTROLLER_ORIGIN", "localhost:8080")
-	ControllerBasePath = "{{host}}"
-	MongoConnString = defaultEnv("MONGO_CONN_STRING", "mongodb://localhost:27017")
+	ControllerOrigin = requiredEnv("CONTROLLER_ORIGIN")
+	ControllerBasePath = fmt.Sprintf("http://%s", ControllerOrigin)
+	MongoConnString = requiredEnv("MONGO_CONN_STRING")
+	RabbitMQConnString = requiredEnv("RABBITMQ_CONN_STRING")
 	ListenAddress = defaultEnv("PORT", ":8090")
+	PProfAddress = defaultEnv("PPROF_ADDRESS", "localhost:6060") // don't allow remote pprof by default
 	ClientID = requiredEnv("CLIENT_ID")
 	ClientSecret = requiredEnv("CLIENT_SECRET")
 	// PluginPath = requiredEnv("PLUGIN_PATH")
 }
 
 var (
-	CONTROLLER_ORIGIN       = "localhost:8080"
 	PATH_ORIGIN             = "./share/temp_file/"
 	PATH_ORIGIN_ZIP         = "./share/temp_zip/"
 	DOCKER_PATH_ORIGIN      = "/app/go_server"
-	MONGO_CONN_STRING       = "mongodb://localhost:27017"
 	DOCKEREXEC_FILE_NAME    = "docker_exec"
 	DOCKERIMAGE_NAME        = "docker_upload"
 	DOCKERIMAGE_REMOTE_NAME = "docker_upload"
-	LISTEN_ADDRESS          = defaultEnv("PORT", ":8090")
 	PROXY_KEY               = "0123456789abcdef"
 )

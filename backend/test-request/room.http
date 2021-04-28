@@ -1,13 +1,13 @@
 @base = {{host}}/api/v1/room
 
 // org id to create room in
-@org = 608269dc01a5162481476588
+@org = 6086c0bb4934644d064fbecf
 
 
-@roomA = 60826a1b01a516248147658a
+@roomA = 6086c0c74934644d064fbed1
 @roomB = 
 
-@proxyA = 
+@proxyA = 6086c0e34934644d064fbed4
 @proxyB = 
 
 // me = 5fef73f2315e73be2c81c748
@@ -29,7 +29,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "roomName": "LOAD TEST",
+  "roomName": "Back End",
   "orgId": "{{org}}"
 }
 
@@ -85,12 +85,12 @@ Authorization: Bearer {{token}}
 
 ### get proxy full
 GET {{base}}/id/{{roomA}}/proxy    
-### Add proxy to Room
+### Add proxy to Room 6084fe4ec0c954456f4a3433 6084fe53c0c954456f4a3436
 POST {{base}}/id/{{roomA}}/proxy    
 Content-Type: application/json
 
 {
-  "proxyIds": ["60826a7201a516248147658d"]
+  "proxyIds": ["{{proxyA}}"]
 }
 
 

@@ -58,7 +58,7 @@ func initFirebase() {
 func main() {
 	initFirebase()
 
-	connectionDB, err := mgo.Dial(utills.MONGOENDPOINT)
+	connectionDB, err := mgo.Dial(utills.MongoEndpoint)
 	if err != nil {
 		log.Panic("Can no connect Database", err.Error())
 	}
@@ -92,9 +92,9 @@ func main() {
 
 	tokenRepo := mongo_repository.NewTokenRepository(connectionDB)
 	fileStore, err := file.NewFileStore(&file.MinioConfig{
-		Endpoint:  "localhost:9000",
-		AccessID:  "minioadmin",
-		SecretKey: "minioadmin",
+		Endpoint:  utills.MinioEndpoint,
+		AccessID:  utills.MinioAccessID,
+		SecretKey: utills.MinioSecretKey,
 		UseSSL:    false,
 	})
 	stickerRepo := mongo_repository.NewStickerRepository(connectionDB)
@@ -116,7 +116,7 @@ func main() {
 	// Init service
 
 	// TODO: implement token repo, no hardcode secret
-	jwtSvc := auth.NewJWTService(tokenRepo, []byte("secret_access"), []byte("secret_refresh"))
+	jwtSvc := auth.NewJWTService(tokenRepo, []byte(utills.JWTSecret), []byte(utills.JWTRefreshSecret))
 
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo, jwtSvc)
@@ -152,12 +152,12 @@ func main() {
 	router := routerDeps.NewRouter()
 
 	httpSrv := &http.Server{
-		Addr:    utills.PORTWEBSERVER,
+		Addr:    utills.ListenAddress,
 		Handler: router,
 	}
 
 	pprofServer := &http.Server{
-		Addr:    "localhost:6061",
+		Addr:    utills.PProfAddress,
 		Handler: nil,
 	}
 

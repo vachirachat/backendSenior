@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// Still Hardcode
-	connectionDB, err := mgo.Dial("mongodb://localhost:27017")
+	connectionDB, err := mgo.Dial(utils.MongoConnString)
 	if err != nil {
 		log.Panic("Can no connect Database", err.Error())
 	}
@@ -97,7 +97,7 @@ func main() {
 	upstreamService.OnConnect(conn)
 	defer upstreamService.OffConnect(conn)
 
-	rabbit := rmq.New("amqp://guest:guest@localhost:5672/")
+	rabbit := rmq.New(utils.RabbitMQConnString)
 	if err := rabbit.Connect(); err != nil {
 		log.Fatalf("can't connect to rabbitmq %s\n", err)
 	}
@@ -115,7 +115,7 @@ func main() {
 	delegateAuth := service.NewDelegateAuthService(utils.ControllerOrigin)
 
 	messageService := service.NewMessageService(msgRepo)
-	fileService := service.NewFileService("localhost:8080", rabbit)
+	fileService := service.NewFileService(utils.ControllerOrigin, rabbit)
 
 	go func() {
 		err := fileService.Run() // go routing waiting for message
@@ -165,7 +165,7 @@ func main() {
 	}
 
 	pprofServer := &http.Server{
-		Addr:    "localhost:6060",
+		Addr:    utils.PProfAddress,
 		Handler: nil,
 	}
 
