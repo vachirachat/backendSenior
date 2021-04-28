@@ -1,4 +1,4 @@
-package utills
+package config
 
 import (
 	"fmt"

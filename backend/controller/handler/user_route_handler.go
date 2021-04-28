@@ -1,10 +1,10 @@
 package route
 
 import (
+	"backendSenior/config"
 	authMw "backendSenior/controller/middleware/auth"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
-	"backendSenior/utills"
 	g "common/utils/ginutils"
 	"fmt"
 	"io/ioutil"
@@ -188,7 +188,7 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 	}
 
 	tokenDetails, err := handler.jwtService.CreateToken(model.UserDetail{
-		Role:   utills.ROLEUSER, // TODO: placeholder, implement role later
+		Role:   config.ROLEUSER, // TODO: placeholder, implement role later
 		UserId: user.UserID.Hex(),
 	})
 
@@ -241,7 +241,7 @@ func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
 	}
 
 	tokenDetails, err := handler.jwtService.CreateToken(model.UserDetail{
-		Role:   utills.ROLEUSER, // TODO: placeholder, implement role later
+		Role:   config.ROLEUSER, // TODO: placeholder, implement role later
 		UserId: user.UserID.Hex(),
 	})
 
