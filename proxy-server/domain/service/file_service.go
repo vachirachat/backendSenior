@@ -344,12 +344,13 @@ func (s *FileService) UploadImage(roomID string, userID string, key []byte, file
 		}
 
 		res, err := s.clnt.R().
-			SetBody(service.UploadFileMeta{
-				Name:      string(fileNameEnc),
-				RoomID:    bson.ObjectIdHex(roomID),
-				UserID:    bson.ObjectIdHex(userID),
-				Size:      fileDetail.Size,
-				CreatedAt: fileDetail.CreatedTime,
+			SetBody(service.UploadImageMeta{
+				Name:        string(fileNameEnc),
+				RoomID:      bson.ObjectIdHex(roomID),
+				UserID:      bson.ObjectIdHex(userID),
+				Size:        fileDetail.Size,
+				CreatedAt:   fileDetail.CreatedTime,
+				ThumbnailID: bson.ObjectIdHex(uploadImageRes.ThumbID),
 			}).
 			SetHeader("Content-Type", "application/json").
 			Post(afterUploadUrl.String())

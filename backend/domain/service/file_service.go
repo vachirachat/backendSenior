@@ -42,6 +42,7 @@ type UploadImageMeta struct {
 	RoomID      bson.ObjectId // room to associate file
 	UserID      bson.ObjectId // file owner
 	Size        int
+	CreatedAt   time.Time // time that file is encrypted at proxy
 	ThumbnailID bson.ObjectId
 }
 
