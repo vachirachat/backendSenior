@@ -11,12 +11,12 @@ import (
 	"log"
 	"math/rand"
 	"net/url"
+	"proxySenior/config"
 	"proxySenior/controller/middleware"
 	"proxySenior/domain/encryption"
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
-	"proxySenior/utils"
 	"time"
 )
 
@@ -289,7 +289,7 @@ func (h *FileRouteHandler) listFiles(c *gin.Context, req struct{}) error {
 
 	endPoint := url.URL{
 		Scheme: "http",
-		Host:   utils.ControllerOrigin,
+		Host:   config.ControllerOrigin,
 		Path:   fmt.Sprintf("/api/v1/file/room/%s/files", id),
 	}
 
@@ -337,7 +337,7 @@ func (h *FileRouteHandler) listImages(c *gin.Context, req struct{}) error {
 
 	endPoint := url.URL{
 		Scheme: "http",
-		Host:   utils.ControllerOrigin,
+		Host:   config.ControllerOrigin,
 		Path:   fmt.Sprintf("/api/v1/file/room/%s/images", id),
 	}
 

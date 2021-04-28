@@ -6,8 +6,8 @@ import (
 	"backendSenior/domain/model"
 	"errors"
 	"fmt"
+	"proxySenior/config"
 	model_proxy "proxySenior/domain/model"
-	"proxySenior/utils"
 	"time"
 
 	"github.com/globalsign/mgo/bson"
@@ -74,7 +74,7 @@ func (s *KeyService) NewKeyForRoom(roomID string) error {
 func (s *KeyService) IsLocal(roomID string) (bool, error) {
 	if _proxy, ok := s.roomMasterCache.Get(roomID); ok {
 		proxy := _proxy.(model.Proxy)
-		return proxy.ProxyID.Hex() == utils.ClientID, nil
+		return proxy.ProxyID.Hex() == config.ClientID, nil
 	}
 
 	proxy, err := s.proxy.GetRoomMasterProxy(roomID)
@@ -121,7 +121,7 @@ func (s *KeyService) RevalidateAll() {
 		go s.RevalidateKeyCache(kv.Key.(string))
 	}
 
-	proxy, err := s.proxy.GetProxyByID(utils.ClientID)
+	proxy, err := s.proxy.GetProxyByID(config.ClientID)
 	if err != nil {
 		fmt.Printf("revalidate all: %v\n", err)
 	} else {

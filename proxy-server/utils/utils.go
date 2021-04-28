@@ -11,26 +11,27 @@ import (
 	"io/ioutil"
 	"log"
 	"os/exec"
+	"proxySenior/config"
 
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/mergermarket/go-pkcs7"
 )
 
 func DecrytedFile(fileName string) error {
-	dat, err := ioutil.ReadFile(PATH_ORIGIN_ZIP + fileName)
+	dat, err := ioutil.ReadFile(config.PATH_ORIGIN_ZIP + fileName)
 	log.Println("File Data>>", fileName, "\n")
 	if err != nil {
 		return err
 	}
 	// Function Decrypted
 
-	fileData, err := DecryptBase(string(dat), PROXY_KEY)
+	fileData, err := DecryptBase(string(dat), config.PROXY_KEY)
 	if err != nil {
 		return err
 	}
 	// log.Println("File Data>>", string(fileData), "\n")
 
-	err = ioutil.WriteFile(PATH_ORIGIN_ZIP+"to_zip_"+fileName, []byte(fileData), 0644)
+	err = ioutil.WriteFile(config.PATH_ORIGIN_ZIP+"to_zip_"+fileName, []byte(fileData), 0644)
 	if err != nil {
 		return err
 	}
@@ -74,7 +75,7 @@ func DecryptBase(stringFile string, key string) (string, error) {
 }
 
 func UnzipFile(fileName string) error {
-	cmdUnzip := exec.Command("unzip", PATH_ORIGIN+fileName, "-d", PATH_ORIGIN_ZIP)
+	cmdUnzip := exec.Command("unzip", config.PATH_ORIGIN+fileName, "-d", config.PATH_ORIGIN_ZIP)
 	_, err := cmdUnzip.Output()
 
 	if err != nil {

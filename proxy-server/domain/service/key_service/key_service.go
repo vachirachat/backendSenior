@@ -6,10 +6,10 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"github.com/cornelk/hashmap"
+	"proxySenior/config"
 	"proxySenior/domain/encryption"
 	"proxySenior/domain/interface/repository"
 	model_proxy "proxySenior/domain/model"
-	"proxySenior/utils"
 	"strings"
 )
 
@@ -172,14 +172,14 @@ func (s *KeyService) getRoomKey(roomID string, sendKey bool) (key_exchange.KeyEx
 		fmt.Println("[keyservice] get room key with public key")
 		reqBody = &key_exchange.KeyExchangeRequest{
 			PublicKey: encryption.PublicKeyToBytes(s.public),
-			ProxyID:   utils.ClientID,
+			ProxyID:   config.ClientID,
 			RoomID:    roomID,
 		}
 	} else {
 		fmt.Println("[keyservice] get room key WITHOUT public key")
 		reqBody = &key_exchange.KeyExchangeRequest{
 			PublicKey: nil,
-			ProxyID:   utils.ClientID,
+			ProxyID:   config.ClientID,
 			RoomID:    roomID,
 		}
 	}

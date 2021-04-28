@@ -8,8 +8,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"proxySenior/config"
 	"proxySenior/domain/interface/repository"
-	"proxySenior/utils"
 )
 
 // KeyAPI is for getting key remotely
@@ -72,7 +72,7 @@ func (a *KeyAPI) CatchUp(roomID string) error {
 	u := url.URL{
 		Scheme: "http",
 		Host:   a.origin,
-		Path:   "/api/v1/key/catch-up/" + roomID + "/" + utils.ClientID,
+		Path:   "/api/v1/key/catch-up/" + roomID + "/" + config.ClientID,
 	}
 
 	res, err := http.Post(u.String(), "appliation/json", nil)
