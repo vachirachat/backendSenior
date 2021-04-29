@@ -68,7 +68,7 @@ func (h *FileRouteHandler) beforeUploadFile(c *gin.Context, req struct{}) error 
 	return nil
 }
 
-func (h *FileRouteHandler) afterUploadFile(c *gin.Context, req struct{ Body dto.UploadFileMeta }) error {
+func (h *FileRouteHandler) afterUploadFile(c *gin.Context, req struct{ Body service.UploadFileMeta }) error {
 	roomID, ok1 := mustGetObjectID(c, "roomId")
 	fileID, ok2 := mustGetObjectID(c, "fileId")
 	if !ok1 || !ok2 {
@@ -173,7 +173,7 @@ func (h *FileRouteHandler) beforeUploadImage(c *gin.Context, req struct{}) error
 	return nil
 }
 
-func (h *FileRouteHandler) afterUploadImage(c *gin.Context, req struct{ Body dto.UploadImageMeta }) error {
+func (h *FileRouteHandler) afterUploadImage(c *gin.Context, req struct{ Body service.UploadImageMeta }) error {
 	roomID, ok1 := mustGetObjectID(c, "roomId")
 	imageFileID, ok2 := mustGetObjectID(c, "fileId")
 	if !ok1 || !ok2 {
