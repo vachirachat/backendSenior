@@ -2,10 +2,12 @@ package utils
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"proxySenior/config"
 )
 
 type BadStatusError struct {
@@ -71,4 +73,9 @@ func HTTPPost(url string, contentType string, data interface{}, result interface
 		return fmt.Errorf("unmarshal: %w", err)
 	}
 	return nil
+}
+
+// AuthHeader return header for basic aauth
+func AuthHeader() string {
+	return "Basic " + base64.StdEncoding.EncodeToString([]byte(config.ClientID+":"+config.ClientSecret))
 }

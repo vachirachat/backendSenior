@@ -43,6 +43,7 @@ func (mw *ProxyMiddleware) AuthRequired() gin.HandlerFunc {
 		}
 
 		c.Set(UserIdField, clientID)
+		c.Set(UserRoleField, "admin") // HACK[ROAD]: proxy is admin, so it can access /proxy/ API
 		c.Next()
 
 	}

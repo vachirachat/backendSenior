@@ -16,6 +16,7 @@ import (
 	"log"
 	"os"
 	"proxySenior/domain/encryption"
+	"proxySenior/utils"
 	"time"
 )
 
@@ -72,6 +73,7 @@ func (w *Worker) handleFileTask(d amqp.Delivery, task model.UploadFileTask, t *T
 	res, err := w.clnt.R().
 		SetFormData(task.UploadPostForm).
 		SetFileReader("file", "dontcare", bytes.NewReader(fileData)).
+		SetHeader("Authorization", utils.AuthHeader()).
 		SetHeader("Content-Type", "multipart/form-data").
 		Post(task.URL)
 	t.Lap("post url")
@@ -169,6 +171,7 @@ func (w *Worker) handleImageTask(d amqp.Delivery, task model.UploadFileTask, t *
 	res, err := w.clnt.R().
 		SetFormData(task.UploadPostForm).
 		SetFileReader("file", "dontcare", bytes.NewReader(orig)).
+		SetHeader("Authorization", utils.AuthHeader()).
 		SetHeader("Content-Type", "multipart/form-data").
 		Post(task.URL)
 	t.Lap("post url")
@@ -196,6 +199,7 @@ func (w *Worker) handleImageTask(d amqp.Delivery, task model.UploadFileTask, t *
 	res, err = w.clnt.R().
 		SetFormData(task.UploadPostForm2).
 		SetFileReader("file", "dontcare", bytes.NewReader(thumb)).
+		SetHeader("Authorization", utils.AuthHeader()).
 		SetHeader("Content-Type", "multipart/form-data").
 		Post(task.URL)
 

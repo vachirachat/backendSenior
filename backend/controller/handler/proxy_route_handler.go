@@ -23,16 +23,18 @@ type ProxyRouteHandler struct {
 	roomService  *service.RoomService // get master proxy
 	userService  *service.UserService
 	authMw       *auth.JWTMiddleware
+	proxyMw      *auth.ProxyMiddleware
 	validate     *utills.StructValidator
 }
 
 // NewProxyRouteHandler create new handler for proxy
-func NewProxyRouteHandler(proxyService *service.ProxyService, roomService *service.RoomService, userService *service.UserService, authMw *auth.JWTMiddleware, validate *utills.StructValidator) *ProxyRouteHandler {
+func NewProxyRouteHandler(proxyService *service.ProxyService, roomService *service.RoomService, userService *service.UserService, authMw *auth.JWTMiddleware, proxyMw *auth.ProxyMiddleware, validate *utills.StructValidator) *ProxyRouteHandler {
 	return &ProxyRouteHandler{
 		proxyService: proxyService,
 		roomService:  roomService,
 		authMw:       authMw,
 		validate:     validate,
+		proxyMw:      proxyMw,
 		userService:  userService,
 	}
 }
@@ -43,7 +45,7 @@ func (handler *ProxyRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("/", handler.authMw.AuthRequired("admin", "query"), g.InjectGin(handler.getAllProxies))
 	routerGroup.POST("/", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.createProxy))
 	routerGroup.POST("/:id/", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.updateProxy))
-	routerGroup.GET("/:id/", handler.authMw.AuthRequired("admin", "view"), g.InjectGin(handler.getProxyByID))
+	routerGroup.GET("/:id/", handler.proxyMw.AuthRequired(), handler.authMw.AuthRequired("admin", "view"), g.InjectGin(handler.getProxyByID))
 	routerGroup.POST("/:id/reset", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.resetSecret))
 
 	// Proxy-Org just debug

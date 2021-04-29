@@ -4,6 +4,7 @@ import (
 	"backendSenior/domain/model"
 	"encoding/json"
 	"fmt"
+	"github.com/go-resty/resty/v2"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 
 type RoomProxyAPI struct {
 	origin string // host:port of controller
+	c      *resty.Client
 }
 
 var _ repository.ProxyMasterAPI = (*RoomProxyAPI)(nil)
@@ -20,6 +22,7 @@ var _ repository.ProxyMasterAPI = (*RoomProxyAPI)(nil)
 func NewRoomProxyAPI(controller string) *RoomProxyAPI {
 	return &RoomProxyAPI{
 		origin: controller,
+		c:      resty.New(),
 	}
 }
 
@@ -79,7 +82,10 @@ func (a *RoomProxyAPI) GetProxyByID(proxyID string) (model.Proxy, error) {
 	}
 
 	var p model.Proxy
-	err := utils.HTTPGet(u.String(), &p)
+	_, err := a.c.R().
+		SetResult(&p).
+		SetHeader("Authorization", utils.AuthHeader()).
+		Get(u.String())
 	if err != nil {
 		return model.Proxy{}, fmt.Errorf("get proxy by id: %w", err)
 	}

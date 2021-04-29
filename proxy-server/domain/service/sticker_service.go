@@ -4,6 +4,7 @@ import (
 	"common/utils/ginutils"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"proxySenior/utils"
 )
 
 type StickerService struct {
@@ -20,7 +21,9 @@ func NewStickerService(basePath string) *StickerService {
 
 func (s *StickerService) CheckSticker(ID string) (bool, error) {
 	var result ginutils.Response
-	if _, err := s.c.R().SetResult(&result).Get("/api/v1/sticker/check/" + ID); err != nil {
+	if _, err := s.c.R().
+		SetHeader("Authorization", utils.AuthHeader()).
+		SetResult(&result).Get("/api/v1/sticker/check/" + ID); err != nil {
 		return false, fmt.Errorf("request error : %w", err)
 	}
 	return result.Data.(bool), nil

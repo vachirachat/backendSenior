@@ -39,6 +39,11 @@ var SCOPES = []string{"view", "add", "edit", "query"}
 func (mw *JWTMiddleware) AuthRequired(resouce string, scope string) gin.HandlerFunc {
 	// func (mw *JWTMiddleware) AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// HACK[ROAD]: if other middleware already set UserId, Role field, then skip
+		if c.GetString(UserIdField) != "" {
+			return
+		}
+
 		token := extractToken(c)
 		// Fix Debug : Token
 		// token := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjcxNWIwOGNkLTY3M2MtNDU2Ni04ZGQyLWRmMDAwODlmOGRiMSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxODgzODM3Nywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA3NWU5YWE0NzBhYWNjNGFkNDA3ZDkwIn0.3htMS-9PUO1ZyJaNc8KwZbGhv54prIYCOP5_vMFSo80"

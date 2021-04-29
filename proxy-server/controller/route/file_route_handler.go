@@ -17,6 +17,7 @@ import (
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
+	"proxySenior/utils"
 	"time"
 )
 
@@ -301,10 +302,12 @@ func (h *FileRouteHandler) listFiles(c *gin.Context, req struct{}) error {
 	}
 
 	var res []model.FileMeta
-	if _, err := clnt.R().SetResult(&res).Get(endPoint.String()); err != nil {
+	if _, err := clnt.R().
+		SetResult(&res).
+		SetHeader("Authorization", utils.AuthHeader()).
+		Get(endPoint.String()); err != nil {
 		log.Printf("can't get file list from controller: %s", err)
 		return fmt.Errorf("can't get file list from controller: %s", err)
-
 	}
 	for i := range res {
 		date := res[i].CreatedAt
@@ -349,10 +352,12 @@ func (h *FileRouteHandler) listImages(c *gin.Context, req struct{}) error {
 	}
 
 	var res []model.FileMeta
-	if _, err := clnt.R().SetResult(&res).Get(endPoint.String()); err != nil {
+	if _, err := clnt.R().
+		SetResult(&res).
+		SetHeader("Authorization", utils.AuthHeader()).
+		Get(endPoint.String()); err != nil {
 		log.Printf("can't get file list from controller: %s", err)
 		return fmt.Errorf("can't get file list from controller: %s", err)
-
 	}
 	for i := range res {
 		date := res[i].CreatedAt

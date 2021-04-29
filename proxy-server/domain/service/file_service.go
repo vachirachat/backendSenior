@@ -113,6 +113,7 @@ func (s *FileService) GetAnyFile(fileType string, fileID string) (file []byte, e
 func (s *FileService) GetAnyFileMeta(fileID string) (meta model.FileMeta, err error) {
 	res, err := s.clnt.R().
 		SetResult(&meta).
+		SetHeader("Authorization", utils.AuthHeader()).
 		Get(fmt.Sprintf("http://%s/api/v1/file/by-id/%s", s.host, fileID))
 	if !res.IsSuccess() {
 		return meta, fmt.Errorf("server response with status: %d\n%s", res.StatusCode(), res.String())
@@ -157,6 +158,7 @@ func (s *FileService) BeforeUpload() (file_payload.BeforeUploadFileResponse, err
 	var res file_payload.BeforeUploadFileResponse
 	_, err := s.clnt.R().
 		SetResult(&res).
+		SetHeader("Authorization", utils.AuthHeader()).
 		Post(u.String())
 	if err != nil {
 		return file_payload.BeforeUploadFileResponse{}, fmt.Errorf("prepare to upload: %w", err)
@@ -174,6 +176,7 @@ func (s *FileService) BeforeUploadImage() (file_payload.BeforeUploadImageRespons
 	var res file_payload.BeforeUploadImageResponse
 	_, err := s.clnt.R().
 		SetResult(&res).
+		SetHeader("Authorization", utils.AuthHeader()).
 		Post(u.String())
 	if err != nil {
 		return file_payload.BeforeUploadImageResponse{}, fmt.Errorf("prepare to upload: %w", err)
@@ -257,6 +260,7 @@ func (s *FileService) UploadFile(roomID string, userID string, key []byte, fileD
 				Size:      fileDetail.Size,
 				CreatedAt: fileDetail.CreatedTime,
 			}).
+			SetHeader("Authorization", utils.AuthHeader()).
 			SetHeader("Content-Type", "application/json").
 			Post(afterUploadUrl.String())
 
@@ -352,6 +356,7 @@ func (s *FileService) UploadImage(roomID string, userID string, key []byte, file
 				CreatedAt:   fileDetail.CreatedTime,
 				ThumbnailID: bson.ObjectIdHex(uploadImageRes.ThumbID),
 			}).
+			SetHeader("Authorization", utils.AuthHeader()).
 			SetHeader("Content-Type", "application/json").
 			Post(afterUploadUrl.String())
 
