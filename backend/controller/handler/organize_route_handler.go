@@ -46,7 +46,7 @@ func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	routerGroup.POST("/", handler.authMw.AuthRequired("user", "add"), g.InjectGin(handler.addOrganizeHandler))
 	routerGroup.GET("/", g.InjectGin(handler.getOrganizations))
-	routerGroup.GET("/:id/org", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizeByNameHandler))
+	routerGroup.GET("/:id/org", g.InjectGin(handler.getOrganizeByNameHandler))
 
 	routerGroup.GET("/:id/member", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizationMembers))
 	routerGroup.POST("/:id/member", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.addMembersToOrganize)) // Fix: Org admin-Role
