@@ -1,7 +1,6 @@
 package route
 
 import (
-	"backendSenior/config"
 	authMw "backendSenior/controller/middleware/auth"
 	"backendSenior/domain/dto"
 	"backendSenior/domain/service"
@@ -239,7 +238,6 @@ func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
 	}
 
 	orgID := context.Param("orgid")
-	log.Println(orgID)
 	err = handler.userService.IsUserInOrg(user, orgID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -247,7 +245,7 @@ func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
 	}
 
 	tokenDetails, err := handler.jwtService.CreateToken(model.UserDetail{
-		Role:   config.ROLEUSER, // TODO: placeholder, implement role later
+		Role:   user.UserType,
 		UserId: user.UserID.Hex(),
 	})
 

@@ -11,11 +11,12 @@ import (
 	"log"
 	"net/http"
 
+	"time"
+
 	"github.com/ahmetb/go-linq/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo"
 	"github.com/globalsign/mgo/bson"
-	"time"
 )
 
 // MessageRouteHandler is Handler (controller) for message related route
@@ -51,7 +52,7 @@ func (handler *MessageRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.addMessageHandeler)
 	// route.PUT("/message/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/ ,handler.editMessageHandler)
-	routerGroup.DELETE("/:message_id", handler.auth.AuthRequired("admin", "edit"), g.InjectGin(handler.deleteMessageByIDHandler))
+	routerGroup.DELETE("/:message_id", handler.auth.AuthRequired("user", "edit"), g.InjectGin(handler.deleteMessageByIDHandler))
 }
 
 // MessageListHandler return all messages
