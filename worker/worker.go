@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"github.com/disintegration/imaging"
 	"github.com/go-resty/resty/v2"
+	"github.com/joho/godotenv"
 	"github.com/streadway/amqp"
 	"image"
 	"io"
 	"io/ioutil"
 	"log"
+	"os"
 	"proxySenior/domain/encryption"
 	"time"
 )
@@ -276,9 +278,28 @@ func (w *Worker) handleImageTask(d amqp.Delivery, task model.UploadFileTask, t *
 	//d.Ack(false)
 }
 
-func main() {
+func defaultEnv(key string, defaultVal string) string {
+	val, ok := os.LookupEnv(key)
+	if ok {
+		return val
+	}
+	return defaultVal
+}
 
-	rabbit := rmq.New("amqp://guest:guest@localhost:5672/")
+func requiredEnv(key string) string {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		panic(fmt.Sprintf("ERROR: environment variable %s is not set", key))
+	}
+	return val
+}
+
+func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("load env error: %s\n", err)
+	}
+
+	rabbit := rmq.New(requiredEnv("RABBITMQ_CONN_STRING"))
 	if err := rabbit.Connect(); err != nil {
 		log.Fatalf("can't connect to rabbitmq %s\n", err)
 	}

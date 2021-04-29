@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backendSenior/config"
 	route "backendSenior/controller/handler"
 	"backendSenior/data/repository/chatsocket"
 	"backendSenior/data/repository/file"
@@ -59,7 +60,7 @@ func initFirebase() {
 func main() {
 	initFirebase()
 
-	connectionDB, err := mgo.Dial(utills.MONGOENDPOINT)
+	connectionDB, err := mgo.Dial(config.MongoEndpoint)
 	if err != nil {
 		log.Panic("Can no connect Database", err.Error())
 	}
@@ -94,9 +95,9 @@ func main() {
 
 	tokenRepo := mongo_repository.NewTokenRepository(connectionDB)
 	fileStore, err := file.NewFileStore(&file.MinioConfig{
-		Endpoint:  "localhost:9000",
-		AccessID:  "minioadmin",
-		SecretKey: "minioadmin",
+		Endpoint:  config.MinioEndpoint,
+		AccessID:  config.MinioAccessID,
+		SecretKey: config.MinioSecretKey,
 		UseSSL:    false,
 	})
 	stickerRepo := mongo_repository.NewStickerRepository(connectionDB)
@@ -120,7 +121,7 @@ func main() {
 	validate := utills.NewValidator(validator.New())
 
 	// TODO: implement token repo, no hardcode secret
-	jwtSvc := auth.NewJWTService(tokenRepo, []byte("secret_access"), []byte("secret_refresh"))
+	jwtSvc := auth.NewJWTService(tokenRepo, []byte(config.JWTSecret), []byte(config.JWTRefreshSecret))
 
 	msgSvc := service.NewMessageService(messageRepo)
 	userSvc := service.NewUserService(userRepo, jwtSvc)
@@ -157,12 +158,12 @@ func main() {
 	router := routerDeps.NewRouter()
 
 	httpSrv := &http.Server{
-		Addr:    utills.PORTWEBSERVER,
+		Addr:    config.ListenAddress,
 		Handler: router,
 	}
 
 	pprofServer := &http.Server{
-		Addr:    "localhost:6061",
+		Addr:    config.PProfAddress,
 		Handler: nil,
 	}
 

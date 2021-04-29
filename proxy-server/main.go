@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"proxySenior/config"
 	"proxySenior/controller/chat"
 	"proxySenior/controller/route"
 	"proxySenior/data/repository/delegate"
@@ -19,7 +20,6 @@ import (
 	"proxySenior/domain/plugin"
 	"proxySenior/domain/service"
 	"proxySenior/domain/service/key_service"
-	"proxySenior/utils"
 	"syscall"
 	"time"
 
@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// Still Hardcode
-	connectionDB, err := mgo.Dial("mongodb://localhost:27017")
+	connectionDB, err := mgo.Dial(config.MongoConnString)
 	if err != nil {
 		log.Panic("Can no connect Database", err.Error())
 	}
@@ -48,18 +48,18 @@ func main() {
 	keystore := mongo_repository.NewKeyRepositoryMongo(connectionDB)
 
 	// Repo
-	roomUserRepo := delegate.NewDelegateRoomUserRepository(utils.ControllerOrigin)
+	roomUserRepo := delegate.NewDelegateRoomUserRepository(config.ControllerOrigin)
 	pool := chatsocket.NewConnectionPool()
-	msgRepo := delegate.NewDelegateMessageRepository(utils.ControllerOrigin)
-	proxyMasterAPI := delegate.NewRoomProxyAPI(utils.ControllerOrigin)
-	keyAPI := delegate.NewKeyAPI(utils.ControllerOrigin)
+	msgRepo := delegate.NewDelegateMessageRepository(config.ControllerOrigin)
+	proxyMasterAPI := delegate.NewRoomProxyAPI(config.ControllerOrigin)
+	keyAPI := delegate.NewKeyAPI(config.ControllerOrigin)
 
 	// Service
-	clientID := utils.ClientID
+	clientID := config.ClientID
 	if !bson.IsObjectIdHex(clientID) {
 		log.Fatalln("error: please set valid CLIENT_ID")
 	}
-	clientSecret := utils.ClientSecret
+	clientSecret := config.ClientSecret
 	if clientSecret == "" {
 		log.Fatalln("error: please set client secret")
 	}
@@ -89,7 +89,7 @@ func main() {
 
 	onMessagePlugin := plugin.NewOnMessagePortPlugin(proxyConfig)
 
-	upStreamController := upstream.NewUpStreamController(utils.ControllerOrigin, clientID, clientSecret)
+	upStreamController := upstream.NewUpStreamController(config.ControllerOrigin, clientID, clientSecret)
 	defer upStreamController.Stop()
 	upstreamService := service.NewChatUpstreamService(upStreamController)
 
@@ -97,7 +97,7 @@ func main() {
 	upstreamService.OnConnect(conn)
 	defer upstreamService.OffConnect(conn)
 
-	rabbit := rmq.New("amqp://guest:guest@localhost:5672/")
+	rabbit := rmq.New(config.RabbitMQConnString)
 	if err := rabbit.Connect(); err != nil {
 		log.Fatalf("can't connect to rabbitmq %s\n", err)
 	}
@@ -112,10 +112,10 @@ func main() {
 	enc := service.NewEncryptionService(keyService, onMessagePlugin)
 
 	downstreamService := service.NewChatDownstreamService(roomUserRepo, pool, pool, nil) // no message repo needed
-	delegateAuth := service.NewDelegateAuthService(utils.ControllerOrigin)
+	delegateAuth := service.NewDelegateAuthService(config.ControllerOrigin)
 
 	messageService := service.NewMessageService(msgRepo)
-	fileService := service.NewFileService("localhost:8080", rabbit)
+	fileService := service.NewFileService(config.ControllerOrigin, rabbit)
 
 	go func() {
 		err := fileService.Run() // go routing waiting for message
@@ -125,7 +125,7 @@ func main() {
 	}()
 
 	configService := service.NewConfigService(enc, proxyConfig, onMessagePlugin)
-	stickerService := service.NewStickerService(utils.ControllerBasePath)
+	stickerService := service.NewStickerService(config.ControllerBasePath)
 	// Fix Real Use
 	// configService := service.NewConfigService(enc, proxyConfig)
 	// create router from service
@@ -160,12 +160,12 @@ func main() {
 	}()
 
 	httpSrv := &http.Server{
-		Addr:    utils.ListenAddress,
+		Addr:    config.ListenAddress,
 		Handler: router,
 	}
 
 	pprofServer := &http.Server{
-		Addr:    "localhost:6060",
+		Addr:    config.PProfAddress,
 		Handler: nil,
 	}
 

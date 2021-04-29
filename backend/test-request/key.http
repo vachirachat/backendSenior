@@ -2,7 +2,7 @@
 
 # @roomId = 5fef767926dcb936c4e0b6d9
 # @roomId = 5ffac45f26dcb94e81f37fe4
-@roomId = 60826a1b01a516248147658a
+@roomId = 6086425b9df1db1d741ce9be
 
 @proxyA = 
 @proxyB = 
@@ -29,9 +29,10 @@ GET {{base}}/priority/{{roomId}}
 
 
 
-# "606b2b3d26dcb9fb60c25cea",
-#         "606b2b6a26dcb9fb60c25cec",
-#         "606b2ba226dcb9fb60c25ced"
+# "6084fe47c0c954456f4a3430",
+#         "6084fe4ec0c954456f4a3433",
+#         "6084fe53c0c954456f4a3436"
+# 6084fe8dc0c954456f4a3439
 
 ###
 POST {{base}}/priority/{{roomId}}/{{proxyB}}

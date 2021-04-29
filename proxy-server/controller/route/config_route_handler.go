@@ -2,13 +2,12 @@ package route
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"proxySenior/config"
 	model_proxy "proxySenior/domain/model"
 	"proxySenior/domain/service"
-	"proxySenior/utils"
-
-	"github.com/gin-gonic/gin"
 )
 
 // PingRouteHandler is a simple router that always reply with status OK
@@ -78,7 +77,7 @@ func (handler *ConfigRouteHandler) configFileHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
 	}
 
-	err = handler.ConfigService.ConfigStartPluginProcess("en_" + utils.DOCKEREXEC_FILE_NAME)
+	err = handler.ConfigService.ConfigStartPluginProcess("en_" + config.DOCKEREXEC_FILE_NAME)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
 	}

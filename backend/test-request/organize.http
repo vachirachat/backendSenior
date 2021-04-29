@@ -1,22 +1,10 @@
-@base = http://localhost:8080/api/v1/org
-@baseUser = http://localhost:8080/api/v1/user/user
-
-// me add  6075bb88470aacc4ad407cf2
-// me org 607d46a1bc4da724bb163064
-// me room_1 607db45dbc4da70bca9621eb
-// me room_2 607db16ebc4da70ad011e58e
-
-// me proxy1 606c36b6bc4da77ecf3097de  (port 8090)
-// "proxySecret1": tORZQEU0RWPFqh16uRpEyeYzAxMMYMsRLmZVcHSQOi6Hs34TSVEMKqe0GK/1qxxp
-// me proxy2 607db0c4bc4da70ad011e58d  (port 8091) 
-// "proxySecret2": "Iyhkcfywobi1yD8ikCDFT7knMUl0l+2UtxU3gaUFO7y6x+Y7hJ3JxAE+hCHJBBjK"
-@orgA = 607d46a1bc4da724bb163064
-# @orgB = 606a011d26dcb9dde6612d72
-
-@userA = 6075e9aa470aacc4ad407d90
-# @userB = 60001260f0a50a974cee2f95
-
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjcxNWIwOGNkLTY3M2MtNDU2Ni04ZGQyLWRmMDAwODlmOGRiMSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxODgzODM3Nywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA3NWU5YWE0NzBhYWNjNGFkNDA3ZDkwIn0.3htMS-9PUO1ZyJaNc8KwZbGhv54prIYCOP5_vMFSo80
+@base = {{host}}/api/v1/org
+@baseUser = {{host}}/api/v1/user/user
+@orgA = 60851a93c0c95465b8a647d1
+@orgB = 
+// me = 5fef73f2315e73be2c81c748
+@userA = 
+@userB = 
 
 ### GET All Users
 GET {{baseUser}}
@@ -36,7 +24,7 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "name": "Org 2"
+  "name": "SeniorProjectOrg"
 }
 
 
@@ -61,7 +49,7 @@ POST {{base}}/{{orgA}}/member
 Content-Type: application/json
 
 {
-  "UserIDs": ["{{userA}}"]
+  "UserIDs": ["6088507101ab28c1300bd752"]
 }
 
 ### Remove User to Org.
