@@ -30,11 +30,11 @@ func (enc *EncryptionService) EncryptController(msg *model.Message) error {
 
 	if enc.plugin.IsEnabledEncryption() {
 
-		decrypted, err := enc.plugin.CustomEncryptionPlugin(*msg)
+		encrypted, err := enc.plugin.CustomEncryptionPlugin(*msg)
 		if err != nil {
 			return fmt.Errorf("plugin encrypt: %w", err)
 		}
-		msg.Data = decrypted.Data
+		msg.Data = encrypted.Data
 		return nil
 
 	} else {

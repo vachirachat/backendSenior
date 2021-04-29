@@ -117,7 +117,8 @@ func (obp *GRPCOnPortMessagePlugin) CustomEncryption(msg model.Message) (model.M
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client := *obp.client
-	message, err := client.EncryptedMessage(ctx, &proto.Chat{
+
+	chat := &proto.Chat{
 		MessageId: msg.MessageID.Hex(),
 		RoomId:    msg.RoomID.Hex(),
 		UserId:    msg.UserID.Hex(),
@@ -126,12 +127,14 @@ func (obp *GRPCOnPortMessagePlugin) CustomEncryption(msg model.Message) (model.M
 		Type:      msg.Type,
 		ClientUid: msg.ClientUID,
 		Data:      msg.Data,
-	})
-
+	}
+	if msg.MessageID.Hex() == "" {
+		chat.MessageId = bson.NewObjectId().Hex()
+	}
+	message, err := client.EncryptedMessage(ctx, chat)
 	if err != nil {
 		log.Fatalf("%v.Encryption(_) = _, %v: ", client, err)
 	}
-	log.Println("\n EncryptedMessage >>", message)
 
 	// REFACTOR : Temp Chat.timestamp -> Message.Timestamp
 	i, err := strconv.ParseInt(fmt.Sprint(message.Timestamp), 10, 64)
