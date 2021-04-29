@@ -1,6 +1,7 @@
 package service
 
 import (
+	"backendSenior/domain/dto"
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"crypto/rand"
@@ -8,25 +9,26 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/globalsign/mgo/bson"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // ProxyService provide acces sto proxy related function
 type ProxyService struct {
-	proxyRepo repository.ProxyRepository
+	proxyRepo    repository.ProxyRepository
+	orgProxyRepo repository.OrgProxyRepository
 }
 
 // NewProxyService create nenw instance of `ProxyService`
-func NewProxyService(proxyRepo repository.ProxyRepository) *ProxyService {
+func NewProxyService(proxyRepo repository.ProxyRepository, orgProxyRepo repository.OrgProxyRepository) *ProxyService {
 	return &ProxyService{
-		proxyRepo: proxyRepo,
+		proxyRepo:    proxyRepo,
+		orgProxyRepo: orgProxyRepo,
 	}
 }
 
 // NewProxy create new proxy with name (display name)
 // return ID, secret, error
-func (service *ProxyService) NewProxy(proxy model.Proxy) (string, string, error) {
+func (service *ProxyService) NewProxy(dtoProxy dto.CreateProxyDto) (string, string, error) {
 	randByte := make([]byte, 48)
 	_, err := io.ReadFull(rand.Reader, randByte)
 	if err != nil {
@@ -38,10 +40,7 @@ func (service *ProxyService) NewProxy(proxy model.Proxy) (string, string, error)
 		return "", "", fmt.Errorf("hashing secret: %s", err.Error())
 	}
 
-	proxy.Secret = string(hashedSecret)
-	proxy.Rooms = []bson.ObjectId{}
-
-	id, err := service.proxyRepo.AddProxy(proxy)
+	id, err := service.proxyRepo.AddProxy(dtoProxy.ToProxy(string(hashedSecret)))
 	if err != nil {
 		return "", "", fmt.Errorf("inserting proxy: %s", err.Error())
 	}
@@ -96,4 +95,20 @@ func (service *ProxyService) GetProxiesByIDs(proxyIDs []string) ([]model.Proxy, 
 // DeleteProxyByID delte proxy with specified ID
 func (service *ProxyService) DeleteProxyByID(proxyID string) error {
 	return service.proxyRepo.DeleteProxy(proxyID)
+}
+
+// GetOrgProxyIDs return roomIDs of org / error
+func (service *ProxyService) GetOrgProxyIDs(orgID string) ([]model.Proxy, error) {
+	proxies, err := service.orgProxyRepo.GetOrgProxyIDs(orgID)
+	return proxies, err
+}
+
+// AddProxiseToOrg return error
+func (service *ProxyService) AddProxiseToOrg(orgID string, proxyIDs []string) error {
+	return service.orgProxyRepo.AddProxiseToOrg(orgID, proxyIDs)
+}
+
+// RemoveProxiseFromOrg return error
+func (service *ProxyService) RemoveProxiseFromOrg(orgID string, proxyIDs []string) error {
+	return service.orgProxyRepo.RemoveProxiseFromOrg(orgID, proxyIDs)
 }

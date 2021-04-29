@@ -1,52 +1,59 @@
 package route
 
 import (
+	authMw "backendSenior/controller/middleware/auth"
 	"backendSenior/domain/dto"
 	"backendSenior/domain/service"
+	"backendSenior/utills"
 	"bytes"
 	g "common/utils/ginutils"
 	"fmt"
-	"github.com/disintegration/imaging"
-	"github.com/gin-gonic/gin"
-	"github.com/globalsign/mgo/bson"
 	"image"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/disintegration/imaging"
+	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo/bson"
 )
 
 type StickerRouteHandler struct {
-	sticker *service.StickerService
-	log     *log.Logger
+	sticker        *service.StickerService
+	log            *log.Logger
+	authMiddleware *authMw.JWTMiddleware
+	validate       *utills.StructValidator
 }
 
-func NewStickerRouteHandler(sticker *service.StickerService) *StickerRouteHandler {
+func NewStickerRouteHandler(sticker *service.StickerService, authMiddleware *authMw.JWTMiddleware, validate *utills.StructValidator) *StickerRouteHandler {
 	return &StickerRouteHandler{
-		sticker: sticker,
-		log:     log.New(os.Stdout, "StickerRouteHandler", log.LstdFlags|log.Lshortfile),
+		sticker:        sticker,
+		log:            log.New(os.Stdout, "StickerRouteHandler", log.LstdFlags|log.Lshortfile),
+		authMiddleware: authMiddleware,
+		validate:       validate,
 	}
 }
 
 func (h *StickerRouteHandler) Mount(rg *gin.RouterGroup) {
 
 	s0 := rg.Group("/check")
-	s0.GET("/:id", g.InjectGin(h.checkSticker))
+	s0.GET("/:id", h.authMiddleware.AuthRequired("user", "view"), g.InjectGin(h.checkSticker))
 
 	s1 := rg.Group("/sets")
-	s1.GET("/", g.InjectGin(h.listStickerSet))
+	s1.GET("/", h.authMiddleware.AuthRequired("user", "view"), g.InjectGin(h.listStickerSet))
 	s1.POST("/find", g.InjectGin(h.findStickerSet))
-	s1.POST("/create", g.InjectGin(h.createStickerSet))
+	s1.POST("/create", h.authMiddleware.AuthRequired("admit", "add"), g.InjectGin(h.createStickerSet))
 
 	s2 := rg.Group("/set")
-	s2.GET("/:id", g.InjectGin(h.getStickerSet))
+	s2.GET("/:id", h.authMiddleware.AuthRequired("user", "view"), g.InjectGin(h.getStickerSet))
 	s2.DELETE("/:id", g.InjectGin(h.removeStickerSet))
-	s2.POST("/:id/add-sticker", g.InjectGin(h.addStickerToSet))
-	s2.POST("/:id/remove-sticker", g.InjectGin(h.removeStickerFromSet))
+	s2.POST("/:id/add-sticker", h.authMiddleware.AuthRequired("user", "add"), g.InjectGin(h.addStickerToSet))
+	s2.POST("/:id/remove-sticker", h.authMiddleware.AuthRequired("user", "edit"), g.InjectGin(h.removeStickerFromSet))
 	s2.POST("/:id/edit", g.InjectGin(h.editStickerSet))
 
 	s3 := rg.Group("/img")
-	s3.GET("/:id", g.InjectGin(h.getStickerImage))
+	s3.GET("/:id", h.authMiddleware.AuthRequired("user", "view"), g.InjectGin(h.getStickerImage))
 
 	s4 := rg.Group("/byid")
 	s4.POST("/:id/edit", g.InjectGin(h.editSticker))

@@ -2,6 +2,7 @@ package route
 
 import (
 	authMw "backendSenior/controller/middleware/auth"
+	"backendSenior/domain/dto"
 	"backendSenior/domain/service"
 	"backendSenior/domain/service/auth"
 	"backendSenior/utills"
@@ -12,7 +13,6 @@ import (
 	"backendSenior/domain/model"
 	"log"
 	"net/http"
-	"unsafe"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
@@ -43,20 +43,20 @@ func NewUserRouteHandler(
 // Mount make handle handle request for specified routerGroup
 func (handler *UserRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("user", handler.userListHandler)
-	routerGroup.PUT("me", handler.authMiddleware.AuthRequired(), handler.updateMyProfileHandler)
+	routerGroup.PUT("me", handler.authMiddleware.AuthRequired("user", "edit"), handler.updateMyProfileHandler)
 	routerGroup.DELETE("byid/:user_id", handler.deleteUserByIDHandler)
 	routerGroup.POST("getuserbyemail", handler.getUserByEmail)
 
 	//SignIN/UP API
 	// routerGroup.GET("/token", handler.userTokenListHandler)
 	routerGroup.POST("/login", handler.loginHandle)
-	routerGroup.POST("/logout", handler.authMiddleware.AuthRequired(), handler.logoutHandle)
+	routerGroup.POST("/logout", handler.authMiddleware.AuthRequired("user", "edit"), handler.logoutHandle)
 	// routerGroup.GET("/getalltoken", handler.getAllTokenHandle)
 
 	routerGroup.POST("/login/:orgid/org", handler.loginOrgHandle)
-	routerGroup.POST("/signup", handler.addUserSignUpHandeler)
-	routerGroup.GET("/me", handler.authMiddleware.AuthRequired(), handler.getMeHandler)
-	routerGroup.POST("/me/profile", handler.authMiddleware.AuthRequired(), g.InjectGin(handler.uploadProfileImage))
+	routerGroup.POST("/signup", g.InjectGin(handler.addUserSignUpHandeler))
+	routerGroup.GET("/me", handler.authMiddleware.AuthRequired("user", "view"), handler.getMeHandler)
+	routerGroup.POST("/me/profile", handler.authMiddleware.AuthRequired("user", "add"), g.InjectGin(handler.uploadProfileImage))
 
 	// (for proxy)
 	routerGroup.POST("/verify", handler.verifyToken)
@@ -181,7 +181,10 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 		return
 	}
-	user, err := handler.userService.Login(credentials.Email, credentials.Password)
+	user, err := handler.userService.Login(dto.CreateUserSecret{
+		Email:    credentials.Email,
+		Password: credentials.Password,
+	})
 	if err != nil {
 		context.JSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
 		return
@@ -226,7 +229,10 @@ func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"status": "error"})
 		return
 	}
-	user, err := handler.userService.Login(credentials.Email, credentials.Password)
+	user, err := handler.userService.Login(dto.CreateUserSecret{
+		Email:    credentials.Email,
+		Password: credentials.Password,
+	})
 	if err != nil {
 		context.JSON(http.StatusUnauthorized, gin.H{"status": err.Error()})
 		return
@@ -253,29 +259,16 @@ func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
 }
 
 // Signup API
-func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context) {
-	var userPw model.UserWithPassword
-	err := context.ShouldBindJSON(&userPw)
-	if err != nil {
-		log.Println("error AddUserSignUpHandeler user ShouldBindJSON", err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
-		return
-	}
+func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context, input struct{ Body dto.CreateUser }) error {
+	b := input.Body
 
-	if userPw.Name == "" {
-		context.JSON(http.StatusBadRequest, gin.H{"status": "not username specified"})
-		return
-	}
-	user := *(*model.User)(unsafe.Pointer(&userPw))
-	err = handler.userService.Signup(user)
+	err := handler.userService.Signup(b.ToUser())
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{
-			"status": err.Error(),
-		})
-		return
+		return g.NewError(403, "bad Signup")
 	}
 
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})
+	return nil
 }
 
 func (handler *UserRouteHandler) verifyToken(context *gin.Context) {
@@ -324,24 +317,24 @@ func (handler *UserRouteHandler) uploadProfileImage(c *gin.Context, req struct{}
 
 	file, err := c.FormFile("image")
 	if err != nil {
-		log.Printf("error getting form file: %w", err)
+		log.Printf("error getting form file: %f", err)
 		return fmt.Errorf("error getting form file: %w", err)
 	}
 
 	f, err := file.Open()
 	if err != nil {
-		log.Printf("error opening file: %w", err)
+		log.Printf("error opening file: %f", err)
 		return fmt.Errorf("error opening file: %w", err)
 	}
 	defer f.Close()
 	bytes, err := ioutil.ReadAll(f)
 	if err != nil {
-		log.Printf("error reading file: %w", err)
+		log.Printf("error reading file: %f", err)
 		return fmt.Errorf("error reading file: %w", err)
 	}
 
 	if err := handler.fileService.UploadProfileImage(userID, bytes); err != nil {
-		log.Printf("error uploading image: %w", err)
+		log.Printf("error uploading image: %f", err)
 		return fmt.Errorf("error uploading image: %w", err)
 	}
 

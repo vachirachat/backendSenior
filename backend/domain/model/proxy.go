@@ -10,6 +10,7 @@ type Proxy struct {
 	Secret  string          `json:"-" bson:"secret,omitempty"`
 	Name    string          `json:"name" bson:"name,omitempty"`
 	Rooms   []bson.ObjectId `json:"rooms" bson:"rooms,omitempty"`
+	Org     bson.ObjectId   `json:"org" bson:"org,omitempty"`
 }
 
 // ProxyInsert is used for inserting where empty fields are
@@ -21,6 +22,7 @@ type ProxyInsert struct {
 	Secret  string          `json:"-" bson:"secret"`
 	Name    string          `json:"name" bson:"name"`
 	Rooms   []bson.ObjectId `json:"rooms" bson:"rooms"`
+	Org     bson.ObjectId   `json:"org" bson:"org"`
 }
 
 // ProxyUpdateMongo has same fields as proxy, but has types of interface{}.
@@ -33,4 +35,5 @@ type ProxyUpdateMongo struct {
 	Secret  interface{} `bson:"secret,omitempty"`
 	Name    interface{} `bson:"name,omitempty"`
 	Rooms   interface{} `bson:"rooms,omitempty"`
+	Org     interface{} `bson:"org,omitempty"`
 }

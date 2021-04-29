@@ -1,0 +1,97 @@
+@baseOrg = http://localhost:8080/api/v1/org
+@orgA = 607e7be4bc4da7abb49edab4
+
+@baseRoom = http://localhost:8080/api/v1/room
+// เปลี่ยนเรื่อยๆ 
+@roomA= 607e8814bc4da7abb49edac2
+
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6Ijk5MGQ4MzIxLTZhYmItNGEwZi1iY2Y3LTJlMmFlZDZjMDAyZCIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxODg5ODg3Nywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA3ZTZmZjU0NzBhYWNjNGFkNDE1YjY5In0.RvFOmFyAGwA3fDimEtggdp6OubUvNaKrXbzl3KYOo1g
+
+@baseUser = http://localhost:8080/api/v1/user/user
+
+@userid=607e6ff5470aacc4ad415b69
+@userid2=605d72a328dc5636ff7a520f
+@userid3=60658dbc28dc5636ff7a6fa7
+@userid4=6068712e28dc5636ff7aa842
+
+
+@baseProxy = http://localhost:8080/api/v1/proxy
+@proxy=607e8945bc4da7abb49edac5
+//<------> Room <------>//
+### GET My ROOMS
+GET {{baseRoom}}?me=true
+Authorization: Bearer {{token}}
+
+
+### GET ALL ROOMS
+GET {{baseRoom}}
+Authorization: Bearer {{token}}
+
+### CREATE ROOM
+POST {{baseRoom}}/create-group
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "roomName": "Test_view 3",
+  "roomType": "GROUP",
+  "orgId": "{{orgA}}"
+}
+
+
+### GET room by ID
+GET {{baseRoom}}/id/{{roomA}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+
+### remove user
+DELETE {{baseRoom}}/id/{{roomA}}/member   
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userIds": ["{{userid}}"]
+}
+
+//<------> Room <------>//
+
+
+//<------> Proxy <------>//
+# 607e8945bc4da7abb49edac5
+# u/pF3kTDi2TQCSWIhoqryvDvhzhWSVl1PfrEtFuzKdGSxphWdoN3p4O0i5iGpSQ6
+
+###
+POST {{baseProxy}}
+Content-Type: application/json
+
+{
+  "name": "Local 2",
+  "ip": "localhost",
+  "port": 5555,
+  "Org": "{{orgA}}"
+}
+
+
+
+### Add proxy to Room
+POST {{baseRoom}}/id/{{roomA}}/proxy    
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "proxyIds": ["{{proxy}}"]
+}
+
+
+
+###
+DELETE {{baseRoom}}/id/{{roomA}}/proxy    
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "proxyIds": ["{{proxy}}"]
+}
+
+//<------> Proxy <------>//

@@ -7,6 +7,7 @@ import (
 	"backendSenior/domain/model/chatsocket/exception"
 	"backendSenior/domain/model/chatsocket/message_types"
 	"backendSenior/domain/service"
+	"backendSenior/utills"
 	"common/ws"
 	"encoding/json"
 	"fmt"
@@ -46,16 +47,18 @@ type ChatRouteHandler struct {
 	keyEx       *service.KeyExchangeService
 	roomService *service.RoomService // for mapping
 	log         *log.Logger
+	validate    *utills.StructValidator
 }
 
 // NewChatRouteHandler create new `ChatRouteHandler`
-func NewChatRouteHandler(chatService *service.ChatService, proxyMw *auth.ProxyMiddleware, roomSvc *service.RoomService, keyEx *service.KeyExchangeService) *ChatRouteHandler {
+func NewChatRouteHandler(chatService *service.ChatService, proxyMw *auth.ProxyMiddleware, roomSvc *service.RoomService, keyEx *service.KeyExchangeService, validate *utills.StructValidator) *ChatRouteHandler {
 	return &ChatRouteHandler{
 		chatService: chatService,
 		proxyMw:     proxyMw,
 		roomService: roomSvc,
 		keyEx:       keyEx,
 		log:         log.New(os.Stdout, "[chat-route-handler]", log.Ldate|log.Lshortfile),
+		validate:    validate,
 	}
 }
 
@@ -84,7 +87,7 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
 		rawConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			log.Println(err)
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err})
 			return
 		}
 		wsConn := ws.FromConnection(rawConn)
@@ -96,6 +99,10 @@ func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 		}
 
 		_, err = handler.chatService.OnConnect(conn)
+		if err != nil {
+			context.JSON(http.StatusInternalServerError, gin.H{"status": err})
+			return
+		}
 		handler.keyEx.SetOnline(proxyID, true)
 
 		clnt := client{

@@ -25,7 +25,16 @@ func NewConfigRouteHandler(configService *service.ConfigService) *ConfigRouteHan
 
 // Mount add route to router group
 func (handler *ConfigRouteHandler) Mount(routerGroup *gin.RouterGroup) {
+	// routerGroup.POST("docker/file", g.InjectGin(handler.configFileHandler))
+	// routerGroup.POST("docker/status", g.InjectGin(handler.configPluginNetworkStatus))
+	// routerGroup.GET("process/kill", g.InjectGin(handler.configKillProcess))
+	// routerGroup.GET("plugin/status", g.InjectGin(handler.configGetPluginStatus))
+	// routerGroup.GET("plugin/start", g.InjectGin(handler.proxySetPluginStart))
+	// routerGroup.GET("plugin/stop", g.InjectGin(handler.proxySetPluginStop))
+
 	routerGroup.POST("docker/file", handler.configFileHandler)
+	routerGroup.POST("docker/code", handler.configCodeUploadHandler)
+	routerGroup.POST("docker/code/kill", handler.configCodeKillHandler)
 	routerGroup.POST("docker/status", handler.configPluginNetworkStatus)
 	routerGroup.GET("process/kill", handler.configKillProcess)
 	routerGroup.GET("plugin/status", handler.configGetPluginStatus)
@@ -35,21 +44,25 @@ func (handler *ConfigRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 }
 
 // Fix Just Debug
+// func (handler *ConfigRouteHandler) configGetPluginStatus(c *gin.Context, req struct{}) {
 func (handler *ConfigRouteHandler) configGetPluginStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": handler.ConfigService.ConfigGetPluginStatus()})
 }
 
 // Fix Just Debug
+// func (handler *ConfigRouteHandler) proxySetPluginStart(c *gin.Context, req struct{}) {
 func (handler *ConfigRouteHandler) proxySetPluginStart(c *gin.Context) {
 	handler.ConfigService.ConfigSetStartProxy()
 	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }
 
+// func (handler *ConfigRouteHandler) proxySetPluginStop(c *gin.Context, req struct{}) {
 func (handler *ConfigRouteHandler) proxySetPluginStop(c *gin.Context) {
 	handler.ConfigService.ConfigSetStopProxy()
 	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }
 
+// func (handler *ConfigRouteHandler) configFileHandler(c *gin.Context, req struct{}) {
 func (handler *ConfigRouteHandler) configFileHandler(c *gin.Context) {
 	c.Request.ParseMultipartForm(10 << 20)
 	file, fileHandler, err := c.Request.FormFile("myFile")
@@ -65,7 +78,7 @@ func (handler *ConfigRouteHandler) configFileHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
 	}
 
-	err = handler.ConfigService.ConfigStartPluginProcess("to_zip_" + utils.DOCKEREXEC_FILE_NAME)
+	err = handler.ConfigService.ConfigStartPluginProcess("en_" + utils.DOCKEREXEC_FILE_NAME)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
 	}
@@ -73,6 +86,7 @@ func (handler *ConfigRouteHandler) configFileHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }
 
+// func (handler *ConfigRouteHandler) configKillProcess(c *gin.Context, req struct{}) {
 func (handler *ConfigRouteHandler) configKillProcess(c *gin.Context) {
 	process_name, ok := c.Request.URL.Query()["process_name"]
 	err := handler.ConfigService.ConfigStopPluginProcess(process_name[0])
@@ -84,6 +98,7 @@ func (handler *ConfigRouteHandler) configKillProcess(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }
 
+// func (handler *ConfigRouteHandler) configPluginNetworkStatus(c *gin.Context, req struct{}) {
 func (handler *ConfigRouteHandler) configPluginNetworkStatus(c *gin.Context) {
 	var storage model_proxy.JSONDocker
 	err := c.ShouldBindJSON(&storage)
@@ -100,4 +115,49 @@ func (handler *ConfigRouteHandler) configPluginNetworkStatus(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "NO", "connect plugin with port": resp})
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "OK", "connect plugin with port": resp})
+}
+
+func (handler *ConfigRouteHandler) configRunCodeProxy(c *gin.Context) {
+	var storage model_proxy.JSONCODE
+	err := c.ShouldBindJSON(&storage)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+
+	}
+	err = handler.ConfigService.ConfigRunCodeProxy(storage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "OK"})
+}
+
+func (handler *ConfigRouteHandler) configCodeUploadHandler(c *gin.Context) {
+	var storage model_proxy.JSONCODE
+	err := c.ShouldBindJSON(&storage)
+	if err != nil {
+		log.Println("err -binding")
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
+	}
+
+	err = handler.ConfigService.ConfigCodeProxy(storage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "OK"})
+}
+
+func (handler *ConfigRouteHandler) configCodeKillHandler(c *gin.Context) {
+	var storage model_proxy.JSONCODE
+	err := c.ShouldBindJSON(&storage)
+	if err != nil {
+		log.Println("err -binding")
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error"})
+		return
+	}
+	err = handler.ConfigService.ConfigStopCodePluginProcess(storage)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": err})
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }

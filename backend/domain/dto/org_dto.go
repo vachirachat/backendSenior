@@ -5,8 +5,22 @@ import (
 	"common/utils/db"
 )
 
+// UpdateMeDto is request body for update user-info(model.USER)
+type OrgDto struct {
+	Name string `json:"name" validate:"required,gt=0"`
+}
+
+func (d *OrgDto) ToOrg() model.Organize {
+	return model.Organize{
+		Name:    d.Name,
+		Members: nil,
+		Admins:  nil,
+		Rooms:   nil,
+	}
+}
+
 type FindOrgByNameDto struct {
-	Name string `json:"name" validate:"min=5"`
+	Name string `json:"name" validate:"required,min=5"`
 }
 
 func (d *FindOrgByNameDto) ToFilter() model.OrganizationT {

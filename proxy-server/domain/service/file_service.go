@@ -1,14 +1,12 @@
 package service
 
 import (
+	"backendSenior/domain/dto"
 	"backendSenior/domain/model"
 	file_payload "backendSenior/domain/payload/file"
-	"backendSenior/domain/service"
 	"common/rmq"
 	"encoding/json"
 	"fmt"
-	"github.com/globalsign/mgo/bson"
-	"github.com/go-resty/resty/v2"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -19,6 +17,9 @@ import (
 	"proxySenior/utils"
 	"strings"
 	"time"
+
+	"github.com/globalsign/mgo/bson"
+	"github.com/go-resty/resty/v2"
 )
 
 type FileService struct {
@@ -250,7 +251,7 @@ func (s *FileService) UploadFile(roomID string, userID string, key []byte, fileD
 		}
 
 		res, err := s.clnt.R().
-			SetBody(service.UploadFileMeta{
+			SetBody(dto.UploadFileMeta{
 				Name:      string(fileNameEnc),
 				RoomID:    bson.ObjectIdHex(roomID),
 				UserID:    bson.ObjectIdHex(userID),
@@ -344,7 +345,7 @@ func (s *FileService) UploadImage(roomID string, userID string, key []byte, file
 		}
 
 		res, err := s.clnt.R().
-			SetBody(service.UploadFileMeta{
+			SetBody(dto.UploadFileMeta{
 				Name:      string(fileNameEnc),
 				RoomID:    bson.ObjectIdHex(roomID),
 				UserID:    bson.ObjectIdHex(userID),

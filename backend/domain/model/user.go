@@ -8,9 +8,9 @@ type UserInfo struct {
 	User []User `json:"users"`
 }
 
-type UserInfoSecrect struct {
-	UserSecret []UserSecret `json:"users"`
-}
+// type UserInfoSecrect struct {
+// 	UserSecret []UserSecret `json:"users"`
+// }
 
 type UserTokenInfo struct {
 	UserToken []UserToken `json:"users"`
@@ -40,17 +40,17 @@ type UserInsert struct {
 	FCMTokens []string        `json:"fcmTokens" bson:"fcmTokens"`
 }
 
-// UserWithPassword is same as user but password isn't omitted in json
-type UserWithPassword struct {
-	UserID    bson.ObjectId   `json:"userId" bson:"_id,omitempty"`
-	Name      string          `json:"name" bson:"name,omitempty"`
-	Email     string          `json:"email" bson:"email,omitempty"`
-	Password  string          `json:"password" bson:"password,omitempty"`
-	Room      []bson.ObjectId `json:"room" bson:"room,omitempty"`
-	Organize  []bson.ObjectId `json:"organize" bson:"organize,omitempty"`
-	UserType  string          `json:"userType" bson:"userType,omitempty"`
-	FCMTokens []string        `json:"fcmTokens" bson:"fcmTokens,omitempty"`
-}
+// // UserWithPassword is same as user but password isn't omitted in json
+// type UserWithPassword struct {
+// 	UserID    bson.ObjectId   `json:"userId" bson:"_id,omitempty"`
+// 	Name      string          `json:"name" bson:"name,omitempty"`
+// 	Email     string          `json:"email" bson:"email,omitempty"`
+// 	Password  string          `json:"password" bson:"password,omitempty"`
+// 	Room      []bson.ObjectId `json:"room" bson:"room,omitempty"`
+// 	Organize  []bson.ObjectId `json:"organize" bson:"organize,omitempty"`
+// 	UserType  string          `json:"userType" bson:"userType,omitempty"`
+// 	FCMTokens []string        `json:"fcmTokens" bson:"fcmTokens,omitempty"`
+// }
 
 // UserUpdateMongo has same fields as user, but has types of interface{}.
 // It's used instead of raw bson.M in update operations to ensure that when field name change in user model

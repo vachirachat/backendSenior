@@ -1,0 +1,13 @@
+# Create Proxy at controller then set ID/secret here
+CLIENT_ID=607db0c4bc4da70ad011e58d
+CLIENT_SECRET=Iyhkcfywobi1yD8ikCDFT7knMUl0l+2UtxU3gaUFO7y6x+Y7hJ3JxAE+hCHJBBjK
+
+# Set path to plugin file
+PLUGIN_PATH=./share/example-plugin/example-plugin
+
+# Con't forget colon before port
+PORT=:8091
+PLUGIN_PORT=localhost:5555
+PLUGIN_ACTIVE=False
+PLUGIN_Encryption=False
+PLUGIN_Encryption_Key=abcdefghijklmnopqrstuvwxyz012345

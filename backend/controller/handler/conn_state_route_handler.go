@@ -3,6 +3,7 @@ package route
 import (
 	"backendSenior/controller/middleware/auth"
 	"backendSenior/domain/service"
+	"backendSenior/utills"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,17 +17,19 @@ import (
 type ConnStateRouteHandler struct {
 	notifService *service.NotificationService
 	authMw       *auth.JWTMiddleware
+	validate     *utills.StructValidator
 }
 
-func NewConnStateRouteHandler(notifService *service.NotificationService, authMw *auth.JWTMiddleware) *ConnStateRouteHandler {
+func NewConnStateRouteHandler(notifService *service.NotificationService, authMw *auth.JWTMiddleware, validate *utills.StructValidator) *ConnStateRouteHandler {
 	return &ConnStateRouteHandler{
 		notifService: notifService,
 		authMw:       authMw,
+		validate:     validate,
 	}
 }
 
 func (h *ConnStateRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	routerGroup.GET("/ws", h.authMw.AuthRequired(), h.handleWs)
+	routerGroup.GET("/ws", h.authMw.AuthRequired("user", "view"), h.handleWs)
 }
 
 type simpleClient struct {

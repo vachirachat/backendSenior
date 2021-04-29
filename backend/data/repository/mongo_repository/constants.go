@@ -17,6 +17,7 @@ const (
 	collectionFCMToken = "fcmTokens"
 	// for mgo/txn
 	collectionTXNRoomUser = "txnRoomUser"
+	collectionTXNOrgProxy = "txnRoomUser"
 	collectionKeyVersion  = "keyVersions"
 	// meta
 	collectionMeta = "filemeta"

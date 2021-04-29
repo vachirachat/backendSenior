@@ -8,6 +8,8 @@ replace backendSenior => ../backend
 
 replace proxySenior => ../proxy-server
 
+replace go-module => ../plugin/go-module
+
 require (
 	backendSenior v0.0.0-00010101000000-000000000000
 	common v0.0.0-00010101000000-000000000000

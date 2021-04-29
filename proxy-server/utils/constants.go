@@ -70,4 +70,5 @@ var (
 	DOCKERIMAGE_REMOTE_NAME = "docker_upload"
 	LISTEN_ADDRESS          = defaultEnv("PORT", ":8090")
 	PROXY_KEY               = "0123456789abcdef"
+	PATH_ORIGIN_PROXY       = "./share/"
 )

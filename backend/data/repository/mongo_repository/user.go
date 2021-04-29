@@ -71,39 +71,22 @@ func (userMongo UserRepositoryMongo) DeleteUserByID(userID string) error {
 	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).RemoveId(objectID)
 }
 
-//  Token
-func (userMongo UserRepositoryMongo) AddToken(UserToken model.UserToken) error {
-	return userMongo.ConnectionDB.DB(dbName).C(collectionToken).Insert(UserToken)
-}
-
 type UserSecret struct {
 	Email    string `json:"email" bson:"email"`
 	Password string `json:"password" bson:"password"`
 	Role     string `json:"role" bson:"role"`
 }
 
-func (userMongo UserRepositoryMongo) EditUserRole(userSecret model.UserSecret) error {
+func (userMongo UserRepositoryMongo) EditUserRole(userSecret model.User) error {
 	mapSecret := bson.M{"email": userSecret.Email}
-	newName := bson.M{"$set": bson.M{"role": userSecret.Role}}
+	newName := bson.M{"$set": bson.M{"userType": userSecret.UserType}}
 	return userMongo.ConnectionDB.DB(dbName).C(collectionUser).Update(mapSecret, newName)
-}
-
-func (userMongo UserRepositoryMongo) GetUserTokenById(userID string) (model.UserToken, error) {
-	var userToken model.UserToken
-	err := userMongo.ConnectionDB.DB(dbName).C(collectionToken).FindId(bson.ObjectIdHex(userID)).One(&userToken)
-	return userToken, err
 }
 
 func (userMongo UserRepositoryMongo) GetUserRole(userID string) (string, error) {
 	var userRole model.UserSecret
 	err := userMongo.ConnectionDB.DB(dbName).C(collectionUser).FindId(bson.ObjectIdHex(userID)).One(&userRole)
 	return userRole.Role, err
-}
-
-func (userMongo UserRepositoryMongo) GetUserIdByToken(token string) (model.UserToken, error) {
-	var userToken model.UserToken
-	err := userMongo.ConnectionDB.DB(dbName).C(collectionToken).Find(bson.M{"token": token}).One(&userToken)
-	return userToken, err
 }
 
 func (userMongo UserRepositoryMongo) GetAllUserToken() ([]model.UserToken, error) {
