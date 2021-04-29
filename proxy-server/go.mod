@@ -13,9 +13,7 @@ replace go-module => ../plugin/go-module
 require (
 	backendSenior v0.0.0-00010101000000-000000000000
 	common v0.0.0-00010101000000-000000000000
-	github.com/cenkalti/backoff/v4 v4.1.0 // indirect
 	github.com/cornelk/hashmap v1.0.1
-	github.com/dchest/siphash v1.2.2 // indirect
 	github.com/fsouza/go-dockerclient v1.7.2
 	github.com/gin-gonic/gin v1.6.3
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
@@ -24,12 +22,8 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/joho/godotenv v1.3.0
 	github.com/mergermarket/go-pkcs7 v0.0.0-20170926155232-153b18ea13c9
-	github.com/stretchr/objx v0.3.0 // indirect
-	github.com/stretchr/testify v1.7.0 // indirect
 	go-module v0.0.0-00010101000000-000000000000
 	google.golang.org/grpc v1.35.0
 	google.golang.org/protobuf v1.25.0
-	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 
 )
