@@ -40,43 +40,43 @@ func NewOrganizeRouteHandler(organizeService *service.OrganizeService, authMw *a
 //Mount make OrganizeRouteHandler handler request from specific `RouterGroup`
 func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/:id", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizeByIDHandler))
-	routerGroup.PUT("/:id", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.editOrganizeNameHandler))     // Fix: Org admin-Role
-	routerGroup.DELETE("/:id", handler.authMw.AuthRequired("user", "edit"), g.InjectGin(handler.deleteOrganizeByIDHandler)) // Fix: Org admin-Role
+	routerGroup.GET("/:id", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.getOrganizeByIDHandler))
+	routerGroup.PUT("/:id", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.editOrganizeNameHandler))
+	routerGroup.DELETE("/:id", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.deleteOrganizeByIDHandler))
 
 	routerGroup.POST("/", handler.authMw.AuthRequired("user", "add"), g.InjectGin(handler.addOrganizeHandler))
-	routerGroup.GET("/", g.InjectGin(handler.getOrganizations))
-	routerGroup.GET("/:id/org", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizeByNameHandler))
+	routerGroup.GET("/", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizations))
+	routerGroup.GET("/:id/org", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.getOrganizeByNameHandler))
 
-	routerGroup.GET("/:id/member", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizationMembers))
-	routerGroup.POST("/:id/member", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.addMembersToOrganize)) // Fix: Org admin-Role
-	routerGroup.DELETE("/:id/member", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.deleteMemberFromOrganize))
+	routerGroup.GET("/:id/member", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.getOrganizationMembers))
+	routerGroup.POST("/:id/member", handler.authMw.AuthRequired("user", "add"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.addMembersToOrganize))
+	routerGroup.DELETE("/:id/member", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.deleteMemberFromOrganize))
 
-	routerGroup.GET("/:id/admin", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizationAdmins))        // Fix: Org admin-Role
-	routerGroup.POST("/:id/admin", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.addAdminsToOrganize))         // Fix: Org admin-Role
-	routerGroup.DELETE("/:id/admin", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.deleteAdminsFromOrganize)) // Fix: Org admin-Role
+	routerGroup.GET("/:id/admin", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.getOrganizationAdmins))
+	routerGroup.POST("/:id/admin", handler.authMw.AuthRequired("user", "add"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.addAdminsToOrganize))
+	routerGroup.DELETE("/:id/admin", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.deleteAdminsFromOrganize))
 
-	routerGroup.GET("/:id/room", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrgRooms)) // Fix: Org admin-Role
+	routerGroup.GET("/:id/room", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.getOrgRooms))
 }
 
 func (handler *OrganizeRouteHandler) MountV2(rg *gin.RouterGroup) {
 
-	rg.GET("/id/:id", g.InjectGin(handler.getOrganizeByIDHandler))
-	rg.GET("/id/:id/org", g.InjectGin(handler.getOrganizeByNameHandler))
+	rg.GET("/id/:id", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.getOrganizeByIDHandler))
+	rg.GET("/id/:id/org", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.getOrganizeByNameHandler))
 	rg.POST("/create-org", handler.authMw.AuthRequired("user", "add"), g.InjectGin(handler.addOrganizeHandler))
 	rg.GET("/", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getOrganizations))
-	rg.PUT("/id/:id", g.InjectGin(handler.editOrganizeNameHandler))
-	rg.DELETE("/id/:id", g.InjectGin(handler.deleteOrganizeByIDHandler))
+	rg.PUT("/id/:id", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.editOrganizeNameHandler))
+	rg.DELETE("/id/:id", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.deleteOrganizeByIDHandler))
 
-	rg.GET("/id/:id/member", g.InjectGin(handler.getOrganizationMembers))
-	rg.POST("/id/:id/member", g.InjectGin(handler.addMembersToOrganize))
-	rg.DELETE("/id/:id/member", g.InjectGin(handler.deleteMemberFromOrganize))
+	rg.GET("/id/:id/member", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.getOrganizationMembers))
+	rg.POST("/id/:id/member", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.addMembersToOrganize))
+	rg.DELETE("/id/:id/member", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.deleteMemberFromOrganize))
 
-	rg.GET("/id/:id/admin", g.InjectGin(handler.getOrganizationAdmins))
-	rg.POST("/id/:id/admin", g.InjectGin(handler.addAdminsToOrganize))
-	rg.DELETE("/id/:id/admin", g.InjectGin(handler.deleteAdminsFromOrganize))
+	rg.GET("/id/:id/admin", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.getOrganizationAdmins))
+	rg.POST("/id/:id/admin", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.addAdminsToOrganize))
+	rg.DELETE("/id/:id/admin", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.deleteAdminsFromOrganize))
 
-	rg.GET("/id/:id/room", g.InjectGin(handler.getOrgRooms))
+	rg.GET("/id/:id/room", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.getOrgRooms))
 
 	rg.POST("/find-org", g.InjectGin(handler.findOrgByName))
 }

@@ -29,7 +29,7 @@ type RouterDeps struct {
 // NewRouter create new router (gin server) with various handler
 func (deps *RouterDeps) NewRouter() *gin.Engine {
 	// create middleware first
-	authMiddleware := authMw.NewJWTMiddleware(deps.JWTService)
+	authMiddleware := authMw.NewJWTMiddleware(deps.JWTService, deps.RoomService, deps.OraganizeService)
 	proxyMw := authMw.NewProxyMiddleware(deps.ProxyAuth)
 
 	// create handler (some require middleware)

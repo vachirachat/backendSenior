@@ -191,7 +191,7 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 	}
 
 	tokenDetails, err := handler.jwtService.CreateToken(model.UserDetail{
-		Role:   config.ROLEUSER, // TODO: placeholder, implement role later
+		Role:   user.UserType,
 		UserId: user.UserID.Hex(),
 	})
 
@@ -262,7 +262,8 @@ func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
 func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context, input struct{ Body dto.CreateUser }) error {
 	b := input.Body
 
-	err := handler.userService.Signup(b.ToUser())
+	isDashboard := context.Query("dashboard") != ""
+	err := handler.userService.Signup(b.ToUser(isDashboard))
 	if err != nil {
 		return g.NewError(403, "bad Signup")
 	}

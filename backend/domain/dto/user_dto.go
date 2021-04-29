@@ -32,14 +32,18 @@ type CreateUser struct {
 }
 
 // init All user must be user-role for now
-func (d *CreateUser) ToUser() model.User {
+func (d *CreateUser) ToUser(isDashboard bool) model.User {
+	role := "user"
+	if isDashboard {
+		role = "admin"
+	}
 	return model.User{
 		Name:      d.Name,
 		Email:     d.Email,
 		Password:  utills.HashPassword(d.Password),
 		Room:      []bson.ObjectId{},
 		Organize:  []bson.ObjectId{},
-		UserType:  "user", // Fix set as user for test
+		UserType:  role, // Fix set as user for test
 		FCMTokens: []string{},
 	}
 }

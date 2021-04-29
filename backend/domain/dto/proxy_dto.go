@@ -8,7 +8,7 @@ import (
 
 // UpdateMeDto is request body for update user-info(model.USER)
 type CreateProxyDto struct {
-	IP   string `json:"ip" validate:"required,gt=0,ip"`
+	IP   string `json:"ip" validate:"required,gt=0"`
 	Port int    `json:"port" validate:"required,gt=0"`
 	Name string `json:"name"  validate:"required,gt=0"`
 	Org  string `json:"org" validate:"required,gt=0"`
@@ -38,7 +38,7 @@ func (d *UpdateProxyOrgDto) ToProxyUpdate() model.Organize {
 
 // UpdateMeDto is request body for update user-info(model.USER)
 type UpdateProxyDto struct {
-	IP   string `json:"ip" validate:"required,gt=0,ip"`
+	IP   string `json:"ip" validate:"required,gt=0"`
 	Port int    `json:"port" validate:"required,gt=0"`
 	Name string `json:"name"  validate:"required,gt=0"`
 }
