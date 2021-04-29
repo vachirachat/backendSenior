@@ -65,8 +65,10 @@ func (a *RoomProxyAPI) GetProxyMasterRooms(proxyID string) ([]string, error) {
 	var r struct { // see backend/proxy_route_handler
 		RoomIDs []string `json:"roomIds"`
 	}
-	err := utils.HTTPGet(u.String(), &r)
-	if err != nil {
+
+	if _, err := a.c.R().
+		SetHeader("Authorization", utils.AuthHeader()).
+		SetResult(&r).Get(u.String()); err != nil {
 		return nil, fmt.Errorf("get proxy master rooms: %w", err)
 	}
 

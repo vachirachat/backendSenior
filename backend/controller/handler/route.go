@@ -37,7 +37,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.JWTService, authMiddleware, deps.FileService)
 	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.FileService, deps.RoomService, authMiddleware, deps.Validate)
 	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService, deps.KeyExchangeService, deps.Validate)
-	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService, deps.RoomService, deps.UserService, authMiddleware, deps.Validate)
+	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService, deps.RoomService, deps.UserService, authMiddleware, proxyMw, deps.Validate)
 	organizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.ProxyService, deps.RoomService, deps.Validate)
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware, deps.Validate)
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware, deps.Validate)

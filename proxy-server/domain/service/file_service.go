@@ -80,11 +80,15 @@ func (s *FileService) GetAnyFile(fileType string, fileID string) (file []byte, e
 	var res struct {
 		URL string `json:"url"`
 	}
-	err = utils.HTTPPost(u.String(), "application/json", map[string]interface{}{
-		"type": fileType,
-		"id":   fileID,
-	}, &res)
-	if err != nil {
+
+	if _, err := s.clnt.R().
+		SetBody(map[string]interface{}{
+			"type": fileType,
+			"id":   fileID,
+		}).
+		SetHeader("Authorization", utils.AuthHeader()).
+		SetResult(&res).
+		Post(u.String()); err != nil {
 		log.Println("get file: get url:", err)
 	}
 
@@ -132,7 +136,11 @@ func (s *FileService) ListRoomFiles(roomID string) ([]model.FileMeta, error) {
 		Path:   fmt.Sprintf("/api/v1/file/room/%s/files", roomID),
 	}
 	var fileMetas []model.FileMeta
-	err := utils.HTTPGet(u.String(), &fileMetas)
+
+	_, err := s.clnt.R().
+		SetResult(&fileMetas).
+		SetHeader("Authorization", utils.AuthHeader()).
+		Get(u.String())
 	return fileMetas, utils.WrapError("list room file: request error: %w", err)
 }
 
@@ -143,7 +151,10 @@ func (s *FileService) ListRoomImages(roomID string) ([]model.FileMeta, error) {
 		Path:   fmt.Sprintf("/api/v1/file/room/%s/files", roomID),
 	}
 	var fileMetas []model.FileMeta
-	err := utils.HTTPGet(u.String(), &fileMetas)
+	_, err := s.clnt.R().
+		SetResult(&fileMetas).
+		SetHeader("Authorization", utils.AuthHeader()).
+		Get(u.String())
 	return fileMetas, utils.WrapError("list room file: request error: %w", err)
 
 }
