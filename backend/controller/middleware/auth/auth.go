@@ -4,6 +4,7 @@ import (
 	"backendSenior/domain/service"
 	auth_service "backendSenior/domain/service/auth"
 	"backendSenior/utills"
+	"github.com/ahmetb/go-linq/v3"
 	"log"
 	"net/http"
 
@@ -41,9 +42,11 @@ type Permission struct {
 var RESOURCES = []string{"admin", "user"}
 var SCOPES = []string{"view", "add", "edit", "query"}
 
+var _AccessLevel = []string{"user", "admin", "proxy"}
+
 // AuthRequired is used for route that require login.
 // It will set userId, role in the `gin.Context`
-func (mw *JWTMiddleware) AuthRequired(resouce string, scope string) gin.HandlerFunc {
+func (mw *JWTMiddleware) AuthRequired(requiredRole string, scope string) gin.HandlerFunc {
 	// func (mw *JWTMiddleware) AlternativeAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// HACK[ROAD]: if other middleware already set UserId, Role field, then skip
@@ -65,10 +68,16 @@ func (mw *JWTMiddleware) AuthRequired(resouce string, scope string) gin.HandlerF
 			return
 		}
 
-		log.Println("claim.Role", claim.Role)
-		if !hasPermission(claim.Role, scope) {
+		minLevel := linq.From(_AccessLevel).IndexOf(func(i interface{}) bool {
+			return i == requiredRole
+		})
+		curLevel := linq.From(_AccessLevel).IndexOf(func(i interface{}) bool {
+			return i == claim.Role
+		})
+
+		if curLevel < minLevel {
 			c.Abort()
-			c.JSON(http.StatusUnauthorized, gin.H{"status": "cannot access"})
+			c.JSON(403, gin.H{"status": "not enough access level, expected at least" + requiredRole})
 			return
 		}
 

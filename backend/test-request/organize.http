@@ -1,6 +1,6 @@
 @base = {{host}}/api/v1/org
 @baseUser = {{host}}/api/v1/user/user
-@orgA = 60851a93c0c95465b8a647d1
+@orgA = 606a011a26dcb9dde6612d70
 @orgB = 
 // me = 5fef73f2315e73be2c81c748
 @userA = 
@@ -30,34 +30,39 @@ Authorization: Bearer {{token}}
 
 ### GET Org
 GET {{base}}/{{orgA}}
+Authorization: Bearer {{token}}
 
 ### Edit Org
 PUT {{base}}/{{orgA}}
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-  "name": "ORG 1"
+  "name": "ORG 1 - By ROAD"
 }
 
 
 ### GET Org Member
 GET {{base}}/{{orgA}}/member
+Authorization: Bearer {{token}}
 
 
 ### Invite User to Org.
 POST {{base}}/{{orgA}}/member
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-  "UserIDs": ["6088507101ab28c1300bd752"]
+  "UserIDs": ["606a0140110dbab775e3c895"]
 }
 
 ### Remove User to Org.
 DELETE  {{base}}/{{orgA}}/member
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
-  "UserIDs": ["{{userA}}"]
+  "UserIDs": ["606a0140110dbab775e3c895"]
 }
 
 

@@ -45,7 +45,7 @@ func (handler *OrganizeRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.DELETE("/:id", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsOrgAdmitMiddleWare("id"), g.InjectGin(handler.deleteOrganizeByIDHandler))
 
 	routerGroup.POST("/", handler.authMw.AuthRequired("user", "add"), g.InjectGin(handler.addOrganizeHandler))
-	routerGroup.GET("/", g.InjectGin(handler.getOrganizations))
+	routerGroup.GET("/", handler.authMw.AuthRequired("user", "read"), g.InjectGin(handler.getOrganizations))
 	routerGroup.GET("/:id/org", g.InjectGin(handler.getOrganizeByNameHandler))
 
 	routerGroup.GET("/:id/member", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInOrgMiddleWare("id"), g.InjectGin(handler.getOrganizationMembers))
