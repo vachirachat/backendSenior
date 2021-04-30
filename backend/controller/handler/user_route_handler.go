@@ -1,7 +1,6 @@
 package route
 
 import (
-	"backendSenior/config"
 	authMw "backendSenior/controller/middleware/auth"
 	"backendSenior/domain/dto"
 	"backendSenior/domain/service"
@@ -191,7 +190,7 @@ func (handler *UserRouteHandler) loginHandle(context *gin.Context) {
 	}
 
 	tokenDetails, err := handler.jwtService.CreateToken(model.UserDetail{
-		Role:   config.ROLEUSER, // TODO: placeholder, implement role later
+		Role:   user.UserType,
 		UserId: user.UserID.Hex(),
 	})
 
@@ -239,7 +238,6 @@ func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
 	}
 
 	orgID := context.Param("orgid")
-	log.Println(orgID)
 	err = handler.userService.IsUserInOrg(user, orgID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
@@ -247,7 +245,7 @@ func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
 	}
 
 	tokenDetails, err := handler.jwtService.CreateToken(model.UserDetail{
-		Role:   config.ROLEUSER, // TODO: placeholder, implement role later
+		Role:   user.UserType,
 		UserId: user.UserID.Hex(),
 	})
 
@@ -262,7 +260,8 @@ func (handler *UserRouteHandler) loginOrgHandle(context *gin.Context) {
 func (handler *UserRouteHandler) addUserSignUpHandeler(context *gin.Context, input struct{ Body dto.CreateUser }) error {
 	b := input.Body
 
-	err := handler.userService.Signup(b.ToUser())
+	isDashboard := context.Query("dashboard") != ""
+	err := handler.userService.Signup(b.ToUser(isDashboard))
 	if err != nil {
 		return g.NewError(403, "bad Signup")
 	}

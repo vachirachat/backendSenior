@@ -148,7 +148,7 @@ func (s *FileService) ListRoomImages(roomID string) ([]model.FileMeta, error) {
 	u := url.URL{
 		Scheme: "http",
 		Host:   s.host,
-		Path:   fmt.Sprintf("/api/v1/file/room/%s/files", roomID),
+		Path:   fmt.Sprintf("/api/v1/file/room/%s/images", roomID),
 	}
 	var fileMetas []model.FileMeta
 	_, err := s.clnt.R().

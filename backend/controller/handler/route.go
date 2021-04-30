@@ -29,7 +29,7 @@ type RouterDeps struct {
 // NewRouter create new router (gin server) with various handler
 func (deps *RouterDeps) NewRouter() *gin.Engine {
 	// create middleware first
-	authMiddleware := authMw.NewJWTMiddleware(deps.JWTService)
+	authMiddleware := authMw.NewJWTMiddleware(deps.JWTService, deps.RoomService, deps.OraganizeService)
 	proxyMw := authMw.NewProxyMiddleware(deps.ProxyAuth)
 
 	// create handler (some require middleware)
@@ -42,7 +42,7 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	fcmTokenRouteHandler := NewFCMRouteHandler(deps.NotificationService, authMiddleware, deps.Validate)
 	connStateRouteHandler := NewConnStateRouteHandler(deps.NotificationService, authMiddleware, deps.Validate)
 	keyRouteHandler := NewKeyRoute(deps.ProxyService, deps.KeyExchangeService, deps.ChatService, deps.Validate)
-	fileRouteHandler := NewFileRouteHandler(deps.FileService, deps.RoomService, authMiddleware, deps.Validate)
+	fileRouteHandler := NewFileRouteHandler(deps.FileService, deps.RoomService, authMiddleware, proxyMw, deps.Validate)
 	StickerRouteHandler := NewStickerRouteHandler(deps.StickerService, authMiddleware, deps.Validate)
 	r := gin.New()
 	r.Use(gin.Recovery())

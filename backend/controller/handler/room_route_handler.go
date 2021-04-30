@@ -12,12 +12,13 @@ import (
 	g "common/utils/ginutils"
 	"errors"
 	"fmt"
-	"github.com/ahmetb/go-linq/v3"
-	"github.com/globalsign/mgo"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/ahmetb/go-linq/v3"
+	"github.com/globalsign/mgo"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globalsign/mgo/bson"
@@ -64,28 +65,28 @@ func NewRoomRouteHandler(roomService *service.RoomService,
 //Mount make RoomRouteHandler handler request from specific `RouterGroup`
 func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/id/:id/member", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getRoomMember))
-	routerGroup.POST("/id/:id/member", handler.authMw.AuthRequired("user", "add"), g.InjectGin(handler.addMemberToRoom))
-	routerGroup.DELETE("/id/:id/member", handler.authMw.AuthRequired("user", "edit"), g.InjectGin(handler.deleteMemberFromRoom))
+	routerGroup.GET("/id/:id/member", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.getRoomMember))
+	routerGroup.POST("/id/:id/member", handler.authMw.AuthRequired("user", "add"), handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.addMemberToRoom))
+	routerGroup.DELETE("/id/:id/member", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.deleteMemberFromRoom))
 	// room admin API
-	routerGroup.GET("/id/:id/admin", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getRoomAdmins))
-	routerGroup.POST("/id/:id/admin", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.addAdminsToRoom))         // Fix: Room admin-Role
-	routerGroup.DELETE("/id/:id/admin", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.removeAdminsFromRoom)) // Fix: Room admin-Role
+	routerGroup.GET("/id/:id/admin", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.getRoomAdmins))
+	routerGroup.POST("/id/:id/admin", handler.authMw.AuthRequired("user", "add"), handler.authMw.IsRoomAdmitMiddleWare("id"), g.InjectGin(handler.addAdminsToRoom))
+	routerGroup.DELETE("/id/:id/admin", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsRoomAdmitMiddleWare("id"), g.InjectGin(handler.removeAdminsFromRoom))
 
-	routerGroup.GET("/id/:id/proxy", handler.authMw.AuthRequired("admin", "query"), g.InjectGin(handler.getRoomProxies))          // Fix: Room admin-Role
-	routerGroup.POST("/id/:id/proxy", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.addProxiesToRoom))         // Fix: Room admin-Role
-	routerGroup.DELETE("/id/:id/proxy", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.removeProxiesFromRoom)) // Fix: Room admin-Role
+	routerGroup.GET("/id/:id/proxy", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsRoomAdmitMiddleWare("id"), g.InjectGin(handler.getRoomProxies))
+	routerGroup.POST("/id/:id/proxy", handler.authMw.AuthRequired("user", "add"), handler.authMw.IsRoomAdmitMiddleWare("id"), g.InjectGin(handler.addProxiesToRoom))
+	routerGroup.DELETE("/id/:id/proxy", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsRoomAdmitMiddleWare("id"), g.InjectGin(handler.removeProxiesFromRoom))
 
-	routerGroup.POST("/id/:id/image", g.InjectGin(handler.uploadRoomImage))
-	routerGroup.GET("/id/:id/image", g.InjectGin(handler.getRoomImage))
+	routerGroup.POST("/id/:id/image", handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.uploadRoomImage))
+	routerGroup.GET("/id/:id/image", handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.getRoomImage))
 
 	routerGroup.POST("/create-group", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.createGroupHandler))
 	routerGroup.POST("/create-private-chat", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.createPrivateChatHandler))
-	routerGroup.POST("/id/:id/name", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.editRoomNameHandler))
-	routerGroup.DELETE("/id/:id", handler.authMw.AuthRequired("admin", "edit"), g.InjectGin(handler.deleteRoomByIDHandler)) // Fix: Room admin-Role
+	routerGroup.POST("/id/:id/name", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.editRoomNameHandler))
+	routerGroup.DELETE("/id/:id", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsRoomAdmitMiddleWare("id"), g.InjectGin(handler.deleteRoomByIDHandler))
 
-	routerGroup.GET("/id/:id", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.getRoomByIDHandler))
-	routerGroup.GET("/", handler.authMw.AuthRequired("admin", "query"), g.InjectGin(handler.roomListHandler))
+	routerGroup.GET("/id/:id", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.getRoomByIDHandler))
+	routerGroup.GET("/", handler.authMw.AuthRequired("user", "view"), g.InjectGin(handler.roomListHandler))
 }
 
 func (handler *RoomRouteHandler) roomListHandler(context *gin.Context, req struct{}) error {

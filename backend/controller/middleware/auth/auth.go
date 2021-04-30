@@ -1,11 +1,14 @@
 package auth
 
 import (
+	"backendSenior/domain/service"
 	auth_service "backendSenior/domain/service/auth"
-	"errors"
+	"backendSenior/utills"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globalsign/mgo/bson"
 )
 
 const (
@@ -16,13 +19,17 @@ const (
 
 // JWTMiddleware provide function for creating various middleware for verifying JWT Token
 type JWTMiddleware struct {
-	jwtService *auth_service.JWTService
+	jwtService  *auth_service.JWTService
+	roomService *service.RoomService
+	orgService  *service.OrganizeService
 }
 
 // NewJWTMiddleware create JWTMiddleware
-func NewJWTMiddleware(authSvc *auth_service.JWTService) *JWTMiddleware {
+func NewJWTMiddleware(authSvc *auth_service.JWTService, roomSvc *service.RoomService, orgSvc *service.OrganizeService) *JWTMiddleware {
 	return &JWTMiddleware{
-		jwtService: authSvc,
+		jwtService:  authSvc,
+		roomService: roomSvc,
+		orgService:  orgSvc,
 	}
 }
 
@@ -45,14 +52,6 @@ func (mw *JWTMiddleware) AuthRequired(resouce string, scope string) gin.HandlerF
 		}
 
 		token := extractToken(c)
-		// Fix Debug : Token
-		// token := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3NfdXVpZCI6IjcxNWIwOGNkLTY3M2MtNDU2Ni04ZGQyLWRmMDAwODlmOGRiMSIsImF1dGhvcml6ZWQiOnRydWUsImV4cCI6MjIxODgzODM3Nywicm9sZSI6InVzZXIiLCJ1c2VyX2lkIjoiNjA3NWU5YWE0NzBhYWNjNGFkNDA3ZDkwIn0.3htMS-9PUO1ZyJaNc8KwZbGhv54prIYCOP5_vMFSo80"
-		err := canAccessResource(c)
-		if err != nil {
-			c.Abort()
-			c.JSON(http.StatusUnauthorized, gin.H{"status": "access: " + err.Error()})
-			return
-		}
 		if token == "" {
 			c.Abort()
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "no token"})
@@ -66,9 +65,124 @@ func (mw *JWTMiddleware) AuthRequired(resouce string, scope string) gin.HandlerF
 			return
 		}
 
+		log.Println("claim.Role", claim.Role)
+		if !hasPermission(claim.Role, scope) {
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "cannot access"})
+			return
+		}
+
 		c.Set(UserIdField, claim.UserId)
 		c.Set(UserRoleField, claim.Role)
 		c.Set(TokenField, token)
+		c.Next()
+
+	}
+}
+
+func (mw *JWTMiddleware) IsRoomAdmitMiddleWare(paramName string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		role := c.GetString(UserRoleField)
+		if role == "proxy" {
+			c.Next()
+		}
+
+		roomID := c.Param(paramName)
+		if !bson.IsObjectIdHex(roomID) {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "bad param name"})
+			c.Abort()
+		}
+
+		userID := c.GetString(UserIdField)
+		room, _ := mw.roomService.GetRoomByID(roomID)
+
+		ok, _ := utills.In_array(bson.ObjectIdHex(userID), room.ListAdmin)
+		if !ok {
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "not in Room's Admin"})
+			c.Abort()
+		}
+		c.Next()
+	}
+}
+
+func (mw *JWTMiddleware) IsInRoomMiddleWare(paramName string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role := c.GetString(UserRoleField)
+		if role == "proxy" {
+			c.Next()
+		}
+
+		roomID := c.Param(paramName)
+		if !bson.IsObjectIdHex(roomID) {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "bad param name"})
+			c.Abort()
+		}
+
+		userID := c.GetString(UserIdField)
+		room, _ := mw.roomService.GetRoomByID(roomID)
+
+		ok, _ := utills.In_array(bson.ObjectIdHex(userID), room.ListUser)
+		if !ok {
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "not in Room's User"})
+			c.Abort()
+		}
+		c.Next()
+	}
+}
+
+func (mw *JWTMiddleware) IsOrgAdmitMiddleWare(paramName string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role := c.GetString(UserRoleField)
+		if role == "proxy" {
+			c.Next()
+		}
+
+		orgID := c.Param(paramName)
+		if !bson.IsObjectIdHex(orgID) {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "bad param name"})
+			c.Abort()
+		}
+
+		userID := c.GetString(UserIdField)
+		org, _ := mw.orgService.GetOrganizeById(orgID)
+
+		ok, _ := utills.In_array(bson.ObjectIdHex(userID), org.Admins)
+		if !ok {
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "not in Org's Admin"})
+			c.Abort()
+		}
+		c.Next()
+	}
+}
+
+func (mw *JWTMiddleware) IsInOrgMiddleWare(paramName string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role := c.GetString(UserRoleField)
+		if role == "proxy" {
+			c.Next()
+		}
+
+		orgID := c.Param(paramName)
+		if !bson.IsObjectIdHex(orgID) {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "bad param name"})
+			c.Abort()
+		}
+
+		userID := c.GetString(UserIdField)
+		org, _ := mw.orgService.GetOrganizeById(orgID)
+
+		ok, _ := utills.In_array(bson.ObjectIdHex(userID), org.Members)
+		log.Println("middleware Org>>>")
+		log.Println(userID, ok)
+		if !ok {
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "not in Org's User"})
+			c.Abort()
+		}
 		c.Next()
 
 	}
@@ -91,7 +205,7 @@ func isAdminResource(resource string) bool {
 	return false
 }
 
-func hasPermission(c *gin.Context, resource string, scope string) bool {
+func hasPermission(resource string, scope string) bool {
 	if isAdmin(resource) ||
 		(scope == "view" && !isAdminResource(resource)) ||
 		(scope == "add" && !isAdminResource(resource)) ||
@@ -99,18 +213,4 @@ func hasPermission(c *gin.Context, resource string, scope string) bool {
 		return true
 	}
 	return false
-}
-
-func canAccessResource(c *gin.Context) error {
-	resource := c.Param("resource")
-	if resource == "admin" || resource == "user" {
-		return nil
-	} else {
-		if !hasPermission(c, resource, "view") {
-			return errors.New("Unauthorized: no permission")
-		} else {
-			return nil
-		}
-	}
-	return nil
 }
