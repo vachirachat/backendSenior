@@ -39,15 +39,15 @@ func NewFileRouteHandler(fs *service.FileService, room *service.RoomService, mw 
 func (h *FileRouteHandler) Mount(rg *gin.RouterGroup) {
 
 	rg.POST("/before-upload", g.InjectGin(h.beforeUploadFile)) // todo how make it like POST /room/:roomId
-	rg.POST("/room/:roomId/after-upload/:fileId", h.proxyMw.AuthRequired(), h.mw.AuthRequired("user", "add"), h.mw.IsInRoomMiddleWare("roomId"), g.InjectGin(h.afterUploadFile))
-	rg.GET("/room/:roomId/files", h.proxyMw.AuthRequired(), h.mw.AuthRequired("user", "view"), h.mw.IsInRoomMiddleWare("roomId"), g.InjectGin(h.getRoomFiles))
+	rg.POST("/room/:roomId/after-upload/:fileId", h.proxyMw.AlternativeAuth(), h.mw.AuthRequired("user", "add"), h.mw.IsInRoomMiddleWare("roomId"), g.InjectGin(h.afterUploadFile))
+	rg.GET("/room/:roomId/files", h.proxyMw.AlternativeAuth(), h.mw.AuthRequired("user", "view"), h.mw.IsInRoomMiddleWare("roomId"), g.InjectGin(h.getRoomFiles))
 
 	rg.GET("/by-id/:fileId", g.InjectGin(h.getAnyFileDetail)) // This shouldn't be used as file messages already contain detail of each file
 	rg.POST("/file-url", g.InjectGin(h.getAnyFileURL))
 
 	rg.POST("/before-upload-image", g.InjectGin(h.beforeUploadImage))
-	rg.POST("/room/:roomId/after-upload-image/:fileId", h.proxyMw.AuthRequired(), h.mw.AuthRequired("user", "view"), h.mw.IsInRoomMiddleWare("roomId"), g.InjectGin(h.afterUploadImage))
-	rg.GET("/room/:roomId/images", h.proxyMw.AuthRequired(), h.mw.AuthRequired("user", "view"), h.mw.IsInRoomMiddleWare("roomId"), g.InjectGin(h.getRoomImages))
+	rg.POST("/room/:roomId/after-upload-image/:fileId", h.proxyMw.AlternativeAuth(), h.mw.AuthRequired("user", "view"), h.mw.IsInRoomMiddleWare("roomId"), g.InjectGin(h.afterUploadImage))
+	rg.GET("/room/:roomId/images", h.proxyMw.AlternativeAuth(), h.mw.AuthRequired("user", "view"), h.mw.IsInRoomMiddleWare("roomId"), g.InjectGin(h.getRoomImages))
 
 	// POST can be used for actuin
 	rg.POST("/delete-file", h.mw.AuthRequired("user", "edit"), g.InjectGin(h.deleteFile))

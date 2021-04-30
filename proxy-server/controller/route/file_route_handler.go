@@ -45,7 +45,7 @@ func (h *FileRouteHandler) Mount(rg *gin.RouterGroup) {
 
 	rg.GET("/room/:id/files", h.authMw.AuthRequired(), g.InjectGin(h.listFiles))
 	rg.GET("/room/:id/images", h.authMw.AuthRequired(), g.InjectGin(h.listImages))
-	//rg.GET("/room/:roomID/images", h.authMw.AuthRequired(), h.getImages)
+	//rg.GET("/room/:roomID/images", h.authMw.AlternativeAuth(), h.getImages)
 }
 
 func (h *FileRouteHandler) getFile(c *gin.Context) {

@@ -45,7 +45,7 @@ func (handler *ProxyRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 	routerGroup.GET("/", handler.authMw.AuthRequired("admin", "query"), g.InjectGin(handler.getAllProxies))
 	routerGroup.POST("/", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.createProxy))
 	routerGroup.POST("/:id/", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.updateProxy))
-	routerGroup.GET("/:id/", handler.proxyMw.AuthRequired(), handler.authMw.AuthRequired("admin", "view"), g.InjectGin(handler.getProxyByID))
+	routerGroup.GET("/:id/", handler.proxyMw.AlternativeAuth(), handler.authMw.AuthRequired("admin", "view"), g.InjectGin(handler.getProxyByID))
 	routerGroup.POST("/:id/reset", handler.authMw.AuthRequired("admin", "add"), g.InjectGin(handler.resetSecret))
 
 	// Proxy-Org just debug

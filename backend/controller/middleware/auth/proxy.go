@@ -19,9 +19,9 @@ func NewProxyMiddleware(authSvc *auth_service.ProxyAuth) *ProxyMiddleware {
 	}
 }
 
-// AuthRequired is used for route that require login.
-// It will set userId, role in the `gin.Context`
-func (mw *ProxyMiddleware) AuthRequired() gin.HandlerFunc {
+// AlternativeAuth is used so that proxy can access API as well as user, it DOES NOT enforce auth
+// i.e. no 401 error when no token
+func (mw *ProxyMiddleware) AlternativeAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clientID, clientSecret := extractBasicHeader(c)
 		if clientID == "" {
@@ -31,20 +31,12 @@ func (mw *ProxyMiddleware) AuthRequired() gin.HandlerFunc {
 		}
 
 		ok, err := mw.authService.VerifyCredentials(clientID, clientSecret)
-		if !ok {
-			c.Abort()
-			c.JSON(http.StatusUnauthorized, gin.H{"status": "invalid token"})
-			return
-		}
-		if err != nil {
-			c.Abort()
-			c.JSON(http.StatusUnauthorized, gin.H{"status": "verification error: " + err.Error()})
-			return
-		}
 
-		c.Set(UserIdField, clientID)
-		c.Set(UserRoleField, "admin") // HACK[ROAD]: proxy is admin, so it can access /proxy/ API
-		c.Next()
+		if ok && err == nil {
+			c.Set(UserIdField, clientID)
+			c.Set(UserRoleField, "proxy")
+			c.Next()
+		}
 
 	}
 }

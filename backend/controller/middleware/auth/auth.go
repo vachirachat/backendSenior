@@ -44,7 +44,7 @@ var SCOPES = []string{"view", "add", "edit", "query"}
 // AuthRequired is used for route that require login.
 // It will set userId, role in the `gin.Context`
 func (mw *JWTMiddleware) AuthRequired(resouce string, scope string) gin.HandlerFunc {
-	// func (mw *JWTMiddleware) AuthRequired() gin.HandlerFunc {
+	// func (mw *JWTMiddleware) AlternativeAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// HACK[ROAD]: if other middleware already set UserId, Role field, then skip
 		if c.GetString(UserIdField) != "" {

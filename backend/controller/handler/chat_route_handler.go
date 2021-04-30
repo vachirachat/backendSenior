@@ -71,9 +71,14 @@ type client struct {
 //Mount make the handler handle request from specfied routerGroup
 func (handler *ChatRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/ws", handler.proxyMw.AuthRequired(), func(context *gin.Context) {
+	routerGroup.GET("/ws", handler.proxyMw.AlternativeAuth(), func(context *gin.Context) {
 		w := context.Writer
 		r := context.Request
+
+		if context.GetString(auth.UserIdField) == "" {
+			context.JSON(401, gin.H{"status": "auth failed"})
+			return
+		}
 
 		var upgrader = websocket.Upgrader{
 			ReadBufferSize:  1024,
