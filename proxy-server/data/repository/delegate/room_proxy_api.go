@@ -2,11 +2,8 @@ package delegate
 
 import (
 	"backendSenior/domain/model"
-	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 	"proxySenior/domain/interface/repository"
 	"proxySenior/utils"
@@ -33,22 +30,12 @@ func (a *RoomProxyAPI) GetRoomMasterProxy(roomID string) (model.Proxy, error) {
 		Host:   a.origin,
 		Path:   "/api/v1/key/master-proxy/" + roomID,
 	}
-	res, err := http.Get(u.String())
-	if err != nil {
-		return model.Proxy{}, fmt.Errorf("error making request: %v", err)
-	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		return model.Proxy{}, fmt.Errorf("server return with non OK status: %d\nbody:%s", res.StatusCode, body)
-	}
 
 	var masterProxy model.Proxy
-	err = json.Unmarshal(body, &masterProxy)
-	if err != nil {
-		return model.Proxy{}, fmt.Errorf("error decoding response: %v", err)
+	if res, err := a.c.R().SetHeader("Authorization", utils.AuthHeader()).SetResult(&masterProxy).Get(u.String()); err != nil {
+		return model.Proxy{}, fmt.Errorf("get room master proxy: request error: %s", err)
+	} else if res.IsError() {
+		return model.Proxy{}, fmt.Errorf("get room master proxy: server returned status code %d", res.StatusCode())
 	}
 
 	return masterProxy, nil

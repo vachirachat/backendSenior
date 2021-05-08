@@ -29,6 +29,7 @@ type RoomRouteHandler struct {
 	userService  *service.UserService
 	proxyService *service.ProxyService
 	authMw       *auth.JWTMiddleware
+	proxyMw      *auth.ProxyMiddleware
 	chatService  *service.ChatService
 	orgService   *service.OrganizeService
 	logger       *log.Logger
@@ -40,6 +41,7 @@ type RoomRouteHandler struct {
 // NewRoomHandler create new handler for room
 func NewRoomRouteHandler(roomService *service.RoomService,
 	authMw *auth.JWTMiddleware,
+	proxyMw *auth.ProxyMiddleware,
 	userService *service.UserService,
 	proxyService *service.ProxyService,
 	chatService *service.ChatService,
@@ -52,6 +54,7 @@ func NewRoomRouteHandler(roomService *service.RoomService,
 		roomService:  roomService,
 		userService:  userService,
 		authMw:       authMw,
+		proxyMw:      proxyMw,
 		proxyService: proxyService,
 		chatService:  chatService,
 		orgService:   orgService,
@@ -65,7 +68,7 @@ func NewRoomRouteHandler(roomService *service.RoomService,
 //Mount make RoomRouteHandler handler request from specific `RouterGroup`
 func (handler *RoomRouteHandler) Mount(routerGroup *gin.RouterGroup) {
 
-	routerGroup.GET("/id/:id/member", handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.getRoomMember))
+	routerGroup.GET("/id/:id/member", handler.proxyMw.AlternativeAuth(), handler.authMw.AuthRequired("user", "view"), handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.getRoomMember))
 	routerGroup.POST("/id/:id/member", handler.authMw.AuthRequired("user", "add"), handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.addMemberToRoom))
 	routerGroup.DELETE("/id/:id/member", handler.authMw.AuthRequired("user", "edit"), handler.authMw.IsInRoomMiddleWare("id"), g.InjectGin(handler.deleteMemberFromRoom))
 	// room admin API

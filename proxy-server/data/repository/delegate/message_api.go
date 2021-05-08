@@ -3,21 +3,22 @@ package delegate
 import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"github.com/go-resty/resty/v2"
 	"net/url"
+	"proxySenior/utils"
 )
 
 // DelegateMessageRepository is repository for getting message from controller
 type DelegateMessageRepository struct {
 	controllerOrigin string // origin is hostname and port
+	clnt             *resty.Client
 }
 
 func NewDelegateMessageRepository(origin string) *DelegateMessageRepository {
 	return &DelegateMessageRepository{
 		controllerOrigin: origin,
+		clnt:             resty.New(),
 	}
 }
 
@@ -29,25 +30,13 @@ func (repo *DelegateMessageRepository) GetAllMessages(timeRange *model.TimeRange
 		Host:   repo.controllerOrigin,
 		Path:   "/api/v1/message",
 	}
-	res, err := http.Get(url.String())
-	if err != nil {
-		return nil, err
-	} else if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("server response with status " + res.Status)
-	}
-
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	var resOk struct {
 		Messages []model.Message `json:"messages"`
 	}
-	err = json.Unmarshal(body, &resOk)
-	if err != nil {
-		return nil, err
+	if res, err := repo.clnt.R().SetHeader("Authorization", utils.AuthHeader()).SetResult(&resOk).Get(url.String()); err != nil {
+		return nil, fmt.Errorf("error in request: %s", err)
+	} else if res.IsError() {
+		return nil, fmt.Errorf("error in request: server returned status code %d", res.StatusCode())
 	}
 
 	return resOk.Messages, nil
@@ -60,25 +49,13 @@ func (repo *DelegateMessageRepository) GetMessagesByRoom(roomID string, timeRang
 		Path:     "/api/v1/message",
 		RawQuery: "roomId=" + roomID,
 	}
-	res, err := http.Get(url.String())
-	if err != nil {
-		return nil, err
-	} else if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("server response with status " + res.Status)
-	}
-
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	var resOk struct {
 		Messages []model.Message `json:"messages"`
 	}
-	err = json.Unmarshal(body, &resOk)
-	if err != nil {
-		return nil, err
+	if res, err := repo.clnt.R().SetHeader("Authorization", utils.AuthHeader()).SetResult(&resOk).Get(url.String()); err != nil {
+		return nil, fmt.Errorf("error in request: %s", err)
+	} else if res.IsError() {
+		return nil, fmt.Errorf("error in request: server returned status code %d", res.StatusCode())
 	}
 
 	return resOk.Messages, nil

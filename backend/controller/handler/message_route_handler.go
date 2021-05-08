@@ -25,6 +25,7 @@ type MessageRouteHandler struct {
 	fileService    *service.FileService
 	roomService    *service.RoomService
 	auth           *auth.JWTMiddleware
+	proxyMw        *auth.ProxyMiddleware
 	validate       *utills.StructValidator
 }
 
@@ -34,6 +35,7 @@ func NewMessageRouteHandler(
 	fileService *service.FileService,
 	roomService *service.RoomService,
 	auth *auth.JWTMiddleware,
+	proxyMw *auth.ProxyMiddleware,
 	validate *utills.StructValidator,
 ) *MessageRouteHandler {
 	return &MessageRouteHandler{
@@ -41,45 +43,47 @@ func NewMessageRouteHandler(
 		fileService:    fileService,
 		roomService:    roomService,
 		auth:           auth,
+		proxyMw:        proxyMw,
 		validate:       validate,
 	}
 }
 
 //Mount make messageRouteHandler handler request from specific `RouterGroup`
 func (handler *MessageRouteHandler) Mount(routerGroup *gin.RouterGroup) {
-	// routerGroup.GET("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.messageListHandler)
-	routerGroup.POST("/find" /*handler.authService.AuthMiddleware("object", "view")*/, g.InjectGin(handler.findMessage)) // GET upto last 1000 message
+	routerGroup.GET("/", handler.proxyMw.AlternativeAuth(), handler.auth.AuthRequired("user", "view"), handler.auth.IsInRoomMiddleWareQuery("roomId"), g.InjectGin(handler.messageListHandler))
+	routerGroup.POST("/find", handler.proxyMw.AlternativeAuth(), handler.auth.AuthRequired("user", "edit"), g.InjectGin(handler.findMessage)) // GET upto last 1000 message
 
 	routerGroup.POST("/" /*handler.authService.AuthMiddleware("object", "view")*/, handler.addMessageHandeler)
 	// route.PUT("/message/:message_id" /*handler.authService.AuthMiddleware("object", "view")*/ ,handler.editMessageHandler)
 	routerGroup.DELETE("/:message_id", handler.auth.AuthRequired("user", "edit"), g.InjectGin(handler.deleteMessageByIDHandler))
 }
 
-// MessageListHandler return all messages
-// func (handler *MessageRouteHandler) messageListHandler(context *gin.Context,  ) {
-// 	// return value
-// 	var messagesInfo model.MessagesResponse
+// MessageListHandler return all messages or message for specified room
+func (handler *MessageRouteHandler) messageListHandler(context *gin.Context, req struct{}) error {
+	// return value
+	var messagesInfo model.MessagesResponse
 
-// 	roomID := context.Query("roomId")
-// 	if roomID != "" && !bson.IsObjectIdHex(roomID) {
-// 		return g.NewError(400, "bad roomID param")
-// 	}
+	roomID := context.Query("roomId")
+	if roomID != "" && !bson.IsObjectIdHex(roomID) {
+		return g.NewError(400, "bad roomID param")
+	}
 
-// 	var messages []model.Message
-// 	var err error
+	var messages []model.Message
+	var err error
 
-// 	if roomID != "" {
-// 		messages, err = handler.messageService.GetMessageByRoom(roomID)
-// 	} else {
-// 		messages, err = handler.messageService.GetAllMessages()
-// 	}
+	if roomID != "" {
+		messages, err = handler.messageService.GetMessageByRoom(roomID)
+	} else {
+		messages, err = handler.messageService.GetAllMessages()
+	}
 
-// 	if err != nil {
-// 		return err
-// 	}
-// 	messagesInfo.Messages = messages
-// 	context.JSON(http.StatusOK, messagesInfo)
-// }
+	if err != nil {
+		return err
+	}
+	messagesInfo.Messages = messages
+	context.JSON(http.StatusOK, messagesInfo)
+	return nil
+}
 
 // GetMessageByIDHandler return message by Id
 func (handler *MessageRouteHandler) getMessageByIDHandler(context *gin.Context) {
@@ -102,14 +106,11 @@ func (handler *MessageRouteHandler) addMessageHandeler(context *gin.Context) {
 	err := context.ShouldBindJSON(&message)
 	if err != nil {
 		log.Println("error AddMessageHandeler", err.Error())
-		context.JSON(http.StatusBadRequest, gin.H{"status": err.Error()})
 		return
 	}
 	_, err = handler.messageService.AddMessage(message)
-
 	if err != nil {
 		log.Println("error AddMessageHandeler", err.Error())
-		context.JSON(http.StatusInternalServerError, gin.H{"status": err.Error()})
 		return
 	}
 	context.JSON(http.StatusCreated, gin.H{"status": "success"})

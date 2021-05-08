@@ -4,12 +4,11 @@ import (
 	"backendSenior/domain/interface/repository"
 	"backendSenior/domain/model"
 	"backendSenior/utills"
-	"encoding/json"
 	"fmt"
 	"github.com/globalsign/mgo/bson"
-	"io/ioutil"
-	"net/http"
+	"github.com/go-resty/resty/v2"
 	"net/url"
+	"proxySenior/utils"
 	"sync"
 	"time"
 )
@@ -22,6 +21,7 @@ type DelegateRoomUserRepository struct {
 	controllerOrigin     string        // origin is hostname and port
 	ttl                  time.Duration // cache duration
 	lock                 sync.RWMutex
+	clnt                 *resty.Client
 }
 
 func (repo *DelegateRoomUserRepository) AddAdminsToRoom(roomID bson.ObjectId, userIDs []bson.ObjectId) (err error) {
@@ -43,6 +43,7 @@ func NewDelegateRoomUserRepository(controllerOrigin string) *DelegateRoomUserRep
 		controllerOrigin:     controllerOrigin,
 		ttl:                  60 * time.Second,
 		lock:                 sync.RWMutex{},
+		clnt:                 resty.New(),
 	}
 	return repo
 }
@@ -61,24 +62,11 @@ func (repo *DelegateRoomUserRepository) GetUserRooms(userID string) (roomIDs []s
 			Path:   "/api/v1/user/byid/" + userID,
 		}
 
-		http.Get(url.String())
-		res, err := http.Get(url.String())
-		if err != nil {
-			return nil, err
-		} else if res.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("server response with status " + res.Status)
-		}
-
-		defer res.Body.Close()
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return nil, err
-		}
-
 		var resOk model.User
-		err = json.Unmarshal(body, &resOk)
-		if err != nil {
-			return nil, err
+		if res, err := repo.clnt.R().SetHeader("Authorization", utils.AuthHeader()).SetResult(&resOk).Get(url.String()); err != nil {
+			return nil, fmt.Errorf("get user rooms: request error: %s", err)
+		} else if res.IsError() {
+			return nil, fmt.Errorf("get user rooms: server replied with status: %d", res.StatusCode())
 		}
 
 		repo.lock.Lock()
@@ -105,25 +93,13 @@ func (repo *DelegateRoomUserRepository) GetRoomUsers(roomID string) (userIDs []s
 			Host:   repo.controllerOrigin,
 			Path:   "/api/v1/room/id/" + roomID + "/member",
 		}
-		res, err := http.Get(url.String())
-		if err != nil {
-			return nil, err
-		} else if res.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("server response with status " + res.Status)
-		}
-
-		defer res.Body.Close()
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			return nil, err
-		}
-
 		var resOk struct {
 			Members []string `json:"members"`
 		}
-		err = json.Unmarshal(body, &resOk)
-		if err != nil {
-			return nil, err
+		if res, err := repo.clnt.R().SetHeader("Authorization", utils.AuthHeader()).SetResult(&resOk).Get(url.String()); err != nil {
+			return nil, fmt.Errorf("get room users: request error: %s", err)
+		} else if res.IsError() {
+			return nil, fmt.Errorf("get room users: server replied with status: %d", res.StatusCode())
 		}
 
 		repo.lock.Lock()

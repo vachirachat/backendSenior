@@ -33,9 +33,9 @@ func (deps *RouterDeps) NewRouter() *gin.Engine {
 	proxyMw := authMw.NewProxyMiddleware(deps.ProxyAuth)
 
 	// create handler (some require middleware)
-	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, authMiddleware, deps.UserService, deps.ProxyService, deps.ChatService, deps.OraganizeService, deps.KeyExchangeService, deps.FileService, deps.Validate)
+	roomRouteHandler := NewRoomRouteHandler(deps.RoomService, authMiddleware, proxyMw, deps.UserService, deps.ProxyService, deps.ChatService, deps.OraganizeService, deps.KeyExchangeService, deps.FileService, deps.Validate)
 	userRouteHandler := NewUserRouteHandler(deps.UserService, deps.JWTService, authMiddleware, deps.FileService)
-	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.FileService, deps.RoomService, authMiddleware, deps.Validate)
+	messageRouteHandler := NewMessageRouteHandler(deps.MessageService, deps.FileService, deps.RoomService, authMiddleware, proxyMw, deps.Validate)
 	chatRouteHandler := NewChatRouteHandler(deps.ChatService, proxyMw, deps.RoomService, deps.KeyExchangeService, deps.Validate)
 	proxyRouteHandler := NewProxyRouteHandler(deps.ProxyService, deps.RoomService, deps.UserService, authMiddleware, proxyMw, deps.Validate)
 	organizeRouteHandler := NewOrganizeRouteHandler(deps.OraganizeService, authMiddleware, deps.UserService, deps.ProxyService, deps.RoomService, deps.Validate)

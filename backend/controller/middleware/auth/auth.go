@@ -142,6 +142,33 @@ func (mw *JWTMiddleware) IsInRoomMiddleWare(paramName string) gin.HandlerFunc {
 	}
 }
 
+// IsInRoomMiddleWareQuery is same as IsInRoomMiddleware, but use query string to check
+func (mw *JWTMiddleware) IsInRoomMiddleWareQuery(queryName string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role := c.GetString(UserRoleField)
+		if role == "proxy" {
+			c.Next()
+		}
+
+		roomID := c.Query(queryName)
+		if !bson.IsObjectIdHex(roomID) {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "bad query string"})
+			c.Abort()
+		}
+
+		userID := c.GetString(UserIdField)
+		room, _ := mw.roomService.GetRoomByID(roomID)
+
+		ok, _ := utills.In_array(bson.ObjectIdHex(userID), room.ListUser)
+		if !ok {
+			c.Abort()
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "not in Room's User"})
+			c.Abort()
+		}
+		c.Next()
+	}
+}
+
 func (mw *JWTMiddleware) IsOrgAdmitMiddleWare(paramName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role := c.GetString(UserRoleField)
