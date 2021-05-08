@@ -95,12 +95,14 @@ func (mw *JWTMiddleware) IsRoomAdmitMiddleWare(paramName string) gin.HandlerFunc
 		role := c.GetString(UserRoleField)
 		if role == "proxy" {
 			c.Next()
+			return
 		}
 
 		roomID := c.Param(paramName)
 		if !bson.IsObjectIdHex(roomID) {
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "bad param name"})
 			c.Abort()
+			return
 		}
 
 		userID := c.GetString(UserIdField)
@@ -110,7 +112,7 @@ func (mw *JWTMiddleware) IsRoomAdmitMiddleWare(paramName string) gin.HandlerFunc
 		if !ok {
 			c.Abort()
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "not in Room's Admin"})
-			c.Abort()
+			return
 		}
 		c.Next()
 	}
@@ -121,12 +123,14 @@ func (mw *JWTMiddleware) IsInRoomMiddleWare(paramName string) gin.HandlerFunc {
 		role := c.GetString(UserRoleField)
 		if role == "proxy" {
 			c.Next()
+			return
 		}
 
 		roomID := c.Param(paramName)
 		if !bson.IsObjectIdHex(roomID) {
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "bad param name"})
 			c.Abort()
+			return
 		}
 
 		userID := c.GetString(UserIdField)
@@ -137,6 +141,7 @@ func (mw *JWTMiddleware) IsInRoomMiddleWare(paramName string) gin.HandlerFunc {
 			c.Abort()
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "not in Room's User"})
 			c.Abort()
+			return
 		}
 		c.Next()
 	}
@@ -148,12 +153,14 @@ func (mw *JWTMiddleware) IsInRoomMiddleWareQuery(queryName string) gin.HandlerFu
 		role := c.GetString(UserRoleField)
 		if role == "proxy" {
 			c.Next()
+			return
 		}
 
 		roomID := c.Query(queryName)
 		if !bson.IsObjectIdHex(roomID) {
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "bad query string"})
 			c.Abort()
+			return
 		}
 
 		userID := c.GetString(UserIdField)
@@ -163,7 +170,7 @@ func (mw *JWTMiddleware) IsInRoomMiddleWareQuery(queryName string) gin.HandlerFu
 		if !ok {
 			c.Abort()
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "not in Room's User"})
-			c.Abort()
+			return
 		}
 		c.Next()
 	}
@@ -174,12 +181,14 @@ func (mw *JWTMiddleware) IsOrgAdmitMiddleWare(paramName string) gin.HandlerFunc 
 		role := c.GetString(UserRoleField)
 		if role == "proxy" {
 			c.Next()
+			return
 		}
 
 		orgID := c.Param(paramName)
 		if !bson.IsObjectIdHex(orgID) {
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "bad param name"})
 			c.Abort()
+			return
 		}
 
 		userID := c.GetString(UserIdField)
@@ -189,7 +198,7 @@ func (mw *JWTMiddleware) IsOrgAdmitMiddleWare(paramName string) gin.HandlerFunc 
 		if !ok {
 			c.Abort()
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "not in Org's Admin"})
-			c.Abort()
+			return
 		}
 		c.Next()
 	}
@@ -200,12 +209,14 @@ func (mw *JWTMiddleware) IsInOrgMiddleWare(paramName string) gin.HandlerFunc {
 		role := c.GetString(UserRoleField)
 		if role == "proxy" {
 			c.Next()
+			return
 		}
 
 		orgID := c.Param(paramName)
 		if !bson.IsObjectIdHex(orgID) {
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "bad param name"})
 			c.Abort()
+			return
 		}
 
 		userID := c.GetString(UserIdField)
@@ -217,7 +228,7 @@ func (mw *JWTMiddleware) IsInOrgMiddleWare(paramName string) gin.HandlerFunc {
 		if !ok {
 			c.Abort()
 			c.JSON(http.StatusUnauthorized, gin.H{"status": "not in Org's User"})
-			c.Abort()
+			return
 		}
 		c.Next()
 
