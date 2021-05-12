@@ -130,7 +130,10 @@ func (s *KeyService) InitKeyPair() {
 // GetProxyPublicKey return cached public key for proxy
 func (s *KeyService) GetProxyPublicKey(proxyID string) (*rsa.PublicKey, bool) {
 	key, ok := s.pubKeyCache.Get(proxyID)
-	return key.(*rsa.PublicKey), ok
+	if !ok {
+		return nil, false
+	}
+	return key.(*rsa.PublicKey), true
 }
 
 // SetProxyPublicKey set public key to cache
