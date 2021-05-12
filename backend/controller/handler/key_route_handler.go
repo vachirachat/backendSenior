@@ -234,6 +234,8 @@ func (r *KeyRoute) setRoomPriority(c *gin.Context, req struct {
 		return err
 	}
 
+	go r.chat.BroadcastMessageToRoom(roomID, chatsocket.InvalidateRoomMasterMessage(roomID))
+
 	c.JSON(200, gin.H{"status": "OK"})
 	return nil
 }
