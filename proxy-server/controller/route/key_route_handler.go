@@ -79,6 +79,8 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 			return
 		}
 		// remember key
+		//fmt.Printf("[key-exchange] request: remembering proxy %s with key\n%s\n", keyReq.ProxyID, keyReq.PublicKey)
+		fmt.Printf("[key-exchange] request: remembering public sent from proxy %s\n", keyReq.ProxyID)
 		h.k.SetProxyPublicKey(keyReq.ProxyID, pk)
 	} else {
 		localPk, ok := h.k.GetProxyPublicKey(keyReq.ProxyID)
@@ -94,6 +96,7 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 		} else {
 			pk = localPk
 		}
+		fmt.Printf("[key-exchange] encrypt with public key of %s\n%s\n", keyReq.ProxyID, encryption.PublicKeyToBytes(localPk))
 	}
 
 	keys, err := h.k.GetKeyLocal(roomID)
@@ -120,7 +123,8 @@ func (h *KeyRoute) getAll(c *gin.Context) {
 
 	var pkBytes []byte
 	if shouldSendPK {
-		pkBytes = encryption.PublicKeyToBytes(pk)
+		// TODO should send my pk ?
+		pkBytes = h.k.MyKeyBytes()
 	}
 
 	message := ""

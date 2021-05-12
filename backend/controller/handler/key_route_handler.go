@@ -84,6 +84,7 @@ func (r *KeyRoute) getRoomKeyFromProxy(c *gin.Context, req struct{}) error {
 		body, _ := ioutil.ReadAll(res.Body)
 		fmt.Printf("keyRoute/getRoomKeyForProxy: proxy retured non OK status %d\nbody%s\n", res.StatusCode, body)
 		c.Data(res.StatusCode, res.Header.Get("Content-Type"), body)
+		return nil
 	}
 
 	body, err := ioutil.ReadAll(res.Body)

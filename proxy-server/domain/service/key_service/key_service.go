@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"github.com/cornelk/hashmap"
+	"log"
 	"proxySenior/config"
 	"proxySenior/domain/encryption"
 	"proxySenior/domain/interface/repository"
@@ -74,6 +75,7 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 	if err != nil {
 		// if otherside have lost the key, the send key gain
 		if strings.HasPrefix(err.Error(), badStatusErrorMessage) && resp.ErrorMessage == "ERR_NO_KEY" {
+			log.Println("[key-exchange] get remote key: retry after ERR_NO_KEY")
 			resp, err = s.getRoomKey(roomID, true)
 			if err != nil {
 				return nil, err
@@ -87,6 +89,7 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 	err = decryptRespKeys(&resp, s.privateKey)
 	// if decrypt error, maybe pub key changed, we try again
 	if err != nil {
+		log.Println("[key-exchange] get remote key: retry after decrypting failed because of bad key")
 		resp, err = s.getRoomKey(roomID, true)
 		if err != nil {
 			return nil, err
@@ -103,8 +106,18 @@ func (s *KeyService) GetKeyRemote(roomID string) ([]model_proxy.KeyRecord, error
 		fmt.Println("update key error:", err)
 	}
 	s.remote.CatchUp(roomID)
-
 	s.keyCache.Set(roomID, resp.Keys)
+	if resp.PublicKey != nil {
+		if key, err := encryption.BytesToPublicKey(resp.PublicKey); err == nil {
+			//log.Printf("[key-exchange] response: remembered public key of proxy %s\n%s\n", proxy.ProxyID.Hex(), resp.PublicKey)
+			log.Printf("[key-exchange] response: remembered public key from proxy %s\n", proxy.ProxyID.Hex())
+			s.SetProxyPublicKey(proxy.ProxyID.Hex(), key)
+		} else {
+			log.Printf("[key-exchange] remember error for %s: %s\n", proxy.ProxyID.Hex(), err)
+		}
+	} else {
+		log.Printf("[key-exchange] no public key returned from %s\n", proxy.ProxyID.Hex())
+	}
 
 	return resp.Keys, nil
 }
@@ -160,6 +173,10 @@ func (s *KeyService) ensureSelfKeys() {
 	priv, pub := generateKeyPair(2048)
 	s.privateKey = priv
 	s.public = pub
+}
+
+func (s *KeyService) MyKeyBytes() []byte {
+	return encryption.PublicKeyToBytes(s.public)
 }
 
 // getRoomKey is helper for API of getting room key with or without key

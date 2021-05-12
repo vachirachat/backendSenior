@@ -71,7 +71,10 @@ func PublicKeyToBytes(pub *rsa.PublicKey) []byte {
 // BytesToPrivateKey bytes to private key
 // keys need to begin with --- BEGIN RSA PRIVATE KEY ---
 func BytesToPrivateKey(priv []byte) (*rsa.PrivateKey, error) {
-	block, _ := pem.Decode(priv)
+	block, rest := pem.Decode(priv)
+	if block == nil {
+		return nil, fmt.Errorf("bytes to private key: error decoding: %s | %s", block, rest)
+	}
 
 	enc := x509.IsEncryptedPEMBlock(block)
 	b := block.Bytes
@@ -92,7 +95,11 @@ func BytesToPrivateKey(priv []byte) (*rsa.PrivateKey, error) {
 
 // BytesToPublicKey bytes to public key
 func BytesToPublicKey(pub []byte) (*rsa.PublicKey, error) {
-	block, _ := pem.Decode(pub)
+	block, rest := pem.Decode(pub)
+	if block == nil {
+		return nil, fmt.Errorf("bytes to private key: error decoding: %s | %s", block, rest)
+	}
+
 	enc := x509.IsEncryptedPEMBlock(block)
 	b := block.Bytes
 	var err error
